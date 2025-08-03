@@ -96,26 +96,31 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
             </View>
 
             {/* Bottom Navigation Buttons */}
-            <TouchableOpacity 
-                style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]} 
-                onPress={!leftButtonDisabled ? onLeftButtonPress : undefined}
-            >
-                <Text style={styles.buttonText}>{leftButtonText}</Text>
-            </TouchableOpacity>
+            <View style={styles.bottomButtonContainer}>
+                <TouchableOpacity 
+                    style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]} 
+                    onPress={!leftButtonDisabled ? onLeftButtonPress : undefined}
+                >
+                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Text style={[styles.buttonText, leftButtonText === 'YES' && styles.yesButtonText]}>{leftButtonText}</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.center, centerButtonDisabled && styles.disabled]}
-                onPress={!centerButtonDisabled ? onCenterButtonPress : undefined}
-            >
-                <Text style={styles.buttonText}>{centerButtonText}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.bottomButton, styles.center, centerButtonDisabled && styles.disabled]}
+                    onPress={!centerButtonDisabled ? onCenterButtonPress : undefined}
+                >
+                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Text style={styles.buttonText}>{centerButtonText}</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.right, rightButtonDisabled && styles.disabled]}
-                onPress={!rightButtonDisabled ? onRightButtonPress : undefined}
-            >
-                <Text style={styles.buttonText}>{rightButtonText}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.bottomButton, styles.right, rightButtonDisabled && styles.disabled]}
+                    onPress={!rightButtonDisabled ? onRightButtonPress : undefined}
+                >
+                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Text style={[styles.buttonText, rightButtonText === 'NO' && styles.noButtonText]}>{rightButtonText}</Text>
+                </TouchableOpacity>
+            </View>
 
             {/* Physical Device Buttons - overlaid on background image */}
             <TouchableOpacity
@@ -159,11 +164,14 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     innerScreen: {
-        width: isTablet ? '75%' : '80%',
-        height: isTablet ? '65%' : '70%',
+        width: isTablet ? '75%' : '78%',
+        height: isTablet ? '65%' : '51%',
         borderRadius: isTablet ? 25 : 15,
         overflow: 'hidden',
         position: 'relative',
+        marginTop: isTablet ? -20 : -40,
+        borderWidth: 2,
+        borderColor: '#5A7B8A', // Same darker blue border as buttons
     },
     innerBackground: {
         position: 'absolute',
@@ -195,34 +203,45 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    bottomButton: {
+    bottomButtonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        paddingHorizontal: isTablet ? 40 : 55,
         position: 'absolute',
-        bottom: 20,
-        padding: 10,
-        backgroundColor: 'gray',
-        borderRadius: 5,
-        alignItems: 'center',
-        width: 50,
-        height: 50,
+        bottom: isTablet ? 20 : 100,
+    },
+    bottomButton: {
+        width: isTablet ? 80 : 75,
+        height: isTablet ? 80 : 75,
         justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: isTablet ? 40 : 30,
+        overflow: 'hidden',
+        position: 'relative',
     },
     left: {
-        left: 20,
+        marginRight: 'auto',
     },
     center: {
-        left: '50%',
-        transform: [{ translateX: -25 }],
+        marginTop: isTablet ? 10 : 30, // 10px lower
     },
     right: {
-        right: 20,
+        marginLeft: 'auto',
     },
     disabled: {
         opacity: 0.5,
     },
     buttonText: {
-        color: 'white',
+        color: '#2E5A3E', // Dark green for better contrast
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    buttonImage: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        borderRadius: isTablet ? 40 : 30,
     },
     deviceButton: {
         position: 'absolute',
@@ -245,6 +264,12 @@ const styles = StyleSheet.create({
     rightPhysical: {
         bottom: 20,
         right: 20,
+    },
+    yesButtonText: {
+        color: '#4CAF50', // Softer green
+    },
+    noButtonText: {
+        color: '#F44336', // Softer red
     },
 });
 

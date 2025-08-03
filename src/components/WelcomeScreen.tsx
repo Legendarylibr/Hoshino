@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput } from 'react-native';
 import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
 
@@ -11,31 +11,60 @@ interface Props {
     onContinue: (playerName?: string) => void;
     connected: boolean;
     onConnectWallet?: () => void;
-    playerName?: string; // Add playerName prop for stored names
+    playerName?: string;
 }
 
 const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet, playerName: storedPlayerName }) => {
     const { publicKey } = useWallet();
     
-    const [currentPhase, setCurrentPhase] = useState<'story' | 'name' | 'complete'>('story');
+    const [currentPhase, setCurrentPhase] = useState<'intro' | 'help' | 'name' | 'explanation' | 'moonCycle' | 'moonCycleNo' | 'petName' | 'final' | 'complete'>('intro');
     const [playerName, setPlayerName] = useState(storedPlayerName || '');
-    const [cursorPosition, setCursorPosition] = useState(0);
-    const [isLowercase, setIsLowercase] = useState(false);
-    const [selectedKey, setSelectedKey] = useState({ row: 0, col: 0 });
-    const [storyTextIndex, setStoryTextIndex] = useState(0);
+    const [petName, setPetName] = useState('');
+    const [dialogIndex, setDialogIndex] = useState(0);
+    const [selectedChoice, setSelectedChoice] = useState<'yes' | 'no'>('yes');
 
-    // Story content
-    const storyParts = [
-        "Long ago, Hoshino was a little star dancing through the cosmos...",
-        "One day, she slipped out of orbit and accidentally hit the Moon.",
-        "The impact left a glowing crater on the lunar surface...",
-        "From this magical crater, tiny creatures began emerging.",
-        "To make up for the damage done, every new moon cycle...",
-        "...Hoshino sends one creature down for you to take care of.",
-        "When the moon cycle ends at the full moon, your creature will ascend back...",
-        "...changed forever by how you cared for it. Will you be their guardian?",
-        "Your cosmic journey begins now! First, tell me your name..."
-    ];
+    // Dialog content for each phase
+    const dialogs = {
+        intro: [
+            "Uggggghhhh... Oh?",
+            "Hi! My name is Hoshino, I'm a little in trouble right now... Do you want to help me?"
+        ],
+        help: [
+            "O-ok...",
+            "...",
+            "Are you sure? :frowning:"
+        ],
+        name: [
+            "Ohhhh thank you! But first, what's your name?"
+        ],
+        explanation: [
+            "Amazing, " + playerName + "! Let me explain. I was on a long travel and I couldn't find a safe area for me to rest, I was sooo tired and at some point I... I... zzzzz... zzzzzzzzzzzzz...",
+            "Until...",
+            "**CRASHHHH KABOOOOMMMMM**",
+            "**FGSHSHDGJQNDBZBSBOCZZZZ**",
+            "**I HIT THE MOON!!!**",
+            "I did a mess, it wasn't my intention I swear!",
+            "But the problem doesn't finish here...",
+            "Since the crash, some tiny creatures started emerging from the crater I made. I don't know what to do with them, is it ok if I send you one every new **Moon Cycle**?"
+        ],
+        moonCycle: [
+            "NO --> O-ok... I saw one that was so cute I thought you would have loved it but... You sure?"
+        ],
+        moonCycleNo: [
+            "O-ok... I saw one that was so cute I thought you would have loved it but... You sure?"
+        ],
+        petName: [
+            "**Woo-hoooo!** Fantastic choice! Now let's chose a name for it, what's it gonna be?"
+        ],
+        final: [
+            "Yay! That's a nice name cheeky! From today, you will be its **guardian**.",
+            "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let him meet his friends.",
+            "At the end of the Moon Cycle, you and your pet will part ways. It will ascend back to the moon, where it belongs, changed by the way you treated it. Take good care of it and it will reward you nicely.",
+            "See you in 28 days!",
+            "***Hoshino fades away***",
+            "***game interface fades in***"
+        ]
+    };
 
     // Update local state when stored player name changes
     useEffect(() => {
@@ -47,7 +76,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                 console.log('📱 WelcomeScreen: Auto-continuing with stored name');
                 setTimeout(() => {
                     onContinue(storedPlayerName);
-                }, 500); // Shorter delay for stored names
+                }, 500);
             }
         }
     }, [storedPlayerName, connected, onContinue]);
@@ -58,79 +87,145 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             console.log('📱 WelcomeScreen: Auto-continuing after name entry');
             setTimeout(() => {
                 onContinue(playerName);
-            }, 1000); // 1 second delay for smooth transition
+            }, 1000);
         }
     }, [connected, currentPhase, onContinue, playerName]);
 
-    // Story progression - only when wallet is not connected
-    useEffect(() => {
-        if (!connected && currentPhase === 'story') {
-            const timer = setInterval(() => {
-                setStoryTextIndex(prev => {
-                    if (prev < storyParts.length - 1) {
-                        return prev + 1;
-                    } else {
-                        setCurrentPhase('name');
-                        return prev;
-                    }
-                });
-            }, 3000); // 3 seconds between story parts
-
-            return () => clearInterval(timer);
-        }
-    }, [currentPhase, connected, storyParts.length]);
-
-    // Reset to story when wallet disconnects
-    useEffect(() => {
-        if (!connected) {
-            setCurrentPhase('story');
-            setStoryTextIndex(0);
-        }
-    }, [connected]);
-
-    const keyboardLayout = [
-        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-        ['I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'],
-        ['Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
-        ['Back.', '', 'Lowr.', '', 'Done!']
-    ];
-
-    const handleKeyPress = (key: string) => {
-        if (currentPhase !== 'name' || key === '') return;
-
-        if (key === 'Back.') {
-            if (playerName.length > 0) {
-                setPlayerName(prev => prev.slice(0, -1));
-                setCursorPosition(prev => Math.max(0, prev - 1));
+    const handleDialogClick = () => {
+        if (dialogIndex < dialogs[currentPhase].length - 1) {
+            setDialogIndex(prev => prev + 1);
+        } else {
+            // Move to next phase
+            switch (currentPhase) {
+                case 'intro':
+                    setCurrentPhase('help');
+                    break;
+                case 'help':
+                    setCurrentPhase('name');
+                    break;
+                case 'name':
+                    setCurrentPhase('explanation');
+                    break;
+                case 'explanation':
+                    setCurrentPhase('moonCycle');
+                    break;
+                case 'moonCycle':
+                    setCurrentPhase('petName');
+                    break;
+                case 'petName':
+                    setCurrentPhase('final');
+                    break;
+                case 'final':
+                    setCurrentPhase('complete');
+                    break;
             }
-        } else if (key === 'Lowr.') {
-            setIsLowercase(!isLowercase);
-        } else if (key === 'Done!') {
-            if (playerName.trim().length > 0) {
-                setCurrentPhase('complete');
-            }
-        } else if (playerName.length < 8) { // Max 8 characters
-            const letter = isLowercase ? key.toLowerCase() : key;
-            setPlayerName(prev => prev + letter);
-            setCursorPosition(prev => prev + 1);
+            setDialogIndex(0);
         }
     };
 
-    const handleStoryClick = () => {
-        if (currentPhase === 'story') {
-            if (storyTextIndex < storyParts.length - 1) {
-                setStoryTextIndex(prev => prev + 1);
+    const handleYesClick = () => {
+        if (currentPhase === 'intro') {
+            setCurrentPhase('name');
+            setDialogIndex(0);
+        } else if (currentPhase === 'moonCycle') {
+            setCurrentPhase('petName');
+            setDialogIndex(0);
+        } else if (currentPhase === 'moonCycleNo') {
+            setCurrentPhase('petName');
+            setDialogIndex(0);
+        }
+    };
+
+    const handleNoClick = () => {
+        if (currentPhase === 'intro') {
+            setCurrentPhase('help');
+            setDialogIndex(0);
+        } else if (currentPhase === 'moonCycle') {
+            setCurrentPhase('moonCycleNo');
+            setDialogIndex(0);
+        } else if (currentPhase === 'moonCycleNo') {
+            setCurrentPhase('help');
+            setDialogIndex(0);
+        }
+    };
+
+    const handleNameSubmit = () => {
+        if (playerName.trim().length > 0) {
+            setCurrentPhase('explanation');
+            setDialogIndex(0);
+        }
+    };
+
+    const handlePetNameSubmit = () => {
+        if (petName.trim().length > 0) {
+            setCurrentPhase('final');
+            setDialogIndex(0);
+        }
+    };
+
+    const getCurrentDialog = () => {
+        if (currentPhase === 'name') {
+            return "Ohhhh thank you! But first, what's your name?";
+        } else if (currentPhase === 'petName') {
+            return "**Woo-hoooo!** Fantastic choice! Now let's chose a name for it, what's it gonna be?";
+        } else if (currentPhase === 'explanation') {
+            return dialogs.explanation[dialogIndex];
+        } else if (currentPhase === 'final') {
+            return dialogs.final[dialogIndex];
+        } else {
+            return dialogs[currentPhase]?.[dialogIndex] || "";
+        }
+    };
+
+    const showYesNoButtons = currentPhase === 'intro' || currentPhase === 'moonCycle' || currentPhase === 'moonCycleNo';
+    const showNameInput = currentPhase === 'name';
+    const showPetNameInput = currentPhase === 'petName';
+    const showChoiceDialog = showYesNoButtons && dialogIndex === dialogs[currentPhase].length - 1;
+
+    const handleLeftButton = () => {
+        if (showChoiceDialog) {
+            setSelectedChoice('yes');
+        } else if (showNameInput || showPetNameInput) {
+            if (showNameInput) {
+                handleNameSubmit();
+            } else if (showPetNameInput) {
+                handlePetNameSubmit();
+            }
+        } else {
+            handleDialogClick();
+        }
+    };
+
+    const handleRightButton = () => {
+        if (showChoiceDialog) {
+            setSelectedChoice('no');
+        } else if (showNameInput || showPetNameInput) {
+            if (showNameInput) {
+                handleNameSubmit();
+            } else if (showPetNameInput) {
+                handlePetNameSubmit();
+            }
+        } else {
+            handleDialogClick();
+        }
+    };
+
+    const handleCenterButton = () => {
+        if (showChoiceDialog) {
+            if (selectedChoice === 'yes') {
+                handleYesClick();
             } else {
-                setCurrentPhase('name');
+                handleNoClick();
             }
+        } else if (showNameInput || showPetNameInput) {
+            if (showNameInput) {
+                handleNameSubmit();
+            } else if (showPetNameInput) {
+                handlePetNameSubmit();
+            }
+        } else {
+            handleDialogClick();
         }
-    };
-
-    const getDisplayName = () => {
-        const display = playerName.padEnd(8, '*');
-        return display.split('').map((char, index) =>
-            char === '*' ? '*' : char
-        ).join('');
     };
 
     return (
@@ -152,53 +247,52 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                     </View>
                 </>
             }
-            onLeftButtonPress={() => {
-                // Handle left button press for story progression
-                if (currentPhase === 'story') {
-                    handleStoryClick();
-                }
-            }}
-            onCenterButtonPress={() => {
-                // Handle center button press for name completion
-                if (currentPhase === 'name' && playerName.trim().length > 0) {
-                    setCurrentPhase('complete');
-                }
-            }}
-            onRightButtonPress={() => {
-                // Handle right button press for wallet connection
-                if (currentPhase === 'complete' && onConnectWallet) {
-                    onConnectWallet();
-                }
-            }}
-            leftButtonText={currentPhase === 'story' ? '▶' : '←'}
-            centerButtonText={currentPhase === 'name' ? '✓' : '✓'}
-            rightButtonText={currentPhase === 'complete' ? '🔗' : '→'}
-            centerButtonDisabled={currentPhase === 'name' && playerName.trim().length === 0}
+            onLeftButtonPress={handleLeftButton}
+            onCenterButtonPress={handleCenterButton}
+            onRightButtonPress={handleRightButton}
+            leftButtonText={showChoiceDialog ? '←' : '←'}
+            centerButtonText={showChoiceDialog ? '✓' : '✓'}
+            rightButtonText={showChoiceDialog ? '→' : '→'}
+            centerButtonDisabled={(showNameInput && playerName.trim().length === 0) || (showPetNameInput && petName.trim().length === 0)}
         >
-            {currentPhase === 'story' && (
-                <TouchableOpacity style={styles.storySection} onPress={handleStoryClick}>
+            {currentPhase !== 'name' && currentPhase !== 'petName' && (
+                <TouchableOpacity style={styles.storySection} onPress={handleDialogClick}>
                     <View style={styles.storyCharacterCentered}>
                         <Image
                             source={require('../../assets/images/hoshino star.png')}
-                            style={styles.storyCharacterCenterImage}
+                            style={styles.starCharacterImage}
                         />
                     </View>
 
                     <View style={styles.storyDialogBottom}>
                         <View style={styles.storyDialogueLargeBox}>
-                            <Text style={styles.storySpeakerLarge}>Hoshino:</Text>
-                            <Text style={styles.storyTextLarge}>
-                                {storyParts[storyTextIndex]}
-                            </Text>
-                            <Text style={styles.storyPromptLarge}>
-                                {storyTextIndex < storyParts.length - 1 ? 'Tap to continue...' : 'Tap to begin...'}
-                            </Text>
+                            <View style={styles.storyDialogueInnerBox}>
+                                <Text style={styles.storyTextLarge}>
+                                    {getCurrentDialog()}
+                                </Text>
+                                {showChoiceDialog && (
+                                    <View style={styles.choiceContainer}>
+                                        <Text style={[styles.choiceText, selectedChoice === 'yes' && styles.selectedChoice]}>
+                                            YES
+                                        </Text>
+                                        <Text style={styles.choiceText}>  </Text>
+                                        <Text style={[styles.choiceText, selectedChoice === 'no' && styles.selectedChoice]}>
+                                            NO
+                                        </Text>
+                                    </View>
+                                )}
+                                {!showYesNoButtons && (
+                                    <Text style={styles.storyPromptLarge}>
+                                        Tap to continue...
+                                    </Text>
+                                )}
+                            </View>
                         </View>
                     </View>
                 </TouchableOpacity>
             )}
 
-            {currentPhase === 'name' && (
+            {showNameInput && (
                 <>
                     <View style={styles.eyesSection}>
                         <Image
@@ -211,32 +305,63 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                         <View style={styles.nameInputContainer}>
                             <View style={styles.nameInputTop}>
                                 <Text style={styles.namePrompt}>Enter your name!</Text>
-                                <Text style={styles.nameDisplay}>{getDisplayName()}</Text>
-                            </View>
-
-                            <View style={styles.virtualKeyboard}>
-                                {keyboardLayout.map((row, rowIndex) => (
-                                    <View key={rowIndex} style={styles.keyboardRow}>
-                                        {row.map((key, colIndex) => (
-                                            <TouchableOpacity
-                                                key={colIndex}
-                                                style={[
-                                                    styles.keyboardKey,
-                                                    selectedKey.row === rowIndex && selectedKey.col === colIndex ? styles.selected : {},
-                                                    key === '' ? styles.invisible : {},
-                                                ]}
-                                                onPress={() => {
-                                                    if (key !== '') {
-                                                        setSelectedKey({ row: rowIndex, col: colIndex });
-                                                        handleKeyPress(key);
-                                                    }
-                                                }}
-                                            >
-                                                <Text>{key}</Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                <View style={styles.nameDisplayContainer}>
+                                    <View style={styles.nameInputOuterBox}>
+                                        <View style={styles.nameInputInnerBox}>
+                                            <Text style={styles.nameDisplay}>
+                                                {playerName.padEnd(8, '*')}
+                                            </Text>
+                                            <TextInput
+                                                style={styles.hiddenInput}
+                                                value={playerName}
+                                                onChangeText={setPlayerName}
+                                                placeholder=""
+                                                maxLength={8}
+                                                autoFocus={true}
+                                                onSubmitEditing={handleNameSubmit}
+                                                returnKeyType="done"
+                                            />
+                                        </View>
                                     </View>
-                                ))}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </>
+            )}
+
+            {showPetNameInput && (
+                <>
+                    <View style={styles.eyesSection}>
+                        <Image
+                            source={require('../../assets/images/eyes.png')}
+                            style={styles.eyesImage}
+                        />
+                    </View>
+
+                    <View style={styles.nameInputSection}>
+                        <View style={styles.nameInputContainer}>
+                            <View style={styles.nameInputTop}>
+                                <Text style={styles.namePrompt}>Enter pet name!</Text>
+                                <View style={styles.nameDisplayContainer}>
+                                    <View style={styles.nameInputOuterBox}>
+                                        <View style={styles.nameInputInnerBox}>
+                                            <Text style={styles.nameDisplay}>
+                                                {petName.padEnd(8, '*')}
+                                            </Text>
+                                            <TextInput
+                                                style={styles.hiddenInput}
+                                                value={petName}
+                                                onChangeText={setPetName}
+                                                placeholder=""
+                                                maxLength={8}
+                                                autoFocus={true}
+                                                onSubmitEditing={handlePetNameSubmit}
+                                                returnKeyType="done"
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
                             </View>
                         </View>
                     </View>
@@ -286,31 +411,60 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    storyCharacterCenterImage: {
-        width: isTablet ? 400 : 300,
-        height: isTablet ? 400 : 300,
-        resizeMode: 'contain',
-    },
     storyDialogBottom: {
         width: '100%',
         padding: 10,
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
     storyDialogueLargeBox: {
-        backgroundColor: 'white',
-        padding: 10,
-        borderRadius: 10,
+        backgroundColor: '#E8F5E8', // Light pastel green background
+        padding: 20, // Increased padding for less cramped look
+        borderRadius: 8, // Less rounded for more pixelated look
+        borderWidth: 3,
+        borderColor: '#2E5A3E', // Dark green outer border
+        // Softer inner border effect
+        shadowColor: '#4A7A5A',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 1,
+        elevation: 1,
+        // Fixed size dialog box
+        width: isTablet ? 400 : 300,
+        height: isTablet ? 140 : 120, // Increased height to prevent clipping
+        alignSelf: 'center',
+        // Create inner border with minimal padding
+        paddingLeft: 3,
+        paddingRight: 3,
+        paddingTop: 3,
+        paddingBottom: 3,
+    },
+    storyDialogueInnerBox: {
+        backgroundColor: '#E8F5E8',
+        padding: 15, // Increased padding
+        borderRadius: 6, // Less rounded for more pixelated look
+        borderWidth: 2,
+        borderColor: '#4A7A5A', // Inner border color
+        width: '100%',
+        height: '100%',
+        justifyContent: 'flex-start', // Changed to flex-start to bring content up
+        paddingTop: 20, // Add top padding for spacing
     },
     storySpeakerLarge: {
         fontWeight: 'bold',
         fontSize: 16,
+        color: '#2E5A3E', // Dark green text
+        marginBottom: 5,
     },
     storyTextLarge: {
         fontSize: 14,
+        color: '#2E5A3E', // Dark green text
+        lineHeight: 20,
     },
     storyPromptLarge: {
         fontSize: 12,
-        color: 'gray',
+        color: '#4A7A5A', // Medium green for subtle text
+        marginTop: 5,
+        fontStyle: 'italic',
     },
     starCharacterSection: {
         height: isTablet ? 450 : 350,
@@ -318,9 +472,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     starCharacterImage: {
-        width: isTablet ? 500 : 400,
-        height: isTablet ? 500 : 400,
+        width: isTablet ? 250 : 200,
+        height: isTablet ? 250 : 200,
         resizeMode: 'contain',
+        marginLeft: -3,
     },
     eyesSection: {
         height: isTablet ? 120 : 80,
@@ -335,47 +490,45 @@ const styles = StyleSheet.create({
     nameInputSection: {
         flex: 1,
         padding: 10,
-        justifyContent: 'space-between',
+        justifyContent: 'center',
     },
     nameInputContainer: {
         flex: 1,
-        justifyContent: 'space-between',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     nameInputTop: {
         alignItems: 'center',
-        marginBottom: 20,
-        paddingTop: 20,
+        width: '100%',
     },
     namePrompt: {
         fontSize: isTablet ? 22 : 18,
-        marginBottom: 5,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    nameDisplayContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        maxWidth: 300,
+        position: 'relative',
     },
     nameDisplay: {
         fontSize: isTablet ? 28 : 24,
+        textAlign: 'center',
+        color: '#2E5A3E', // Dark teal text to match border
         letterSpacing: 5,
+        width: '100%',
     },
-    virtualKeyboard: {
-        flexDirection: 'column',
-    },
-    keyboardRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginBottom: 5,
-    },
-    keyboardKey: {
-        width: isTablet ? 50 : 40,
-        height: isTablet ? 50 : 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'lightgray',
-        margin: isTablet ? 3 : 2,
-        borderRadius: isTablet ? 6 : 5,
-    },
-    selected: {
-        backgroundColor: 'gray',
-    },
-    invisible: {
+    hiddenInput: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
         opacity: 0,
+        zIndex: 1,
     },
     completeSection: {
         flex: 1,
@@ -392,6 +545,42 @@ const styles = StyleSheet.create({
     },
     transitionText: {
         fontSize: isTablet ? 18 : 16,
+    },
+    nameInputOuterBox: {
+        width: '80%',
+        maxWidth: 250,
+        alignSelf: 'center',
+        borderWidth: 2,
+        borderColor: '#2E5A3E', // Dark teal outer border
+        borderRadius: 6, // Less rounded for more pixelated look
+        padding: 3, // Small padding for inner border
+        backgroundColor: '#E8F5E8', // Off-white background between borders
+    },
+    nameInputInnerBox: {
+        backgroundColor: '#E8F5E8',
+        padding: 12,
+        borderRadius: 4, // Less rounded for more pixelated look
+        borderWidth: 2,
+        borderColor: '#4A7A5A', // Medium teal inner border
+        width: '100%',
+        height: 50, // Fixed height to make it smaller
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    choiceContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 0, // Reduced spacing from dialog text
+    },
+    choiceText: {
+        fontSize: 16,
+        color: '#4A7A5A', // Medium green for choice text
+        marginHorizontal: 30, // Increased horizontal spacing instead of gap
+    },
+    selectedChoice: {
+        color: '#2E5A3E', // Dark green for selected choice
+        textDecorationLine: 'underline',
+        textDecorationColor: '#2E5A3E', // Dark green underline
     },
 });
 
