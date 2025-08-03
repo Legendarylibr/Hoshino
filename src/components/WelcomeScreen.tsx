@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useWallet } from '../contexts/WalletContext';
+import InnerScreen from './InnerScreen';
 
 // Get screen dimensions for responsive sizing
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -133,12 +134,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     };
 
     return (
-        <View style={styles.tamagotchiScreenContainer}>
-            <Image source={require('../../assets/images/casing.png')} style={styles.mainBackground} resizeMode="cover" />
-            
-            <View style={styles.innerScreen}>
-                <Image source={require('../../assets/images/screen bg.png')} style={styles.innerBackground} resizeMode="cover" />
-                <View style={styles.statsBar}>
+        <InnerScreen
+            showStatsBar={true}
+            statsBarContent={
+                <>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Welcome</Text>
                         <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
@@ -151,155 +150,120 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                         <Text style={styles.statLabel}>2025</Text>
                         <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
                     </View>
-                </View>
+                </>
+            }
+            onLeftButtonPress={() => {
+                // Handle left button press for story progression
+                if (currentPhase === 'story') {
+                    handleStoryClick();
+                }
+            }}
+            onCenterButtonPress={() => {
+                // Handle center button press for name completion
+                if (currentPhase === 'name' && playerName.trim().length > 0) {
+                    setCurrentPhase('complete');
+                }
+            }}
+            onRightButtonPress={() => {
+                // Handle right button press for wallet connection
+                if (currentPhase === 'complete' && onConnectWallet) {
+                    onConnectWallet();
+                }
+            }}
+            leftButtonText={currentPhase === 'story' ? '▶' : '←'}
+            centerButtonText={currentPhase === 'name' ? '✓' : '✓'}
+            rightButtonText={currentPhase === 'complete' ? '🔗' : '→'}
+            centerButtonDisabled={currentPhase === 'name' && playerName.trim().length === 0}
+        >
+            {currentPhase === 'story' && (
+                <TouchableOpacity style={styles.storySection} onPress={handleStoryClick}>
+                    <View style={styles.storyCharacterCentered}>
+                        <Image
+                            source={require('../../assets/images/hoshino star.png')}
+                            style={styles.storyCharacterCenterImage}
+                        />
+                    </View>
 
-                <View style={styles.mainDisplayArea}>
-                    {currentPhase === 'story' && (
-                        <TouchableOpacity style={styles.storySection} onPress={handleStoryClick}>
-                            <View style={styles.storyCharacterCentered}>
-                                <Image
-                                    source={require('../../assets/images/hoshino star.png')}
-                                    style={styles.storyCharacterCenterImage}
-                                />
-                            </View>
-
-                            <View style={styles.storyDialogBottom}>
-                                <View style={styles.storyDialogueLargeBox}>
-                                    <Text style={styles.storySpeakerLarge}>Hoshino:</Text>
-                                    <Text style={styles.storyTextLarge}>
-                                        {storyParts[storyTextIndex]}
-                                    </Text>
-                                    <Text style={styles.storyPromptLarge}>
-                                        {storyTextIndex < storyParts.length - 1 ? 'Tap to continue...' : 'Tap to begin...'}
-                                    </Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    )}
-
-                    {currentPhase === 'name' && (
-                        <>
-                            <View style={styles.eyesSection}>
-                                <Image
-                                    source={require('../../assets/images/eyes.png')}
-                                    style={styles.eyesImage}
-                                />
-                            </View>
-
-                            <View style={styles.nameInputSection}>
-                                <View style={styles.nameInputContainer}>
-                                    <View style={styles.nameInputTop}>
-                                        <Text style={styles.namePrompt}>Enter your name!</Text>
-                                        <Text style={styles.nameDisplay}>{getDisplayName()}</Text>
-                                    </View>
-
-                                    <View style={styles.virtualKeyboard}>
-                                        {keyboardLayout.map((row, rowIndex) => (
-                                            <View key={rowIndex} style={styles.keyboardRow}>
-                                                {row.map((key, colIndex) => (
-                                                    <TouchableOpacity
-                                                        key={colIndex}
-                                                        style={[
-                                                            styles.keyboardKey,
-                                                            selectedKey.row === rowIndex && selectedKey.col === colIndex ? styles.selected : {},
-                                                            key === '' ? styles.invisible : {},
-                                                        ]}
-                                                        onPress={() => {
-                                                            if (key !== '') {
-                                                                setSelectedKey({ row: rowIndex, col: colIndex });
-                                                                handleKeyPress(key);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Text>{key}</Text>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            </View>
-                        </>
-                    )}
-
-                    {currentPhase === 'complete' && (
-                        <View style={styles.completeSection}>
-                            <View style={styles.starCharacterSection}>
-                                <Image
-                                    source={require('../../assets/images/hoshino star.png')}
-                                    style={styles.starCharacterImage}
-                                />
-                            </View>
-                            <View style={styles.completionMessage}>
-                                <Text style={styles.welcomePlayer}>Welcome, {playerName}!</Text>
-                                <Text style={styles.transitionText}>
-                                    {connected ? 'Entering the cosmic realm...' : 'Please connect your Solflare wallet to continue'}
-                                </Text>
-                            </View>
+                    <View style={styles.storyDialogBottom}>
+                        <View style={styles.storyDialogueLargeBox}>
+                            <Text style={styles.storySpeakerLarge}>Hoshino:</Text>
+                            <Text style={styles.storyTextLarge}>
+                                {storyParts[storyTextIndex]}
+                            </Text>
+                            <Text style={styles.storyPromptLarge}>
+                                {storyTextIndex < storyParts.length - 1 ? 'Tap to continue...' : 'Tap to begin...'}
+                            </Text>
                         </View>
-                    )}
-                </View>
-            </View>
-
-            {currentPhase !== 'story' && (
-                <TouchableOpacity
-                    style={styles.walletConnectButton}
-                    onPress={onConnectWallet}
-                >
-                    <Text style={styles.walletConnectText}>
-                        {connected && publicKey
-                            ? `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`
-                            : 'Connect'
-                        }
-                    </Text>
+                    </View>
                 </TouchableOpacity>
             )}
-        </View>
+
+            {currentPhase === 'name' && (
+                <>
+                    <View style={styles.eyesSection}>
+                        <Image
+                            source={require('../../assets/images/eyes.png')}
+                            style={styles.eyesImage}
+                        />
+                    </View>
+
+                    <View style={styles.nameInputSection}>
+                        <View style={styles.nameInputContainer}>
+                            <View style={styles.nameInputTop}>
+                                <Text style={styles.namePrompt}>Enter your name!</Text>
+                                <Text style={styles.nameDisplay}>{getDisplayName()}</Text>
+                            </View>
+
+                            <View style={styles.virtualKeyboard}>
+                                {keyboardLayout.map((row, rowIndex) => (
+                                    <View key={rowIndex} style={styles.keyboardRow}>
+                                        {row.map((key, colIndex) => (
+                                            <TouchableOpacity
+                                                key={colIndex}
+                                                style={[
+                                                    styles.keyboardKey,
+                                                    selectedKey.row === rowIndex && selectedKey.col === colIndex ? styles.selected : {},
+                                                    key === '' ? styles.invisible : {},
+                                                ]}
+                                                onPress={() => {
+                                                    if (key !== '') {
+                                                        setSelectedKey({ row: rowIndex, col: colIndex });
+                                                        handleKeyPress(key);
+                                                    }
+                                                }}
+                                            >
+                                                <Text>{key}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    </View>
+                </>
+            )}
+
+            {currentPhase === 'complete' && (
+                <View style={styles.completeSection}>
+                    <View style={styles.starCharacterSection}>
+                        <Image
+                            source={require('../../assets/images/hoshino star.png')}
+                            style={styles.starCharacterImage}
+                        />
+                    </View>
+                    <View style={styles.completionMessage}>
+                        <Text style={styles.welcomePlayer}>Welcome, {playerName}!</Text>
+                        <Text style={styles.transitionText}>
+                            {connected ? 'Entering the cosmic realm...' : 'Please connect your Solflare wallet to continue'}
+                        </Text>
+                    </View>
+                </View>
+            )}
+        </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    tamagotchiScreenContainer: {
-        flex: 1,
-        backgroundColor: 'black',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    mainBackground: {
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        resizeMode: 'contain',
-    },
-    innerScreen: {
-        width: isTablet ? '75%' : '80%',
-        height: isTablet ? '75%' : '80%',
-        borderRadius: isTablet ? 25 : 15,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    innerBackground: {
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-    },
-    hoshinoTitle: {
-        width: isTablet ? 350 : 250,
-        height: isTablet ? 140 : 100,
-        resizeMode: 'contain',
-        marginVertical: isTablet ? 30 : 20,
-    },
-    tamagotchiMainScreen: {
-        width: '100%',
-        flex: 1,
-        position: 'relative',
-    },
-    statsBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 10,
-        backgroundColor: 'black',
-    },
     statItem: {
         alignItems: 'center',
         flex: 1,
@@ -311,9 +275,6 @@ const styles = StyleSheet.create({
     starRating: {
         color: 'yellow',
         fontSize: 12,
-    },
-    mainDisplayArea: {
-        flex: 1,
     },
     storySection: {
         flex: 1,
@@ -380,7 +341,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'space-between',
     },
-
     nameInputTop: {
         alignItems: 'center',
         marginBottom: 20,
@@ -432,22 +392,6 @@ const styles = StyleSheet.create({
     },
     transitionText: {
         fontSize: isTablet ? 18 : 16,
-    },
-    walletConnectButton: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
-        paddingVertical: isTablet ? 8 : 6,
-        paddingHorizontal: isTablet ? 12 : 10,
-        borderRadius: isTablet ? 8 : 6,
-        alignItems: 'center',
-        zIndex: 1000,
-    },
-    walletConnectText: {
-        color: 'white',
-        fontSize: isTablet ? 14 : 12,
-        fontWeight: 'bold',
     },
 });
 

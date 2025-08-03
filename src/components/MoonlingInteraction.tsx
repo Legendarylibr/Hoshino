@@ -6,6 +6,7 @@ import MoonCycleDisplay from './MoonCycleDisplay';
 import FeedingAnimation from './FeedingAnimation';
 import SleepMode from './SleepMode';
 import IngredientSelection from './IngredientSelection';
+import InnerScreen from './InnerScreen';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
 import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
 
@@ -286,21 +287,18 @@ const MoonlingInteraction: React.FC<Props> = ({
     };
 
     return (
-        <View style={styles.container}>
-            {/* Top Status Bar */}
-            <View style={styles.topStatus}>
+        <InnerScreen
+            topStatusContent={
                 <Text style={styles.walletStatusText}>
                     {connected && walletAddress ? (
                         playerName ? `👋 ${playerName} [${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}]` :
                             `[${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}]`
                     ) : 'Wallet Disconnected'}
                 </Text>
-            </View>
-
-            {/* Main LCD Screen */}
-            <View style={styles.mainScreen}>
-                {/* Stats Bar */}
-                <View style={styles.statsBar}>
+            }
+            showStatsBar={true}
+            statsBarContent={
+                <>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Mood {moodState ? `(${moodState.state})` : ''}</Text>
                         <Text style={styles.starRating}>
@@ -322,368 +320,216 @@ const MoonlingInteraction: React.FC<Props> = ({
                             {'☆'.repeat(5 - currentStats.energy)}
                         </Text>
                     </View>
-                </View>
-
-                {/* Main Display Area */}
-                <View style={styles.mainDisplayArea}>
-                    <Image source={imageSources.background} style={styles.backgroundImage} resizeMode="cover" />
-                    {selectedCharacter ? (
-                        <Image
-                            source={getImageSource(selectedCharacter.image)}
-                            style={styles.characterImage}
-                        />
-                    ) : (
-                        <View style={styles.noCharacterPlaceholder}>
-                            <Text>No Character Selected</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Navigation Menu - Inside Main Screen */}
-                <View style={styles.integratedMenuBar}>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={async () => {
-                            if (!selectedCharacter) {
-                                onNotification?.('❌ Please select a character first', 'error');
-                                return;
-                            }
-
-                            // ✅ Use LocalGameEngine for instant feed action with StatDecayService sync
-                            if (localGameEngine) {
-                                const newStats = await localGameEngine.feedMoonling();
-                                // Sync the feeding action with StatDecayService to maintain consistency
-                                const result = await statDecayService.recordAction(
-                                    selectedCharacter.id,
-                                    'feed',
-                                    { hunger: 2, mood: 1 } // Match LocalGameEngine values
-                                );
-
-                                // Use the synced stats
-                                const syncedStats = {
-                                    ...newStats,
-                                    mood: result.newStats.mood,
-                                    hunger: result.newStats.hunger,
-                                    energy: result.newStats.energy
-                                };
-
-                                setCurrentStats(syncedStats);
-                                // Save synced stats back to LocalGameEngine
-                                await localGameEngine.updateStats(syncedStats);
-
-                                onNotification?.(
-                                    result.canGainMood
-                                        ? `🍎 Fed ${selectedCharacter.name}! Mood +1, Hunger +2`
-                                        : `🍎 Fed ${selectedCharacter.name}! Hunger +2 (Already earned today's mood bonus)`,
-                                    'success'
-                                );
-                            } else {
-                                // Fallback to ingredient selection flow
-                                console.log('Feed menu clicked - opening ingredient selection');
-                                handleFeedingFlow();
-                            }
-
-                            // Also call the original onFeed if it exists
-                            if (onFeed) onFeed();
-                        }}
-                    >
-                        <Image source={imageSources.feed} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={async () => {
-                            if (!selectedCharacter) {
-                                onNotification?.('❌ Please select a character first', 'error');
-                                return;
-                            }
-                            if (onChat) await onChat();
-                        }}
-                    >
-                        <Image source={imageSources.chat} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={async () => {
-                            if (!selectedCharacter) {
-                                onNotification?.('❌ Please select a character first', 'error');
-                                return;
-                            }
-
-                            // ✅ Use LocalGameEngine for instant play action with StatDecayService sync
-                            if (localGameEngine) {
-                                const newStats = await localGameEngine.playWithMoonling();
-                                // Sync the play action with StatDecayService
-                                const result = await statDecayService.recordAction(
-                                    selectedCharacter.id,
-                                    'play',
-                                    { mood: 2 } // Match LocalGameEngine values
-                                );
-
-                                // Use the synced stats
-                                const syncedStats = {
-                                    ...newStats,
-                                    mood: result.newStats.mood,
-                                    hunger: result.newStats.hunger,
-                                    energy: Math.max(result.newStats.energy - 1, 0) // Apply LocalGameEngine energy cost
-                                };
-
-                                setCurrentStats(syncedStats);
-                                // Save synced stats back to LocalGameEngine
-                                await localGameEngine.updateStats(syncedStats);
-
-                                onNotification?.(
-                                    result.canGainMood
-                                        ? `🎮 Played with ${selectedCharacter.name}! Mood +2, Energy -1`
-                                        : `🎮 Played with ${selectedCharacter.name}! Energy -1 (Already earned today's mood bonus)`,
-                                    'success'
-                                );
-                            } else {
-                                onNotification?.(`🎮 Games coming soon! Stay tuned for amazing mini-games with ${selectedCharacter.name}!`, 'info');
-                            }
-                        }}
-                    >
-                        <Image source={imageSources.games} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={() => {
-                            if (!selectedCharacter) {
-                                onNotification?.('❌ Please select a character first', 'error');
-                                return;
-                            }
-
-                            console.log('Sleep mode activated for', selectedCharacter.name);
-                            setShowSleepMode(true);
-                        }}
-                    >
-                        <Image source={imageSources.sleep} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={onShop}
-                    >
-                        <Image source={imageSources.shop} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={() => {
-                            if (!selectedCharacter) {
-                                onNotification?.('❌ Please select a character first', 'error');
-                                return;
-                            }
-                            onInventory?.();
-                        }}
-                    >
-                        <Image source={imageSources.inventory} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={() => setShowGallery(true)}
-                    >
-                        <Image source={imageSources.gallery} style={styles.menuImage} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuIcon}
-                        onPress={() => {
-                            if (selectedCharacter && !selectedCharacter.nftMint && connected) {
-                                if (onMint) {
-                                    onMint();
-                                }
-                            } else if (selectedCharacter?.nftMint) {
-                                onNotification?.(`✅ ${selectedCharacter.name} is already minted! NFT Address: ${selectedCharacter.nftMint?.slice(0, 8)}...${selectedCharacter.nftMint?.slice(-8)}`, 'success');
-                            } else {
-                                onNotification?.('❌ Connect wallet and select character to mint', 'info');
-                            }
-                        }}
-                    >
-                        <Image source={imageSources.mint} style={styles.menuImage} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* ✅ Achievement Status Section */}
-                {localGameEngine && localGameEngine.getQueuedAchievements().length > 0 && (
-                    <View style={styles.achievementStatusSection}>
-                        <View style={styles.achievementNotification}>
-                            <Text>🏆 {localGameEngine.getQueuedAchievements().length} achievement{localGameEngine.getQueuedAchievements().length > 1 ? 's' : ''} ready to mint!</Text>
-                            {onMintAchievements && (
-                                <TouchableOpacity
-                                    style={styles.mintAchievementsBtn}
-                                    onPress={onMintAchievements}
-                                >
-                                    <Text style={styles.mintAchievementsText}>Mint NFTs</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
+                </>
+            }
+            onLeftButtonPress={onBack}
+            onCenterButtonPress={() => onNotification?.('🎮 Moonling Interaction: Care for your character!', 'info')}
+            onRightButtonPress={() => onNotification?.('🎮 Moonling Help: Feed, play, sleep, and care for your cosmic companion!', 'info')}
+            leftButtonText="←"
+            centerButtonText="🎮"
+            rightButtonText="?"
+        >
+            {/* Main Display Area */}
+            <View style={styles.mainDisplayArea}>
+                <Image source={imageSources.background} style={styles.backgroundImage} resizeMode="cover" />
+                {selectedCharacter ? (
+                    <Image
+                        source={getImageSource(selectedCharacter.image)}
+                        style={styles.characterImage}
+                    />
+                ) : (
+                    <View style={styles.noCharacterPlaceholder}>
+                        <Text>No Character Selected</Text>
                     </View>
                 )}
             </View>
 
-            {/* Physical Device Buttons - overlaid on background image */}
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.leftPhysical]}
-                onPress={onBack}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.centerPhysical]}
-                onPress={() => onNotification?.('🎮 Moonling Interaction: Care for your character!', 'info')}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.rightPhysical]}
-                onPress={() => onNotification?.('🎮 Moonling Help: Feed, play, sleep, and care for your cosmic companion!', 'info')}
-            />
+            {/* Navigation Menu - Inside Main Screen */}
+            <View style={styles.integratedMenuBar}>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={async () => {
+                        if (!selectedCharacter) {
+                            onNotification?.('❌ Please select a character first', 'error');
+                            return;
+                        }
 
-            {/* Feeding Animation Overlay */}
-            {showFeedingAnimation && selectedCharacter && (
-                <Modal visible={true} transparent={true} animationType="fade">
-                    <View style={styles.feedingAnimationOverlay}>
-                        <FeedingAnimation
-                            character={selectedCharacter}
-                            foodItem={currentFoodItem}
-                            onAnimationComplete={() => {
-                                (async () => {
-                                    setShowFeedingAnimation(false);
-                                    setCurrentFoodItem('');
-                                    setCraftedFoodName('');
+                        // ✅ Use LocalGameEngine for instant feed action with StatDecayService sync
+                        if (localGameEngine) {
+                            const newStats = await localGameEngine.feedMoonling();
+                            // Sync the feeding action with StatDecayService to maintain consistency
+                            const result = await statDecayService.recordAction(
+                                selectedCharacter.id,
+                                'feed',
+                                { hunger: 2, mood: 1 } // Match LocalGameEngine values
+                            );
 
-                                    // Calculate hunger boost based on food item (design document values)
-                                    const foodHungerValues: { [key: string]: number } = {
-                                        'dream-bean': 1,
-                                        'nebula-plum': 2,
-                                        'cloud-cake': 3,
-                                        'starberry': 5, // Full hunger
-                                        // Legacy support
-                                        'default': 1
-                                    };
+                            // Use the synced stats
+                            const syncedStats = {
+                                ...newStats,
+                                mood: result.newStats.mood,
+                                hunger: result.newStats.hunger,
+                                energy: result.newStats.energy
+                            };
 
-                                    const hungerBoost = foodHungerValues[currentFoodItem] || 1;
+                            setCurrentStats(syncedStats);
+                            // Save synced stats back to LocalGameEngine
+                            await localGameEngine.updateStats(syncedStats);
 
-                                    // Use StatDecayService to record feeding action with daily mood limit
-                                    const result = await statDecayService.recordAction(
-                                        selectedCharacter.id,
-                                        'feed',
-                                        { hunger: hungerBoost, mood: 1 } // Try to give 1 mood (limited to 1 per day)
-                                    );
+                            onNotification?.(
+                                result.canGainMood
+                                    ? `🍎 Fed ${selectedCharacter.name}! Mood +1, Hunger +2`
+                                    : `🍎 Fed ${selectedCharacter.name}! Hunger +2 (Already earned today's mood bonus)`,
+                                'success'
+                            );
+                        } else {
+                            // Fallback to ingredient selection flow
+                            console.log('Feed menu clicked - opening ingredient selection');
+                            handleFeedingFlow();
+                        }
 
-                                    // Update local state with new stats
-                                    if (result.newStats) {
-                                        setCurrentStats(prev => ({
-                                            ...prev,
-                                            ...result.newStats
-                                        }));
-                                    }
+                        // Also call the original onFeed if it exists
+                        if (onFeed) onFeed();
+                    }}
+                >
+                    <Image source={imageSources.feed} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={async () => {
+                        if (!selectedCharacter) {
+                            onNotification?.('❌ Please select a character first', 'error');
+                            return;
+                        }
+                        if (onChat) await onChat();
+                    }}
+                >
+                    <Image source={imageSources.chat} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={async () => {
+                        if (!selectedCharacter) {
+                            onNotification?.('❌ Please select a character first', 'error');
+                            return;
+                        }
 
-                                    // Show appropriate message about mood bonus
-                                    onNotification?.(result.message, result.canGainMood ? 'success' : 'info');
-                                })();
-                            }}
-                            onFoodReaction={(reaction) => {
-                                onNotification?.(reaction, 'success');
-                            }}
-                        />
+                        // ✅ Use LocalGameEngine for instant play action with StatDecayService sync
+                        if (localGameEngine) {
+                            const newStats = await localGameEngine.playWithMoonling();
+                            // Sync the play action with StatDecayService
+                            const result = await statDecayService.recordAction(
+                                selectedCharacter.id,
+                                'play',
+                                { mood: 2 } // Match LocalGameEngine values
+                            );
+
+                            // Use the synced stats
+                            const syncedStats = {
+                                ...newStats,
+                                mood: result.newStats.mood,
+                                hunger: result.newStats.hunger,
+                                energy: Math.max(result.newStats.energy - 1, 0) // Apply LocalGameEngine energy cost
+                            };
+
+                            setCurrentStats(syncedStats);
+                            // Save synced stats back to LocalGameEngine
+                            await localGameEngine.updateStats(syncedStats);
+
+                            onNotification?.(
+                                result.canGainMood
+                                    ? `🎮 Played with ${selectedCharacter.name}! Mood +2, Energy -1`
+                                    : `🎮 Played with ${selectedCharacter.name}! Energy -1 (Already earned today's mood bonus)`,
+                                'success'
+                            );
+                        } else {
+                            onNotification?.(`🎮 Games coming soon! Stay tuned for amazing mini-games with ${selectedCharacter.name}!`, 'info');
+                        }
+                    }}
+                >
+                    <Image source={imageSources.games} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={() => {
+                        if (!selectedCharacter) {
+                            onNotification?.('❌ Please select a character first', 'error');
+                            return;
+                        }
+
+                        console.log('Sleep mode activated for', selectedCharacter.name);
+                        setShowSleepMode(true);
+                    }}
+                >
+                    <Image source={imageSources.sleep} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={onShop}
+                >
+                    <Image source={imageSources.shop} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={() => {
+                        if (!selectedCharacter) {
+                            onNotification?.('❌ Please select a character first', 'error');
+                            return;
+                        }
+                        onInventory?.();
+                    }}
+                >
+                    <Image source={imageSources.inventory} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={() => setShowGallery(true)}
+                >
+                    <Image source={imageSources.gallery} style={styles.menuImage} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuIcon}
+                    onPress={() => {
+                        if (selectedCharacter && !selectedCharacter.nftMint && connected) {
+                            if (onMint) {
+                                onMint();
+                            }
+                        } else if (selectedCharacter?.nftMint) {
+                            onNotification?.(`✅ ${selectedCharacter.name} is already minted! NFT Address: ${selectedCharacter.nftMint?.slice(0, 8)}...${selectedCharacter.nftMint?.slice(-8)}`, 'success');
+                        } else {
+                            onNotification?.('❌ Connect wallet and select character to mint', 'info');
+                        }
+                    }}
+                >
+                    <Image source={imageSources.mint} style={styles.menuImage} />
+                </TouchableOpacity>
+            </View>
+
+            {/* ✅ Achievement Status Section */}
+            {localGameEngine && localGameEngine.getQueuedAchievements().length > 0 && (
+                <View style={styles.achievementStatusSection}>
+                    <View style={styles.achievementNotification}>
+                        <Text>🏆 {localGameEngine.getQueuedAchievements().length} achievement{localGameEngine.getQueuedAchievements().length > 1 ? 's' : ''} ready to mint!</Text>
+                        {onMintAchievements && (
+                            <TouchableOpacity
+                                style={styles.mintAchievementsBtn}
+                                onPress={onMintAchievements}
+                            >
+                                <Text style={styles.mintAchievementsText}>Mint NFTs</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
-                </Modal>
+                </View>
             )}
-
-            {/* Sleep Mode Overlay */}
-            {showSleepMode && selectedCharacter && (
-                <Modal visible={true} transparent={true} animationType="fade">
-                    <View style={styles.sleepAnimationOverlay}>
-                        <SleepMode
-                            character={selectedCharacter}
-                            onSleepSessionEnd={async (sleepData) => {
-                                // Apply sleep benefits to moonling stats via StatDecayService first
-                                const result = await statDecayService.recordAction(
-                                    selectedCharacter.id,
-                                    'sleep',
-                                    { energy: sleepData.energyGain, mood: sleepData.moodGain }
-                                );
-                                // Sync with LocalGameEngine if available to prevent conflicts
-                                if (localGameEngine) {
-                                    // Get current LocalGameEngine stats
-                                    const engineStats = await localGameEngine.getLocalStats();
-                                    // Create synced stats combining both systems
-                                    const syncedStats = {
-                                        ...engineStats,
-                                        mood: result.newStats.mood,
-                                        hunger: result.newStats.hunger,
-                                        energy: result.newStats.energy,
-                                        totalSleeps: engineStats.totalSleeps + 1,
-                                        experience: engineStats.experience + 5, // Match LocalGameEngine sleep bonus
-                                        lastPlayed: Date.now()
-                                    };
-                                    setCurrentStats(syncedStats);
-                                    await localGameEngine.updateStats(syncedStats);
-                                } else {
-                                    // Fallback to StatDecayService only
-                                    setCurrentStats(prev => ({
-                                        ...prev,
-                                        ...result.newStats
-                                    }));
-                                }
-                                // Show sleep completion message
-                                const sleepMessage = sleepData.score >= 80
-                                    ? `✨ ${selectedCharacter.name} had excellent sleep! Full of energy!`
-                                    : sleepData.score >= 60
-                                        ? `😊 ${selectedCharacter.name} slept well and feels refreshed!`
-                                        : `😴 ${selectedCharacter.name} got some rest but could sleep longer...`;
-                                onNotification?.(sleepMessage, sleepData.score >= 60 ? 'success' : 'info');
-                            }}
-                            onClose={() => {
-                                setShowSleepMode(false);
-                            }}
-                        />
-                    </View>
-                </Modal>
-            )}
-
-            {/* Gallery overlay */}
-            {showGallery && (
-                <Modal visible={true} transparent={false} animationType="slide">
-                    <View style={styles.galleryOverlay}>
-                        <Gallery
-                            onBack={() => setShowGallery(false)}
-                            onNotification={onNotification}
-                            onActionClick={(action) => {
-                                // Handle action clicks - for now just show notification
-                                onNotification?.(`${action} action clicked in Gallery!`, 'info');
-                            }}
-                        />
-                    </View>
-                </Modal>
-            )}
-        </View>
+        </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    topStatus: {
-        padding: 10,
-        backgroundColor: '#f0f0f0',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     walletStatusText: {
         fontSize: 14,
         color: '#333',
         textAlign: 'center',
-    },
-    mainScreen: {
-        flex: 1,
-        margin: 10,
-        borderWidth: 1,
-        borderColor: '#000',
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-    statsBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 10,
-        backgroundColor: '#eee',
     },
     statItem: {
         alignItems: 'center',
@@ -754,28 +600,6 @@ const styles = StyleSheet.create({
     mintAchievementsText: {
         color: '#fff',
         fontSize: 12,
-    },
-    deviceButton: {
-        position: 'absolute',
-        width: 50,
-        height: 50,
-        backgroundColor: '#ccc',
-        borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    leftPhysical: {
-        bottom: 20,
-        left: 20,
-    },
-    centerPhysical: {
-        bottom: 20,
-        left: '50%',
-        transform: [{ translateX: -25 }],
-    },
-    rightPhysical: {
-        bottom: 20,
-        right: 20,
     },
     feedingAnimationOverlay: {
         flex: 1,

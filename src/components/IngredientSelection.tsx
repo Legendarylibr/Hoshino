@@ -1,534 +1,384 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import InnerScreen from './InnerScreen';
 
-interface Ingredient {
-    id: string;
-    name: string;
-    emoji: string;
-    quantity: number;
-    rarity: 'Common' | 'Rare' | 'Epic';
-}
-
-interface Recipe {
-    id: string;
-    name: string;
-    result: string; // The food item ID that gets created
-    ingredients: { id: string; quantity: number }[];
-    description: string;
-    hungerValue: number;
-}
-
-interface Props {
+interface IngredientSelectionProps {
     onBack: () => void;
     onCraftFood: (foodId: string, foodName: string) => void;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     walletAddress?: string;
 }
 
-const IngredientSelection: React.FC<Props> = ({
+interface Ingredient {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+    cost: number;
+    owned: number;
+}
+
+interface Recipe {
+    id: string;
+    name: string;
+    description: string;
+    ingredients: { id: string; quantity: number }[];
+    result: { id: string; name: string; description: string };
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+}
+
+const IngredientSelection: React.FC<IngredientSelectionProps> = ({
     onBack,
     onCraftFood,
     onNotification,
     walletAddress
 }) => {
-    const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
-    const [selectedIngredients, setSelectedIngredients] = useState<{ [key: string]: number }>({});
-    const [userInventory, setUserInventory] = useState<Ingredient[]>([]);
+    const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+    const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([]);
+    const [currentTab, setCurrentTab] = useState<'ingredients' | 'recipes'>('ingredients');
 
-    // Mock ingredient inventory (in real app, would fetch from blockchain/database)
-    useEffect(() => {
-        // Initialize or load user's ingredient inventory
-        const mockInventory: Ingredient[] = [
-            { id: 'pink-sugar', name: 'Pink Sugar', emoji: '🌸', quantity: 3, rarity: 'Common' },
-            { id: 'nova-egg', name: 'Nova Egg', emoji: '🥚', quantity: 2, rarity: 'Rare' },
-            { id: 'mira-berry', name: 'Mira Berry', emoji: '🫐', quantity: 4, rarity: 'Common' },
-            { id: 'star-dust', name: 'Star Dust', emoji: '✨', quantity: 1, rarity: 'Epic' },
-            { id: 'cosmic-flour', name: 'Cosmic Flour', emoji: '🌾', quantity: 5, rarity: 'Common' },
-            { id: 'dream-essence', name: 'Dream Essence', emoji: '💭', quantity: 2, rarity: 'Rare' },
-            { id: 'nebula-spice', name: 'Nebula Spice', emoji: '🌌', quantity: 3, rarity: 'Rare' },
-        ];
-        setUserInventory(mockInventory);
-    }, [walletAddress]);
+    // Mock ingredients data
+    const ingredients: Ingredient[] = [
+        { id: 'dream-bean', name: 'Dream Bean', description: 'A magical bean that grows in moonlight', image: 'dream-bean.png', rarity: 'Common', cost: 5, owned: 3 },
+        { id: 'nebula-plum', name: 'Nebula Plum', description: 'A fruit that tastes like stardust', image: 'nebula-plum.png', rarity: 'Uncommon', cost: 10, owned: 2 },
+        { id: 'cloud-cake', name: 'Cloud Cake', description: 'A fluffy cake made from cloud essence', image: 'cloud-cake.png', rarity: 'Rare', cost: 15, owned: 1 },
+        { id: 'starberry', name: 'Starberry', description: 'A berry that glows like a tiny star', image: 'starberry.png', rarity: 'Epic', cost: 25, owned: 1 },
+        { id: 'moon-sugar', name: 'Moon Sugar', description: 'Crystalline sugar harvested from moonbeams', image: 'moon-sugar.png', rarity: 'Common', cost: 8, owned: 5 },
+        { id: 'cosmic-honey', name: 'Cosmic Honey', description: 'Honey collected from space bees', image: 'cosmic-honey.png', rarity: 'Uncommon', cost: 12, owned: 2 },
+    ];
 
-    // Available recipes
+    // Mock recipes data
     const recipes: Recipe[] = [
         {
-            id: 'cloud-cake',
-            name: 'Cloud Cake',
-            result: 'cloud-cake',
+            id: 'dream-dessert',
+            name: 'Dream Dessert',
+            description: 'A sweet treat that makes moonlings happy',
             ingredients: [
-                { id: 'pink-sugar', quantity: 1 },
-                { id: 'nova-egg', quantity: 1 },
-                { id: 'mira-berry', quantity: 1 }
+                { id: 'dream-bean', quantity: 2 },
+                { id: 'moon-sugar', quantity: 1 }
             ],
-            description: 'A fluffy cosmic dessert that satisfies hunger',
-            hungerValue: 3
+            result: {
+                id: 'dream-dessert',
+                name: 'Dream Dessert',
+                description: 'A magical dessert that boosts mood'
+            },
+            difficulty: 'Easy'
         },
         {
-            id: 'starberry-delight',
-            name: 'Starberry Delight',
-            result: 'starberry',
+            id: 'nebula-delight',
+            name: 'Nebula Delight',
+            description: 'A colorful dish that energizes moonlings',
             ingredients: [
-                { id: 'mira-berry', quantity: 2 },
-                { id: 'star-dust', quantity: 1 }
+                { id: 'nebula-plum', quantity: 1 },
+                { id: 'cosmic-honey', quantity: 1 }
             ],
-            description: 'A berry treat infused with stellar energy',
-            hungerValue: 5
+            result: {
+                id: 'nebula-delight',
+                name: 'Nebula Delight',
+                description: 'A vibrant dish that restores energy'
+            },
+            difficulty: 'Medium'
         },
         {
-            id: 'dream-bean-soup',
-            name: 'Dream Bean Soup',
-            result: 'dream-bean',
+            id: 'stellar-feast',
+            name: 'Stellar Feast',
+            description: 'A luxurious meal fit for cosmic royalty',
             ingredients: [
-                { id: 'cosmic-flour', quantity: 1 },
-                { id: 'dream-essence', quantity: 1 }
+                { id: 'cloud-cake', quantity: 1 },
+                { id: 'starberry', quantity: 1 },
+                { id: 'cosmic-honey', quantity: 2 }
             ],
-            description: 'A comforting soup that restores energy',
-            hungerValue: 2
-        },
-        {
-            id: 'nebula-plum-tart',
-            name: 'Nebula Plum Tart',
-            result: 'nebula-plum',
-            ingredients: [
-                { id: 'cosmic-flour', quantity: 2 },
-                { id: 'nebula-spice', quantity: 1 },
-                { id: 'nova-egg', quantity: 1 }
-            ],
-            description: 'An exotic tart with cosmic flavors',
-            hungerValue: 4
+            result: {
+                id: 'stellar-feast',
+                name: 'Stellar Feast',
+                description: 'An extravagant meal that fully satisfies hunger'
+            },
+            difficulty: 'Hard'
         }
     ];
 
-    // Check if user can craft a recipe
-    const canCraftRecipe = (recipe: Recipe): boolean => {
-        return recipe.ingredients.every(ingredient => {
-            const userIngredient = userInventory.find(item => item.id === ingredient.id);
-            return userIngredient && userIngredient.quantity >= ingredient.quantity;
+    useEffect(() => {
+        // Calculate available recipes based on owned ingredients
+        const available = recipes.filter(recipe => {
+            return recipe.ingredients.every(ingredient => {
+                const ownedIngredient = ingredients.find(i => i.id === ingredient.id);
+                return ownedIngredient && ownedIngredient.owned >= ingredient.quantity;
+            });
         });
+        setAvailableRecipes(available);
+    }, [ingredients]);
+
+    const toggleIngredient = (ingredientId: string) => {
+        setSelectedIngredients(prev => 
+            prev.includes(ingredientId) 
+                ? prev.filter(id => id !== ingredientId)
+                : [...prev, ingredientId]
+        );
     };
 
-    // Handle crafting
-    const handleCraft = (recipe: Recipe) => {
-        if (!canCraftRecipe(recipe)) {
-            onNotification?.('❌ Insufficient ingredients!', 'error');
+    const craftRecipe = (recipe: Recipe) => {
+        // Check if we have enough ingredients
+        const canCraft = recipe.ingredients.every(ingredient => {
+            const ownedIngredient = ingredients.find(i => i.id === ingredient.id);
+            return ownedIngredient && ownedIngredient.owned >= ingredient.quantity;
+        });
+
+        if (!canCraft) {
+            onNotification?.('❌ Not enough ingredients to craft this recipe', 'error');
             return;
         }
 
-        // Deduct ingredients from inventory
-        const newInventory = userInventory.map(item => {
-            const requiredIngredient = recipe.ingredients.find(ing => ing.id === item.id);
-            if (requiredIngredient) {
-                return { ...item, quantity: item.quantity - requiredIngredient.quantity };
-            }
-            return item;
-        });
-
-        setUserInventory(newInventory);
-        onNotification?.(`✨ Successfully crafted ${recipe.name}!`, 'success');
-
-        // Return to moonling interface with crafted food
-        onCraftFood(recipe.result, recipe.name);
+        // Craft the food
+        onCraftFood(recipe.result.id, recipe.result.name);
+        onNotification?.(`🍳 Successfully crafted ${recipe.result.name}!`, 'success');
     };
 
-    // Get rarity color
     const getRarityColor = (rarity: string): string => {
         switch (rarity) {
-            case 'Common': return '#9ca3af';
+            case 'Common': return '#6b7280';
+            case 'Uncommon': return '#10b981';
             case 'Rare': return '#3b82f6';
             case 'Epic': return '#8b5cf6';
             default: return '#6b7280';
         }
     };
 
-    return (
-        <View style={styles.tamagotchiScreenContainer}>
-            {/* Top Status Bar */}
-            <View style={styles.tamagotchiTopStatus}>
-                <Text style={styles.gearIcon}>🥄</Text>
-                <Text style={styles.walletStatusText}>
-                    Cosmic Kitchen - Craft Food
-                </Text>
-            </View>
+    const getDifficultyColor = (difficulty: string): string => {
+        switch (difficulty) {
+            case 'Easy': return '#10b981';
+            case 'Medium': return '#f59e0b';
+            case 'Hard': return '#ef4444';
+            default: return '#6b7280';
+        }
+    };
 
-            {/* Main LCD Screen */}
-            <View style={styles.tamagotchiMainScreen}>
-                {/* Stats Bar */}
-                <View style={styles.statsBar}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Recipes</Text>
-                        <Text style={styles.statStars}>
-                            {recipes.length}
-                        </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Ingredients</Text>
-                        <Text style={styles.statStars}>
-                            {userInventory.reduce((sum, item) => sum + item.quantity, 0)}
-                        </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Can Craft</Text>
-                        <Text style={styles.statStars}>
-                            {recipes.filter(canCraftRecipe).length}
-                        </Text>
-                    </View>
+    return (
+        <InnerScreen
+            onLeftButtonPress={onBack}
+            onCenterButtonPress={() => onNotification?.('🍳 Cooking Help: Select ingredients and craft delicious meals for your moonlings!', 'info')}
+            onRightButtonPress={() => onNotification?.('🍳 Cooking Tips: Combine ingredients to create special recipes that boost your moonling\'s stats!', 'info')}
+            leftButtonText="←"
+            centerButtonText="🍳"
+            rightButtonText="?"
+        >
+            <ScrollView style={[styles.mainDisplayArea, styles.ingredientSelection]}>
+                {/* Tab Navigation */}
+                <View style={styles.tabNavigation}>
+                    <TouchableOpacity
+                        style={[styles.tabButton, currentTab === 'ingredients' ? styles.activeTab : null]}
+                        onPress={() => setCurrentTab('ingredients')}
+                    >
+                        <Text style={styles.tabButtonText}>Ingredients</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, currentTab === 'recipes' ? styles.activeTab : null]}
+                        onPress={() => setCurrentTab('recipes')}
+                    >
+                        <Text style={styles.tabButtonText}>Recipes</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Main Display Area */}
-                <ScrollView style={[styles.mainDisplayArea, styles.ingredientSelection]}>
-                    {selectedRecipe ? (
-                        // Recipe detail view
-                        <View style={styles.recipeDetail}>
-                            {(() => {
-                                const recipe = recipes.find(r => r.id === selectedRecipe);
-                                if (!recipe) return null;
-
-                                return (
-                                    <>
-                                        <View style={styles.recipeHeader}>
-                                            <Text style={styles.recipeHeaderTitle}>{recipe.name}</Text>
-                                            <Text>{recipe.description}</Text>
-                                            <Text style={styles.hungerValue}>Hunger: +{recipe.hungerValue} ★</Text>
-                                        </View>
-
-                                        <View style={styles.requiredIngredients}>
-                                            <Text style={styles.requiredIngredientsTitle}>Required Ingredients:</Text>
-                                            {recipe.ingredients.map(ingredient => {
-                                                const userIngredient = userInventory.find(item => item.id === ingredient.id);
-                                                const hasEnough = userIngredient && userIngredient.quantity >= ingredient.quantity;
-
-                                                return (
-                                                    <View key={ingredient.id} style={[styles.ingredientRequirement, hasEnough ? styles.available : styles.missing]}>
-                                                        <Text style={styles.ingredientEmoji}>{userIngredient?.emoji || '❓'}</Text>
-                                                        <Text style={styles.ingredientName}>{userIngredient?.name || 'Unknown'}</Text>
-                                                        <Text style={styles.ingredientCount}>
-                                                            {userIngredient?.quantity || 0}/{ingredient.quantity}
-                                                        </Text>
-                                                    </View>
-                                                );
-                                            })}
-                                        </View>
-
-                                        <View style={styles.craftActions}>
-                                            <TouchableOpacity
-                                                onPress={() => setSelectedRecipe(null)}
-                                                style={styles.backButton}
-                                            >
-                                                <Text>← Back</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                onPress={() => handleCraft(recipe)}
-                                                disabled={!canCraftRecipe(recipe)}
-                                                style={[styles.craftButton, canCraftRecipe(recipe) ? styles.available : styles.disabled]}
-                                            >
-                                                <Text>{canCraftRecipe(recipe) ? '🍳 Craft!' : '❌ Missing Items'}</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </>
-                                );
-                            })()}
+                {currentTab === 'ingredients' && (
+                    <View style={styles.ingredientsSection}>
+                        <Text style={styles.sectionTitle}>Available Ingredients</Text>
+                        <View style={styles.ingredientsGrid}>
+                            {ingredients.map((ingredient) => (
+                                <TouchableOpacity
+                                    key={ingredient.id}
+                                    style={[
+                                        styles.ingredientCard,
+                                        selectedIngredients.includes(ingredient.id) && styles.selectedIngredient
+                                    ]}
+                                    onPress={() => toggleIngredient(ingredient.id)}
+                                >
+                                    <Text style={styles.ingredientIcon}>🍎</Text>
+                                    <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                                    <Text style={styles.ingredientDescription}>{ingredient.description}</Text>
+                                    <Text style={[styles.ingredientRarity, { color: getRarityColor(ingredient.rarity) }]}>
+                                        {ingredient.rarity}
+                                    </Text>
+                                    <Text style={styles.ingredientOwned}>Owned: {ingredient.owned}</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
-                    ) : (
-                        // Recipe list view
-                        <View style={styles.recipeList}>
-                            <Text style={styles.recipeListTitle}>Available Recipes</Text>
-                            <View style={styles.recipesGrid}>
-                                {recipes.map(recipe => (
-                                    <TouchableOpacity
-                                        key={recipe.id}
-                                        style={[styles.recipeCard, canCraftRecipe(recipe) ? styles.craftable : styles.locked]}
-                                        onPress={() => setSelectedRecipe(recipe.id)}
-                                    >
-                                        <Text style={styles.recipeIcon}>
-                                            {recipe.result === 'cloud-cake' ? '☁️' :
-                                                recipe.result === 'starberry' ? '⭐' :
-                                                    recipe.result === 'dream-bean' ? '☁️' :
-                                                        recipe.result === 'nebula-plum' ? '🌌' : '🍎'}
-                                        </Text>
+                    </View>
+                )}
+
+                {currentTab === 'recipes' && (
+                    <View style={styles.recipesSection}>
+                        <Text style={styles.sectionTitle}>Available Recipes</Text>
+                        <View style={styles.recipesList}>
+                            {availableRecipes.map((recipe) => (
+                                <TouchableOpacity
+                                    key={recipe.id}
+                                    style={styles.recipeCard}
+                                    onPress={() => craftRecipe(recipe)}
+                                >
+                                    <View style={styles.recipeHeader}>
                                         <Text style={styles.recipeName}>{recipe.name}</Text>
-                                        <Text style={styles.recipeStatus}>
-                                            {canCraftRecipe(recipe) ? '✅ Ready' : '❌ Missing'}
+                                        <Text style={[styles.recipeDifficulty, { color: getDifficultyColor(recipe.difficulty) }]}>
+                                            {recipe.difficulty}
                                         </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <View style={styles.inventorySection}>
-                                <Text style={styles.inventorySectionTitle}>Your Ingredients</Text>
-                                <View style={styles.ingredientsGrid}>
-                                    {userInventory.filter(item => item.quantity > 0).map(ingredient => (
-                                        <View key={ingredient.id} style={styles.ingredientCard}>
-                                            <Text style={styles.ingredientEmoji}>{ingredient.emoji}</Text>
-                                            <Text style={styles.ingredientName}>{ingredient.name}</Text>
-                                            <Text style={styles.ingredientQuantity}>x{ingredient.quantity}</Text>
-                                            <Text
-                                                style={[styles.ingredientRarity, { color: getRarityColor(ingredient.rarity) }]}
-                                            >
-                                                {ingredient.rarity}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
+                                    </View>
+                                    <Text style={styles.recipeDescription}>{recipe.description}</Text>
+                                    <View style={styles.recipeIngredients}>
+                                        <Text style={styles.recipeIngredientsTitle}>Ingredients:</Text>
+                                        {recipe.ingredients.map((ingredient) => {
+                                            const ownedIngredient = ingredients.find(i => i.id === ingredient.id);
+                                            return (
+                                                <Text key={ingredient.id} style={styles.recipeIngredient}>
+                                                    • {ingredient.quantity}x {ownedIngredient?.name || ingredient.id}
+                                                </Text>
+                                            );
+                                        })}
+                                    </View>
+                                    <Text style={styles.recipeResult}>Result: {recipe.result.name}</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
-                    )}
-                </ScrollView>
-            </View>
-
-            {/* Bottom Navigation Buttons */}
-            <TouchableOpacity style={[styles.bottomButton, styles.left]} onPress={onBack}>
-                <Text>←</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.center]}
-                onPress={() => setSelectedRecipe(null)}
-            >
-                <Text>📋</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.right]}
-                onPress={() => {
-                    onNotification?.('🥄 Cooking Help: Select a recipe, gather ingredients, and craft delicious food for your moonling!', 'info');
-                }}
-            >
-                <Text>?</Text>
-            </TouchableOpacity>
-
-            {/* Physical Device Buttons - overlaid on background image */}
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.leftPhysical]}
-                onPress={onBack}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.centerPhysical]}
-                onPress={() => setSelectedRecipe(null)}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.rightPhysical]}
-                onPress={() => {
-                    onNotification?.('🥄 Cooking Help: Select a recipe, gather ingredients, and craft delicious food for your moonling!', 'info');
-                }}
-            />
-        </View>
+                    </View>
+                )}
+            </ScrollView>
+        </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    tamagotchiScreenContainer: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    tamagotchiTopStatus: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 10,
-        backgroundColor: '#f0f0f0',
-    },
-    gearIcon: {
-        fontSize: 20,
-    },
-    walletStatusText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    tamagotchiMainScreen: {
-        flex: 1,
-        padding: 10,
-    },
-    statsBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 10,
-    },
-    statItem: {
-        alignItems: 'center',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#666',
-    },
-    statStars: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
     mainDisplayArea: {
         flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    ingredientSelection: {},
-    recipeDetail: {
+    ingredientSelection: {
         padding: 10,
     },
-    recipeHeader: {
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    recipeHeaderTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    hungerValue: {
-        fontSize: 14,
-        color: '#888',
-    },
-    requiredIngredients: {
-        marginBottom: 10,
-    },
-    requiredIngredientsTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    ingredientRequirement: {
+    tabNavigation: {
         flexDirection: 'row',
-        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderRadius: 10,
         padding: 5,
-        borderRadius: 5,
-        marginBottom: 5,
+        marginBottom: 15,
     },
-    available: {
-        backgroundColor: '#d4edda',
-    },
-    missing: {
-        backgroundColor: '#f8d7da',
-    },
-    ingredientEmoji: {
-        fontSize: 18,
-        marginRight: 10,
-    },
-    ingredientName: {
+    tabButton: {
         flex: 1,
+        padding: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+        marginHorizontal: 2,
+    },
+    activeTab: {
+        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+    },
+    tabButtonText: {
         fontSize: 14,
-    },
-    ingredientCount: {
-        fontSize: 14,
-        color: '#666',
-    },
-    craftActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-    },
-    backButton: {
-        padding: 10,
-        backgroundColor: '#6c757d',
-        borderRadius: 5,
-    },
-    craftButton: {
-        padding: 10,
-        borderRadius: 5,
-    },
-    disabled: {
-        backgroundColor: '#e9ecef',
-    },
-    recipeList: {
-        padding: 10,
-    },
-    recipeListTitle: {
-        fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 10,
     },
-    recipesGrid: {
+    ingredientsSection: {
+        flex: 1,
+        width: '100%',
+    },
+    recipesSection: {
+        flex: 1,
+        width: '100%',
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    ingredientsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
+        gap: 10,
+    },
+    ingredientCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        minWidth: 120,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    selectedIngredient: {
+        borderColor: 'rgba(0, 123, 255, 0.8)',
+        borderWidth: 2,
+        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+    },
+    ingredientIcon: {
+        fontSize: 24,
+        marginBottom: 5,
+    },
+    ingredientName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 5,
+    },
+    ingredientDescription: {
+        fontSize: 10,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 5,
+    },
+    ingredientRarity: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    ingredientOwned: {
+        fontSize: 10,
+        color: '#999',
+    },
+    recipesList: {
+        gap: 10,
     },
     recipeCard: {
-        width: '48%',
-        padding: 10,
-        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 15,
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 5,
-        marginBottom: 10,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
     },
-    craftable: {
-        backgroundColor: '#d4edda',
-    },
-    locked: {
-        backgroundColor: '#f8f9fa',
-    },
-    recipeIcon: {
-        fontSize: 30,
+    recipeHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 5,
     },
     recipeName: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 5,
     },
-    recipeStatus: {
+    recipeDifficulty: {
         fontSize: 12,
-        color: '#666',
-    },
-    inventorySection: {
-        marginTop: 20,
-    },
-    inventorySectionTitle: {
-        fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 10,
     },
-    ingredientsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    ingredientCard: {
-        width: '48%',
-        padding: 10,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 5,
-        marginBottom: 10,
-    },
-    ingredientQuantity: {
-        fontSize: 14,
+    recipeDescription: {
+        fontSize: 12,
         color: '#666',
+        marginBottom: 10,
+    },
+    recipeIngredients: {
+        marginBottom: 10,
+    },
+    recipeIngredientsTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
         marginBottom: 5,
     },
-    ingredientRarity: {
+    recipeIngredient: {
+        fontSize: 10,
+        color: '#666',
+        marginLeft: 10,
+    },
+    recipeResult: {
         fontSize: 12,
-    },
-    bottomButton: {
-        position: 'absolute',
-        bottom: 20,
-        padding: 10,
-        backgroundColor: '#007bff',
-        borderRadius: 50,
-        width: 50,
-        height: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    left: {
-        left: 20,
-    },
-    center: {
-        left: '50%',
-        marginLeft: -25,
-    },
-    right: {
-        right: 20,
-    },
-    deviceButton: {
-        position: 'absolute',
-        bottom: 0,
-        width: 60,
-        height: 60,
-        // Transparent for overlay
-        backgroundColor: 'transparent',
-    },
-    leftPhysical: {
-        left: 0,
-    },
-    centerPhysical: {
-        left: '50%',
-        marginLeft: -30,
-    },
-    rightPhysical: {
-        right: 0,
+        fontWeight: 'bold',
+        color: '#10b981',
     },
 });
 

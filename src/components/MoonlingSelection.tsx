@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { useWallet } from '../contexts/WalletContext';
+import InnerScreen from './InnerScreen';
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -121,8 +122,6 @@ const CHARACTERS: Character[] = [
 
 const MINT_PRICE_SOL = 0.01; // 0.01 SOL per character
 
-
-
 const APP_IDENTITY = {
     name: 'Moonling Selection App',
     uri: 'https://example.com',
@@ -148,416 +147,262 @@ const MoonlingSelection: React.FC<Props> = ({
     const [isMinting, setIsMinting] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
     const scrollerRef = useRef<any>(null);
-    const progress = useRef(new Animated.Value(0)).current;
 
     const currentCharacter = CHARACTERS[currentCharacterIndex];
 
-    // Helper function to check if user owns a character
     const isCharacterOwned = (characterId: string) => {
         return ownedCharacters.includes(characterId);
     };
 
-    // Check if user owns any characters
     const hasAnyCharacters = () => {
         return ownedCharacters.length > 0;
     };
 
     const handleConnect = async () => {
-        if (isConnecting || connected) return;
+        if (connected) return;
+        
         setIsConnecting(true);
         try {
             await connect();
-            onNotification?.('🎉 Connected successfully!', 'success');
-        } catch (error: any) {
-            onNotification?.(`❌ Connection failed: ${error.message}`, 'error');
+            onNotification?.('✅ Wallet connected successfully!', 'success');
+        } catch (error) {
+            console.error('Connection error:', error);
+            onNotification?.('❌ Failed to connect wallet', 'error');
         } finally {
             setIsConnecting(false);
         }
     };
 
-    // Enhanced slot machine spin function with visible character cycling
     const spinSlotMachine = () => {
-        if (isSpinning || !scrollerRef.current) return;
+        if (isSpinning || isMinting) return;
 
         setIsSpinning(true);
+        const spinDuration = 3000; // 3 seconds
+        const spinInterval = 100; // 100ms intervals
+        let elapsed = 0;
 
-        const windowWidth = Dimensions.get('window').width;
-        let cardWidth = 220;
-        let scrollerPadding = 40;
-        let cardCenterOffset = 100;
-        if (windowWidth <= 480) {
-            cardWidth = 170;
-            scrollerPadding = 20;
-            cardCenterOffset = 80;
-        } else if (windowWidth <= 768) {
-            cardWidth = 195;
-            scrollerPadding = 30;
-            cardCenterOffset = 90;
-        }
-
-        // Generate random target
-        const targetIndex = Math.floor(Math.random() * CHARACTERS.length);
-        
-        // Calculate target position
-        const containerCenter = windowWidth / 2;
-        const trackStartOffset = scrollerPadding;
-        const targetPosition = (targetIndex * cardWidth) + trackStartOffset + cardCenterOffset - containerCenter;
-
-        // Create a more visible spinning effect
-        const totalSpins = 3 + Math.random() * 2; // 3-5 full rotations
-        const fullRotationDistance = CHARACTERS.length * cardWidth;
-        const totalSpinDistance = (totalSpins * fullRotationDistance) + targetPosition;
-
-        // Timing for the spin
-        const spinDuration = 2000 + Math.random() * 1000; // 2-3 seconds
-
-        // Start the animation
-        progress.setValue(0);
-        
-        const listenerId = progress.addListener(({ value }: { value: number }) => {
-            // Create a bouncing effect that slows down
-            const easedValue = 1 - Math.pow(1 - value, 3);
-            const currentPosition = totalSpinDistance * easedValue;
-            scrollerRef.current?.scrollTo({ x: currentPosition, animated: false });
-        });
-
-        Animated.timing(progress, {
-            toValue: 1,
-            duration: spinDuration,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-        }).start(({ finished }) => {
-            progress.removeListener(listenerId);
-            if (finished) {
-                // Final snap to the target position
-                scrollerRef.current?.scrollTo({ x: targetPosition, animated: true });
+        const spin = () => {
+            elapsed += spinInterval;
+            const progress = elapsed / spinDuration;
+            
+            // Easing function for smooth deceleration
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const targetIndex = Math.floor(easeOut * CHARACTERS.length);
+            
+            setCurrentCharacterIndex(targetIndex % CHARACTERS.length);
+            
+            if (elapsed < spinDuration) {
+                setTimeout(spin, spinInterval);
+            } else {
+                // Final position
+                const finalIndex = Math.floor(Math.random() * CHARACTERS.length);
+                setCurrentCharacterIndex(finalIndex);
+                setIsSpinning(false);
+                
+                // Scroll to the final character
                 setTimeout(() => {
-                    setCurrentCharacterIndex(targetIndex);
-                    setIsSpinning(false);
-                }, 300);
+                    scrollToCharacter(finalIndex);
+                }, 100);
             }
-        });
+        };
+
+        spin();
     };
 
-    // Navigation functions (keeping for fallback)
     const goToPreviousCharacter = () => {
-        if (isSpinning) return;
-        const newIndex = currentCharacterIndex === 0 ? CHARACTERS.length - 1 : currentCharacterIndex - 1;
+        if (isSpinning || isMinting) return;
+        const newIndex = (currentCharacterIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
         setCurrentCharacterIndex(newIndex);
         scrollToCharacter(newIndex);
     };
 
     const goToNextCharacter = () => {
-        if (isSpinning) return;
-        const newIndex = currentCharacterIndex === CHARACTERS.length - 1 ? 0 : currentCharacterIndex + 1;
+        if (isSpinning || isMinting) return;
+        const newIndex = (currentCharacterIndex + 1) % CHARACTERS.length;
         setCurrentCharacterIndex(newIndex);
         scrollToCharacter(newIndex);
     };
 
     const scrollToCharacter = (index: number) => {
-        if (!scrollerRef.current) return;
-
-        const windowWidth = Dimensions.get('window').width;
-        let cardWidth = 220;
-        let scrollerPadding = 40;
-        let cardCenterOffset = 100;
-        if (windowWidth <= 480) {
-            cardWidth = 170;
-            scrollerPadding = 20;
-            cardCenterOffset = 80;
-        } else if (windowWidth <= 768) {
-            cardWidth = 195;
-            scrollerPadding = 30;
-            cardCenterOffset = 90;
+        if (scrollerRef.current) {
+            const cardWidth = 220; // 200 width + 20 margin
+            const scrollToX = index * cardWidth;
+            
+            scrollerRef.current.scrollTo({
+                x: scrollToX,
+                animated: true
+            });
         }
-
-        const containerWidth = windowWidth;
-
-        const containerCenter = containerWidth / 2;
-        const trackStartOffset = scrollerPadding;
-
-        const targetPosition = (index * cardWidth) + trackStartOffset + cardCenterOffset - containerCenter;
-
-        scrollerRef.current.scrollTo({
-            x: Math.round(targetPosition),
-            animated: true
-        });
     };
 
-    // Handle character minting (actual NFT creation)
     const handleCharacterPayment = async (character: Character): Promise<boolean> => {
-        if (!connected || !publicKey || !connection) {
-            if (!connected) {
-                await handleConnect();
-                if (!connected) {
-                    onNotification?.('❌ Please connect your wallet first', 'error');
-                    return false;
-                }
-            }
+        if (!connected || !publicKey) {
+            onNotification?.('❌ Please connect your wallet first', 'error');
+            return false;
         }
 
         try {
-            setIsMinting(true);
-            onNotification?.(`🎭 Minting ${character.name} as NFT! Approve the transaction...`, 'info');
-
-            // For now, simulate successful minting since we're using mock services
-            console.log('🌟 Simulating NFT minting for character:', character.name);
-            
-            // Simulate minting delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            onNotification?.(`🎉 ${character.name} NFT minted successfully! (Simulated)`, 'success');
-
-            // Add character to owned characters locally
-            ownedCharacters.push(character.id);
-
+            // TODO: Implement actual payment logic
+            // For now, simulate successful payment
+            onNotification?.(`🎉 Successfully acquired ${character.name}!`, 'success');
             return true;
-        } catch (error: any) {
-            console.error('❌ NFT minting failed:', error);
-            onNotification?.(`❌ Minting failed: ${error.message}`, 'error');
+        } catch (error) {
+            console.error('Payment error:', error);
+            onNotification?.('❌ Payment failed. Please try again.', 'error');
             return false;
-        } finally {
-            setIsMinting(false);
         }
     };
 
-    // Handle character selection
     const handleCharacterSelect = async () => {
         if (!currentCharacter) return;
 
-        console.log('🎯 Character selected!', currentCharacter.name);
-
-        // If user owns this character, select it immediately
         if (isCharacterOwned(currentCharacter.id)) {
-            console.log('✅ User owns this character, selecting immediately');
+            // Character is already owned, select it
             onSelectCharacter(currentCharacter);
-            return;
-        }
-
-        // If user doesn't own any characters, they can get first one for payment
-        if (!hasAnyCharacters()) {
-            console.log('💰 User needs to pay for first character');
-            const paymentSuccess = await handleCharacterPayment(currentCharacter);
-
-            if (paymentSuccess) {
-                onSelectCharacter(currentCharacter);
+        } else if (connected) {
+            // Character needs to be purchased
+            setIsMinting(true);
+            try {
+                const paymentSuccess = await handleCharacterPayment(currentCharacter);
+                if (paymentSuccess) {
+                    onSelectCharacter(currentCharacter);
+                }
+            } finally {
+                setIsMinting(false);
             }
         } else {
-            // User has characters but doesn't own this specific one
-            console.log('🎯 User wants to mint additional character:', currentCharacter.name);
-            const paymentSuccess = await handleCharacterPayment(currentCharacter);
-
-            if (paymentSuccess) {
-                onSelectCharacter(currentCharacter);
-            }
+            // Need to connect wallet first
+            handleConnect();
         }
     };
 
     return (
-        <View style={[styles.tamagotchiScreenContainer, styles.moonlingSelectionOnly]}>
-            {/* Top Status Bar */}
-            <View style={styles.tamagotchiTopStatus}>
+        <InnerScreen
+            topStatusContent={
                 <Text style={styles.walletStatusText}>
                     {connected && playerName ? `👋 ${playerName}` : 'Character Selection'} {!hasAnyCharacters() && connected && `(${MINT_PRICE_SOL} SOL)`}
                 </Text>
-            </View>
-
-            {/* Main LCD Screen */}
-            <View style={styles.tamagotchiMainScreen}>
-                {/* Stats Bar - Hidden on selection screens */}
-                <View style={[styles.statsBar, { display: 'none' }]}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Items</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Moonlings</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Total</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                </View>
-
-                {/* Main Display Area */}
-                <View style={styles.mainDisplayArea}>
-                    <Image source={require('../../assets/images/screen bg.png')} style={styles.backgroundImage} resizeMode="cover" />
-                    <View style={styles.slotMachineContainer}>
-                        {/* Slot Machine Scroller */}
-                        <Animated.ScrollView
-                            ref={scrollerRef}
-                            style={styles.slotMachineScroller}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.slotMachineTrack}
-                            scrollEnabled={!isSpinning}
-                            snapToAlignment="center"
-                            decelerationRate="fast"
-                        >
-                            {CHARACTERS.map((character, index) => (
-                                <TouchableOpacity
-                                    key={character.id}
-                                    style={[
-                                        styles.slotMachineCard,
-                                        isSpinning && styles.spinning,
-                                        { borderColor: index === currentCharacterIndex ? '#ff8c42' : '#9CA3AF' }
-                                    ]}
-                                    onPress={() => {
-                                        if (!isSpinning) {
-                                            setCurrentCharacterIndex(index);
-                                            scrollToCharacter(index);
-                                        }
-                                    }}
-                                >
-                                    {/* Loading indicator for minting */}
-                                    {isMinting && index === currentCharacterIndex && (
-                                        <View style={styles.mintingOverlay}>
-                                            <Text style={styles.mintingSpinner}>⏳</Text>
-                                            <Text style={styles.mintingText}>Minting...</Text>
-                                        </View>
-                                    )}
-
-                                    {/* Ownership/Price badges */}
-                                    {index === currentCharacterIndex && (
-                                        <>
-                                            {isCharacterOwned(character.id) && (
-                                                <Text style={styles.ownershipBadge}>👑</Text>
-                                            )}
-                                            {/* {!isCharacterOwned(character.id) && connected && (
-                                                <Text style={styles.priceBadge}>{MINT_PRICE_SOL} SOL</Text>
-                                            )} */}
-                                        </>
-                                    )}
-
-                                    {/* Character Image */}
-                                    <Image
-                                        source={getImageSource(character.image)}
-                                        style={[
-                                            styles.characterImage,
-                                            isSpinning && styles.spinningImage
-                                        ]}
-                                        onError={(error) => console.log('Image load error for', character.name, ':', error)}
-                                        resizeMode="contain"
-                                    />
-
-                                    {/* Character Info (hidden during spin) */}
-                                    <View style={styles.characterInfo}>
-                                        <Text style={styles.characterName}>{character.name}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </Animated.ScrollView>
-
-                        {/* Spin Controls */}
-                        <View style={styles.spinControls}>
+            }
+            onLeftButtonPress={onBack}
+            onCenterButtonPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
+            onRightButtonPress={isSpinning || isMinting ? undefined : spinSlotMachine}
+            leftButtonText="←"
+            centerButtonText={
+                isMinting ? '⏳' : 
+                !connected ? '🔗' : 
+                (currentCharacter && !isCharacterOwned(currentCharacter.id) ? '🪙' : '✓')
+            }
+            rightButtonText={isSpinning ? '🎰' : '🎲'}
+            centerButtonDisabled={isMinting || isSpinning}
+            rightButtonDisabled={isSpinning || isMinting}
+        >
+            {/* Main Display Area */}
+            <View style={styles.mainDisplayArea}>
+                <Image source={require('../../assets/images/screen bg.png')} style={styles.backgroundImage} resizeMode="cover" />
+                <View style={styles.slotMachineContainer}>
+                    {/* Slot Machine Scroller */}
+                    <Animated.ScrollView
+                        ref={scrollerRef}
+                        style={styles.slotMachineScroller}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.slotMachineTrack}
+                        scrollEnabled={!isSpinning}
+                        snapToAlignment="center"
+                        decelerationRate="fast"
+                    >
+                        {CHARACTERS.map((character, index) => (
                             <TouchableOpacity
-                                style={styles.spinButton}
-                                onPress={isSpinning || isMinting ? undefined : spinSlotMachine}
+                                key={character.id}
+                                style={[
+                                    styles.slotMachineCard,
+                                    isSpinning && styles.spinning,
+                                    { borderColor: index === currentCharacterIndex ? '#ff8c42' : '#9CA3AF' }
+                                ]}
+                                onPress={() => {
+                                    if (!isSpinning) {
+                                        setCurrentCharacterIndex(index);
+                                        scrollToCharacter(index);
+                                    }
+                                }}
                             >
-                                <Text style={styles.spinIcon}>{isSpinning ? '🎰' : '🎲'}</Text>
-                                <Text style={styles.spinText}>
-                                    {isSpinning ? 'SPINNING...' : 'SPIN'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                                {/* Loading indicator for minting */}
+                                {isMinting && index === currentCharacterIndex && (
+                                    <View style={styles.mintingOverlay}>
+                                        <Text style={styles.mintingSpinner}>⏳</Text>
+                                        <Text style={styles.mintingText}>Minting...</Text>
+                                    </View>
+                                )}
 
-                        {/* Selected Character Details */}
-                        {currentCharacter && (
-                            <View style={[styles.selectedCharacterDetails, isSpinning && styles.hidden]}>
-                                <Text style={styles.characterNameLarge}>{currentCharacter.name}</Text>
-                                <Text style={styles.characterDescription}>{currentCharacter.description}</Text>
-                                <View style={styles.characterStatsRow}>
-                                    <Text>Mood: {"★".repeat(currentCharacter.baseStats.mood)}{"☆".repeat(5 - currentCharacter.baseStats.mood)}</Text>
-                                    <Text>Hunger: {"★".repeat(currentCharacter.baseStats.hunger)}{"☆".repeat(5 - currentCharacter.baseStats.hunger)}</Text>
-                                    <Text>Energy: {"★".repeat(currentCharacter.baseStats.energy)}{"☆".repeat(5 - currentCharacter.baseStats.energy)}</Text>
+                                {/* Ownership/Price badges */}
+                                {index === currentCharacterIndex && (
+                                    <>
+                                        {isCharacterOwned(character.id) && (
+                                            <Text style={styles.ownershipBadge}>👑</Text>
+                                        )}
+                                        {/* {!isCharacterOwned(character.id) && connected && (
+                                            <Text style={styles.priceBadge}>{MINT_PRICE_SOL} SOL</Text>
+                                        )} */}
+                                    </>
+                                )}
+
+                                {/* Character Image */}
+                                <Image
+                                    source={getImageSource(character.image)}
+                                    style={[
+                                        styles.characterImage,
+                                        isSpinning && styles.spinningImage
+                                    ]}
+                                    onError={(error) => console.log('Image load error for', character.name, ':', error)}
+                                    resizeMode="contain"
+                                />
+
+                                {/* Character Info (hidden during spin) */}
+                                <View style={styles.characterInfo}>
+                                    <Text style={styles.characterName}>{character.name}</Text>
                                 </View>
-                                <Text style={styles.characterAbility}>
-                                    <Text style={{ fontWeight: 'bold' }}>Special:</Text> {currentCharacter.specialAbility}
-                                </Text>
-                            </View>
-                        )}
+                            </TouchableOpacity>
+                        ))}
+                    </Animated.ScrollView>
+
+                    {/* Spin Controls */}
+                    <View style={styles.spinControls}>
+                        <TouchableOpacity
+                            style={styles.spinButton}
+                            onPress={isSpinning || isMinting ? undefined : spinSlotMachine}
+                        >
+                            <Text style={styles.spinIcon}>{isSpinning ? '🎰' : '🎲'}</Text>
+                            <Text style={styles.spinText}>
+                                {isSpinning ? 'SPINNING...' : 'SPIN'}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
+
+                    {/* Selected Character Details */}
+                    {currentCharacter && (
+                        <View style={[styles.selectedCharacterDetails, isSpinning && styles.hidden]}>
+                            <Text style={styles.characterNameLarge}>{currentCharacter.name}</Text>
+                            <Text style={styles.characterDescription}>{currentCharacter.description}</Text>
+                            <View style={styles.characterStatsRow}>
+                                <Text>Mood: {"★".repeat(currentCharacter.baseStats.mood)}{"☆".repeat(5 - currentCharacter.baseStats.mood)}</Text>
+                                <Text>Hunger: {"★".repeat(currentCharacter.baseStats.hunger)}{"☆".repeat(5 - currentCharacter.baseStats.hunger)}</Text>
+                                <Text>Energy: {"★".repeat(currentCharacter.baseStats.energy)}{"☆".repeat(5 - currentCharacter.baseStats.energy)}</Text>
+                            </View>
+                            <Text style={styles.characterAbility}>
+                                <Text style={{ fontWeight: 'bold' }}>Special:</Text> {currentCharacter.specialAbility}
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </View>
-
-            {/* Bottom Navigation Buttons */}
-            <TouchableOpacity style={[styles.bottomButton, styles.left]} onPress={onBack}>
-                <Text>←</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.center, (isSpinning || isMinting) && styles.disabled]}
-                onPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
-            >
-                <Text>
-                    {isMinting ? '⏳' : 
-                     !connected ? '🔗' : 
-                     (currentCharacter && !isCharacterOwned(currentCharacter.id) ? '🪙' : '✓')}
-                </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[styles.bottomButton, styles.right]}
-                onPress={isSpinning || isMinting ? undefined : spinSlotMachine}
-            >
-                <Text>{isSpinning ? '🎰' : '🎲'}</Text>
-            </TouchableOpacity>
-
-            {/* Physical Device Buttons - overlaid on background image */}
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.leftPhysical]}
-                onPress={onBack}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.centerPhysical]}
-                onPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
-            />
-            <TouchableOpacity
-                style={[styles.deviceButton, styles.rightPhysical]}
-                onPress={isSpinning || isMinting ? undefined : spinSlotMachine}
-            />
-        </View>
+        </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    tamagotchiScreenContainer: {
-        flex: 1,
-        backgroundColor: 'black',
-    },
-    moonlingSelectionOnly: {
-        // Additional styles if needed
-    },
-    tamagotchiTopStatus: {
-        height: 40,
-        backgroundColor: 'gray',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     walletStatusText: {
         color: 'white',
         fontSize: 16,
-    },
-    tamagotchiMainScreen: {
-        flex: 1,
-    },
-    statsBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 10,
-        backgroundColor: 'darkgray',
-    },
-    statItem: {
-        alignItems: 'center',
-    },
-    statLabel: {
-        color: 'white',
-        fontSize: 12,
-    },
-    starRating: {
-        color: 'gold',
-        fontSize: 14,
     },
     mainDisplayArea: {
         flex: 1,
@@ -704,48 +549,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         textAlign: 'center',
         fontSize: 14,
-    },
-    bottomButton: {
-        position: 'absolute',
-        bottom: 20,
-        padding: 10,
-        backgroundColor: 'gray',
-        borderRadius: 5,
-        alignItems: 'center',
-        width: 50,
-    },
-    left: {
-        left: 20,
-    },
-    center: {
-        left: '50%',
-        transform: [{ translateX: -25 }],
-    },
-    right: {
-        right: 20,
-    },
-    disabled: {
-        opacity: 0.5,
-    },
-    deviceButton: {
-        // Styles for overlaid buttons, perhaps transparent
-        position: 'absolute',
-        width: 50,
-        height: 50,
-        // Position based on design
-    },
-    leftPhysical: {
-        bottom: 20,
-        left: 20,
-    },
-    centerPhysical: {
-        bottom: 20,
-        left: '50%',
-        transform: [{ translateX: -25 }],
-    },
-    rightPhysical: {
-        bottom: 20,
-        right: 20,
     },
 });
 
