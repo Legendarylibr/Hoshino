@@ -270,9 +270,9 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             onLeftButtonPress={handleLeftButton}
             onCenterButtonPress={handleCenterButton}
             onRightButtonPress={handleRightButton}
-            leftButtonText={showChoiceDialog ? '←' : '←'}
-            centerButtonText={showChoiceDialog ? '✓' : '✓'}
-            rightButtonText={showChoiceDialog ? '→' : '→'}
+            leftButtonText={showChoiceDialog ? '' : ''}
+            centerButtonText={showChoiceDialog ? '' : ''}
+            rightButtonText={showChoiceDialog ? '' : ''}
             centerButtonDisabled={(showNameInput && playerName.trim().length === 0) || (showPetNameInput && petName.trim().length === 0)}
         >
             {currentPhase !== 'name' && currentPhase !== 'petName' && (
@@ -302,9 +302,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                                     </View>
                                 )}
                                 {!showYesNoButtons && (
-                                    <Text style={styles.storyPromptLarge}>
-                                        Tap to continue...
-                                    </Text>
+                                    <View style={styles.continueArrow}>
+                                    </View>
                                 )}
                             </View>
                         </View>
@@ -324,10 +323,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                     <View style={styles.nameInputSection}>
                         <View style={styles.nameInputContainer}>
                             <View style={styles.nameInputTop}>
-                                <Text style={styles.namePrompt}>Enter your name!</Text>
                                 <View style={styles.nameDisplayContainer}>
                                     <View style={styles.nameInputOuterBox}>
                                         <View style={styles.nameInputInnerBox}>
+                                            <Text style={styles.namePrompt}>Tell me your name!</Text>
                                             <Text style={styles.nameDisplay}>
                                                 {playerName.padEnd(8, '*')}
                                             </Text>
@@ -362,10 +361,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                     <View style={styles.nameInputSection}>
                         <View style={styles.nameInputContainer}>
                             <View style={styles.nameInputTop}>
-                                <Text style={styles.namePrompt}>Enter pet name!</Text>
                                 <View style={styles.nameDisplayContainer}>
                                     <View style={styles.nameInputOuterBox}>
                                         <View style={styles.nameInputInnerBox}>
+                                            <Text style={styles.namePrompt}>Enter pet name!</Text>
                                             <Text style={styles.nameDisplay}>
                                                 {petName.padEnd(8, '*')}
                                             </Text>
@@ -522,9 +521,10 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     namePrompt: {
-        fontSize: isTablet ? 22 : 18,
-        marginBottom: 20,
+        fontSize: isTablet ? 16 : 14,
+        marginBottom: 5,
         textAlign: 'center',
+        color: '#2E5A3E', // Same dark green as the input text
     },
     nameDisplayContainer: {
         flexDirection: 'row',
@@ -537,9 +537,12 @@ const styles = StyleSheet.create({
     nameDisplay: {
         fontSize: isTablet ? 28 : 24,
         textAlign: 'center',
-        color: '#2E5A3E', // Dark teal text to match border
+        color: '#2E5A3E', // Dark green text to match border
         letterSpacing: 5,
         width: '100%',
+        lineHeight: isTablet ? 28 : 24,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
     },
     hiddenInput: {
         position: 'absolute',
@@ -578,14 +581,15 @@ const styles = StyleSheet.create({
     },
     nameInputInnerBox: {
         backgroundColor: '#E8F5E8',
-        padding: 12,
-        borderRadius: 4, // Less rounded for more pixelated look
+        padding: 15, // Increased padding
+        borderRadius: 6,
         borderWidth: 2,
         borderColor: '#4A7A5A', // Medium teal inner border
         width: '100%',
-        height: 50, // Fixed height to make it smaller
+        height: 70, // Increased height from 50 to 70
         justifyContent: 'center',
         alignItems: 'center',
+        display: 'flex',
     },
     choiceContainer: {
         flexDirection: 'row',
@@ -601,6 +605,23 @@ const styles = StyleSheet.create({
         color: '#2E5A3E', // Dark green for selected choice
         textDecorationLine: 'underline',
         textDecorationColor: '#2E5A3E', // Dark green underline
+    },
+    continueArrow: {
+        position: 'absolute',
+        bottom: 10,
+        right: 10,
+        width: 0,
+        height: 0,
+        borderLeftWidth: 6,
+        borderRightWidth: 6,
+        borderTopWidth: 10,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: '#2E5A3E',
+    },
+    arrowText: {
+        fontSize: 20,
+        color: 'white',
     },
 });
 
