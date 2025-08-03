@@ -17,7 +17,7 @@ interface Props {
 const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet, playerName: storedPlayerName }) => {
     const { publicKey } = useWallet();
     
-    const [currentPhase, setCurrentPhase] = useState<'intro' | 'help' | 'name' | 'explanation' | 'moonCycle' | 'moonCycleNo' | 'petName' | 'final' | 'complete'>('intro');
+    const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'petName' | 'final' | 'complete'>('intro');
     const [playerName, setPlayerName] = useState(storedPlayerName || '');
     const [petName, setPetName] = useState('');
     const [dialogIndex, setDialogIndex] = useState(0);
@@ -29,7 +29,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "Uggggghhhh... Oh?",
             "Hi! My name is Hoshino, I'm a little in trouble right now... Do you want to help me?"
         ],
-        help: [
+        introNo: [
             "O-ok...",
             "...",
             "Are you sure? :frowning:"
@@ -38,31 +38,38 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "Ohhhh thank you! But first, what's your name?"
         ],
         explanation: [
-            "Amazing, " + playerName + "! Let me explain. I was on a long travel and I couldn't find a safe area for me to rest, I was sooo tired and at some point I... I... zzzzz... zzzzzzzzzzzzz...",
+            "Amazing, " + playerName + "! Let me explain.",
+            "I was on a long travel and I couldn't find a safe area for me to rest,",
+            "I was sooo tired and at some point I...",
+            "I...",
+            "zzzzz...",
+            "zzzzzzzzzzzzz...",
             "Until...",
             "**CRASHHHH KABOOOOMMMMM**",
             "**FGSHSHDGJQNDBZBSBOCZZZZ**",
             "**I HIT THE MOON!!!**",
             "I did a mess, it wasn't my intention I swear!",
             "But the problem doesn't finish here...",
-            "Since the crash, some tiny creatures started emerging from the crater I made. I don't know what to do with them, is it ok if I send you one every new **Moon Cycle**?"
+            "Since the crash, some tiny creatures started emerging from the crater I made.",
+            "I don't know what to do with them, is it ok if I send you one every new **Moon Cycle**?"
         ],
-        moonCycle: [
-            "NO --> O-ok... I saw one that was so cute I thought you would have loved it but... You sure?"
+        explanationNo: [
+            "O-ok...",
+            "I saw one that was so cute I thought you would have loved it but...",
+            "You sure?"
         ],
-        moonCycleNo: [
-            "O-ok... I saw one that was so cute I thought you would have loved it but... You sure?"
+
+        chooseMoonling: [
+            "Choose your and mint your moonling!"
         ],
         petName: [
             "**Woo-hoooo!** Fantastic choice! Now let's chose a name for it, what's it gonna be?"
         ],
         final: [
             "Yay! That's a nice name cheeky! From today, you will be its **guardian**.",
-            "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let him meet his friends.",
+            "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let it meet its friends.",
             "At the end of the Moon Cycle, you and your pet will part ways. It will ascend back to the moon, where it belongs, changed by the way you treated it. Take good care of it and it will reward you nicely.",
-            "See you in 28 days!",
-            "***Hoshino fades away***",
-            "***game interface fades in***"
+            "See you in 28 days!"
         ]
     };
 
@@ -98,19 +105,23 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             // Move to next phase
             switch (currentPhase) {
                 case 'intro':
-                    setCurrentPhase('help');
+                    // Will be handled by button choice
                     break;
-                case 'help':
-                    setCurrentPhase('name');
+                case 'introNo':
+                    // Will be handled by button choice
                     break;
                 case 'name':
                     setCurrentPhase('explanation');
                     break;
                 case 'explanation':
-                    setCurrentPhase('moonCycle');
+                    // Will be handled by button choice
                     break;
-                case 'moonCycle':
-                    setCurrentPhase('petName');
+                case 'explanationNo':
+                    // Will be handled by button choice
+                    break;
+                case 'chooseMoonling':
+                    // Go to moonling selection screen
+                    onContinue(playerName);
                     break;
                 case 'petName':
                     setCurrentPhase('final');
@@ -127,24 +138,30 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         if (currentPhase === 'intro') {
             setCurrentPhase('name');
             setDialogIndex(0);
-        } else if (currentPhase === 'moonCycle') {
-            setCurrentPhase('petName');
+        } else if (currentPhase === 'introNo') {
+            setCurrentPhase('introNo');
             setDialogIndex(0);
-        } else if (currentPhase === 'moonCycleNo') {
-            setCurrentPhase('petName');
+        } else if (currentPhase === 'explanation') {
+            setCurrentPhase('chooseMoonling');
+            setDialogIndex(0);
+        } else if (currentPhase === 'explanationNo') {
+            setCurrentPhase('explanationNo');
             setDialogIndex(0);
         }
     };
 
     const handleNoClick = () => {
         if (currentPhase === 'intro') {
-            setCurrentPhase('help');
+            setCurrentPhase('introNo');
             setDialogIndex(0);
-        } else if (currentPhase === 'moonCycle') {
-            setCurrentPhase('moonCycleNo');
+        } else if (currentPhase === 'introNo') {
+            setCurrentPhase('name');
             setDialogIndex(0);
-        } else if (currentPhase === 'moonCycleNo') {
-            setCurrentPhase('help');
+        } else if (currentPhase === 'explanation') {
+            setCurrentPhase('explanationNo');
+            setDialogIndex(0);
+        } else if (currentPhase === 'explanationNo') {
+            setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
         }
     };
@@ -177,10 +194,13 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         }
     };
 
-    const showYesNoButtons = currentPhase === 'intro' || currentPhase === 'moonCycle' || currentPhase === 'moonCycleNo';
+    const showYesNoButtons = (currentPhase === 'intro' && dialogIndex === dialogs.intro.length - 1) || 
+                            (currentPhase === 'introNo' && dialogIndex === dialogs.introNo.length - 1) ||
+                            (currentPhase === 'explanation' && dialogIndex === dialogs.explanation.length - 1) ||
+                            (currentPhase === 'explanationNo' && dialogIndex === dialogs.explanationNo.length - 1);
     const showNameInput = currentPhase === 'name';
     const showPetNameInput = currentPhase === 'petName';
-    const showChoiceDialog = showYesNoButtons && dialogIndex === dialogs[currentPhase].length - 1;
+    const showChoiceDialog = showYesNoButtons;
 
     const handleLeftButton = () => {
         if (showChoiceDialog) {
