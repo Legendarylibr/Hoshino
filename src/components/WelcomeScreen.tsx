@@ -22,6 +22,79 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const [petName, setPetName] = useState('');
     const [dialogIndex, setDialogIndex] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<'yes' | 'no'>('yes');
+    const [arrowOpacity, setArrowOpacity] = useState(1);
+    const [displayText, setDisplayText] = useState('');
+    const [textIndex, setTextIndex] = useState(0);
+    const [isTyping, setIsTyping] = useState(false);
+    const [displaySegments, setDisplaySegments] = useState<Array<{text: string, isBold: boolean}>>([]);
+    const [segmentIndex, setSegmentIndex] = useState(0);
+    const [charIndex, setCharIndex] = useState(0);
+
+    // Function to process text into segments with bold formatting
+    const processTextToSegments = (text: string) => {
+        const boldWords = [
+            'CRASHHHH KABOOOOMMMMM',
+            'FGSHSHDGJQNDBZBSBOCZZZZ', 
+            'I HIT THE MOON!!!',
+            'Woo-hoooo!',
+            'Moon Cycle?',
+            'guardian',
+            '28 days',
+            'Hoshino fades away',
+            'game interface fades in'
+        ];
+        
+        let segments: Array<{text: string, isBold: boolean}> = [];
+        let currentText = text;
+        
+        boldWords.forEach((boldWord) => {
+            const parts = currentText.split(boldWord);
+            if (parts.length > 1) {
+                // Add regular text before bold word
+                if (parts[0]) {
+                    segments.push({text: parts[0], isBold: false});
+                }
+                
+                // Add bold word
+                segments.push({text: boldWord, isBold: true});
+                
+                // Update currentText for next iteration
+                currentText = parts.slice(1).join(boldWord);
+            }
+        });
+        
+        // Add any remaining text
+        if (currentText) {
+            segments.push({text: currentText, isBold: false});
+        }
+        
+        return segments.length > 0 ? segments : [{text: text, isBold: false}];
+    };
+
+    // Function to render segments with current typewriter progress
+    const renderSegments = (segments: Array<{text: string, isBold: boolean}>, currentSegmentIndex: number, currentCharIndex: number) => {
+        return segments.map((segment, index) => {
+            if (index < currentSegmentIndex) {
+                // Fully rendered segment
+                return (
+                    <Text key={index} style={[styles.storyTextLarge, segment.isBold && styles.boldText]}>
+                        {segment.text}
+                    </Text>
+                );
+            } else if (index === currentSegmentIndex) {
+                // Currently typing segment
+                const visibleText = segment.text.substring(0, currentCharIndex);
+                return (
+                    <Text key={index} style={[styles.storyTextLarge, segment.isBold && styles.boldText]}>
+                        {visibleText}
+                    </Text>
+                );
+            } else {
+                // Not yet reached
+                return null;
+            }
+        });
+    };
 
     // Dialog content for each phase
     const dialogs = {
@@ -45,13 +118,13 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "zzzzz...",
             "zzzzzzzzzzzzz...",
             "Until...",
-            "**CRASHHHH KABOOOOMMMMM**",
-            "**FGSHSHDGJQNDBZBSBOCZZZZ**",
-            "**I HIT THE MOON!!!**",
+            "CRASHHHH KABOOOOMMMMM",
+            "FGSHSHDGJQNDBZBSBOCZZZZ",
+            "I HIT THE MOON!!!",
             "I did a mess, it wasn't my intention I swear!",
             "But the problem doesn't finish here...",
             "Since the crash, some tiny creatures started emerging from the crater I made.",
-            "I don't know what to do with them, is it ok if I send you one every new **Moon Cycle**?"
+            "I don't know what to do with them, is it ok if I send you one every new Moon Cycle?"
         ],
         explanationNo: [
             "O-ok...",
@@ -63,7 +136,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "Choose your and mint your moonling!"
         ],
         petName: [
-            "**Woo-hoooo!** Fantastic choice! Now let's chose a name for it, what's it gonna be?"
+            "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?"
         ],
         final: [
             "Yay! That's a nice name cheeky! From today, you will be its **guardian**.",
@@ -145,7 +218,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
         } else if (currentPhase === 'explanationNo') {
-            setCurrentPhase('explanationNo');
+            setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
         }
     };
@@ -184,9 +257,11 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         if (currentPhase === 'name') {
             return "Ohhhh thank you! But first, what's your name?";
         } else if (currentPhase === 'petName') {
-            return "**Woo-hoooo!** Fantastic choice! Now let's chose a name for it, what's it gonna be?";
+            return "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?";
         } else if (currentPhase === 'explanation') {
             return dialogs.explanation[dialogIndex];
+        } else if (currentPhase === 'explanationNo') {
+            return dialogs.explanationNo[dialogIndex];
         } else if (currentPhase === 'final') {
             return dialogs.final[dialogIndex];
         } else {
@@ -201,6 +276,78 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const showNameInput = currentPhase === 'name';
     const showPetNameInput = currentPhase === 'petName';
     const showChoiceDialog = showYesNoButtons;
+
+    // Typewriter effect for dialog text
+    useEffect(() => {
+        const currentDialog = getCurrentDialog();
+        
+        if (currentDialog && !showYesNoButtons) {
+            // Small delay to ensure state is properly updated
+            setTimeout(() => {
+                setIsTyping(true);
+                setSegmentIndex(0);
+                setCharIndex(0);
+                
+                const segments = processTextToSegments(currentDialog);
+                setDisplaySegments(segments);
+                
+                const typeInterval = setInterval(() => {
+                    setCharIndex(prevCharIndex => {
+                        const currentSegment = segments[segmentIndex];
+                        if (!currentSegment) {
+                            setIsTyping(false);
+                            clearInterval(typeInterval);
+                            return prevCharIndex;
+                        }
+                        
+                        if (prevCharIndex < currentSegment.text.length) {
+                            return prevCharIndex + 1;
+                        } else {
+                            // Move to next segment
+                            if (segmentIndex < segments.length - 1) {
+                                setSegmentIndex(prev => prev + 1);
+                                setCharIndex(0);
+                                return 0;
+                            } else {
+                                // Finished typing
+                                setIsTyping(false);
+                                clearInterval(typeInterval);
+                                return prevCharIndex;
+                            }
+                        }
+                    });
+                }, 50);
+                
+                return () => clearInterval(typeInterval);
+            }, 100);
+        } else if (currentDialog && showYesNoButtons) {
+            // For YES/NO dialogs, show text immediately
+            const segments = processTextToSegments(currentDialog);
+            setDisplaySegments(segments);
+            setSegmentIndex(segments.length - 1);
+            setCharIndex(segments[segments.length - 1]?.text.length || 0);
+            setIsTyping(false);
+        } else {
+            // Reset when no dialog or empty dialog
+            setDisplaySegments([]);
+            setSegmentIndex(0);
+            setCharIndex(0);
+            setIsTyping(false);
+        }
+    }, [dialogIndex, currentPhase, showYesNoButtons]);
+
+    // Arrow animation effect - only show after typing is complete
+    useEffect(() => {
+        if (!showYesNoButtons && !isTyping) {
+            const interval = setInterval(() => {
+                setArrowOpacity(prev => prev === 1 ? 0.3 : 1);
+            }, 500); // Faster blink every 500ms
+            
+            return () => clearInterval(interval);
+        } else {
+            setArrowOpacity(0); // Hide arrow while typing
+        }
+    }, [showYesNoButtons, isTyping]);
 
     const handleLeftButton = () => {
         if (showChoiceDialog) {
@@ -250,23 +397,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
 
     return (
         <InnerScreen
-            showStatsBar={true}
-            statsBarContent={
-                <>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Welcome</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Stars</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>2025</Text>
-                        <Text style={styles.starRating}>⭐⭐⭐⭐⭐</Text>
-                    </View>
-                </>
-            }
+            showStatsBar={false}
             onLeftButtonPress={handleLeftButton}
             onCenterButtonPress={handleCenterButton}
             onRightButtonPress={handleRightButton}
@@ -276,7 +407,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             centerButtonDisabled={(showNameInput && playerName.trim().length === 0) || (showPetNameInput && petName.trim().length === 0)}
         >
             {currentPhase !== 'name' && currentPhase !== 'petName' && (
-                <TouchableOpacity style={styles.storySection} onPress={handleDialogClick}>
+                <>
                     <View style={styles.storyCharacterCentered}>
                         <Image
                             source={require('../../assets/images/hoshino star.png')}
@@ -284,31 +415,33 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                         />
                     </View>
 
-                    <View style={styles.storyDialogBottom}>
-                        <View style={styles.storyDialogueLargeBox}>
-                            <View style={styles.storyDialogueInnerBox}>
-                                <Text style={styles.storyTextLarge}>
-                                    {getCurrentDialog()}
-                                </Text>
-                                {showChoiceDialog && (
-                                    <View style={styles.choiceContainer}>
-                                        <Text style={[styles.choiceText, selectedChoice === 'yes' && styles.selectedChoice]}>
-                                            YES
-                                        </Text>
-                                        <Text style={styles.choiceText}>  </Text>
-                                        <Text style={[styles.choiceText, selectedChoice === 'no' && styles.selectedChoice]}>
-                                            NO
-                                        </Text>
+                    <View style={styles.storySection}>
+                        <View style={styles.storyDialogBottom}>
+                            <View style={styles.storyDialogueLargeBox}>
+                                <View style={styles.storyDialogueInnerBox} key="stable-dialog">
+                                    <View style={styles.dialogTextContainer}>
+                                        {renderSegments(displaySegments, segmentIndex, charIndex)}
                                     </View>
-                                )}
-                                {!showYesNoButtons && (
-                                    <View style={styles.continueArrow}>
-                                    </View>
-                                )}
+                                    {showChoiceDialog && (
+                                        <View style={styles.choiceContainer}>
+                                            <Text style={[styles.choiceText, selectedChoice === 'yes' && styles.selectedChoice]}>
+                                                YES
+                                            </Text>
+                                            <Text style={styles.choiceText}>  </Text>
+                                            <Text style={[styles.choiceText, selectedChoice === 'no' && styles.selectedChoice]}>
+                                                NO
+                                            </Text>
+                                        </View>
+                                    )}
+                                    {!showYesNoButtons && !isTyping && (
+                                        <View style={[styles.continueArrow, { opacity: arrowOpacity }]}>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                         </View>
                     </View>
-                </TouchableOpacity>
+                </>
             )}
 
             {showNameInput && (
@@ -422,17 +555,20 @@ const styles = StyleSheet.create({
     },
     storySection: {
         flex: 1,
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
+        width: '100%',
     },
     storyCharacterCentered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        width: '100%',
+        marginTop: 60, // Increased from 30 to move star down
     },
     storyDialogBottom: {
         width: '100%',
-        padding: 10,
+        padding: 5,
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
     storyDialogueLargeBox: {
@@ -478,6 +614,9 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#2E5A3E', // Dark green text
         lineHeight: 20,
+    },
+    boldText: {
+        fontWeight: 'bold',
     },
     storyPromptLarge: {
         fontSize: 12,
@@ -594,7 +733,12 @@ const styles = StyleSheet.create({
     choiceContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 0, // Reduced spacing from dialog text
+        marginTop: 0,
+        marginHorizontal: 30,
+        position: 'absolute',
+        bottom: 3,
+        left: 0,
+        right: 0,
     },
     choiceText: {
         fontSize: 16,
@@ -612,9 +756,9 @@ const styles = StyleSheet.create({
         right: 10,
         width: 0,
         height: 0,
-        borderLeftWidth: 6,
-        borderRightWidth: 6,
-        borderTopWidth: 10,
+        borderLeftWidth: 8, // Increased from 6 to 8
+        borderRightWidth: 8, // Increased from 6 to 8
+        borderTopWidth: 12, // Increased from 10 to 12
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
         borderTopColor: '#2E5A3E',
@@ -622,6 +766,9 @@ const styles = StyleSheet.create({
     arrowText: {
         fontSize: 20,
         color: 'white',
+    },
+    dialogTextContainer: {
+        flex: 1, // Take up available space for text
     },
 });
 
