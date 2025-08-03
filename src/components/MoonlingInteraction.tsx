@@ -9,6 +9,24 @@ import IngredientSelection from './IngredientSelection';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
 import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
 
+// Helper function to get image source based on character image name
+const getImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'LYRA.png':
+            return require('../../assets/images/LYRA.png');
+        case 'ORION.png':
+            return require('../../assets/images/ORION.png');
+        case 'ARO.png':
+            return require('../../assets/images/ARO.png');
+        case 'SIRIUS.png':
+            return require('../../assets/images/SIRIUS.png');
+        case 'ZANIAH.png':
+            return require('../../assets/images/ZANIAH.png');
+        default:
+            return require('../../assets/images/LYRA.png'); // fallback
+    }
+};
+
 interface Character {
     id: string;
     name: string;
@@ -311,7 +329,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                     <Image source={imageSources.background} style={styles.backgroundImage} resizeMode="cover" />
                     {selectedCharacter ? (
                         <Image
-                            source={{ uri: selectedCharacter.image }}
+                            source={getImageSource(selectedCharacter.image)}
                             style={styles.characterImage}
                         />
                     ) : (
@@ -691,8 +709,8 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     characterImage: {
-        width: 200,
-        height: 200,
+        width: 400,
+        height: 400,
         resizeMode: 'contain',
     },
     noCharacterPlaceholder: {

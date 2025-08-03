@@ -8,6 +8,24 @@ import {
     Dimensions,
 } from 'react-native';
 
+// Helper function to get image source based on character image name
+const getImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'LYRA.png':
+            return require('../../assets/images/LYRA.png');
+        case 'ORION.png':
+            return require('../../assets/images/ORION.png');
+        case 'ARO.png':
+            return require('../../assets/images/ARO.png');
+        case 'SIRIUS.png':
+            return require('../../assets/images/SIRIUS.png');
+        case 'ZANIAH.png':
+            return require('../../assets/images/ZANIAH.png');
+        default:
+            return require('../../assets/images/LYRA.png'); // fallback
+    }
+};
+
 interface Character {
     id: string;
     name: string;
@@ -139,7 +157,7 @@ const SleepAnimation: React.FC<Props> = ({
 
             {/* Character */}
             <View style={styles.characterWrapper}>
-                <Image source={{ uri: character.image }} style={styles.characterSprite} />
+                                    <Image source={getImageSource(character.image)} style={styles.characterSprite} />
                 {showZzz && (
                     <Animated.View style={[styles.zzz, { transform: [{ translateY: zAnim }] }]}>
                         <Text style={styles.zText}>Z</Text>

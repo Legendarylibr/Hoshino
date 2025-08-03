@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 
+// Helper function to get image source based on character image name
+const getImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'LYRA.png':
+            return require('../../assets/images/LYRA.png');
+        case 'ORION.png':
+            return require('../../assets/images/ORION.png');
+        case 'ARO.png':
+            return require('../../assets/images/ARO.png');
+        case 'SIRIUS.png':
+            return require('../../assets/images/SIRIUS.png');
+        case 'ZANIAH.png':
+            return require('../../assets/images/ZANIAH.png');
+        default:
+            return require('../../assets/images/LYRA.png'); // fallback
+    }
+};
+
 interface Character {
     id: string;
     name: string;
@@ -169,7 +187,7 @@ const MoonlingCollection: React.FC<Props> = ({
                                             }}
                                         >
                                             <Image
-                                                source={{ uri: character.image }}
+                                                source={getImageSource(character.image)}
                                                 style={styles.slotImage}
                                             />
                                             {character.nftMint && <View style={styles.nftBadgeOverlay}><Text style={styles.badgeText}>NFT</Text></View>}

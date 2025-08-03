@@ -15,17 +15,25 @@ const GlobalLeaderboard: React.FC<Props> = ({ walletAddress, onClose }) => {
 
     useEffect(() => {
         if (globalPointSystem) {
-            const board = globalPointSystem.getLeaderboard();
-            setLeaderboard(board);
+            const loadData = async () => {
+                try {
+                    const board = await globalPointSystem.getLeaderboard();
+                    setLeaderboard(board);
 
-            const potential = globalPointSystem.getDailyPointsPotential();
-            setPointsPotential(potential);
+                    const potential = await globalPointSystem.getDailyPointsPotential();
+                    setPointsPotential(potential);
 
-            // Find user's rank (simplified)
-            const userEntry = board.find(entry => entry.walletAddress.includes('...'));
-            if (userEntry) {
-                setUserRank(userEntry.rank);
-            }
+                    // Find user's rank (simplified)
+                    const userEntry = board.find(entry => entry.walletAddress.includes('...'));
+                    if (userEntry) {
+                        setUserRank(userEntry.rank);
+                    }
+                } catch (error) {
+                    console.error('Error loading leaderboard data:', error);
+                }
+            };
+            
+            loadData();
         }
     }, [globalPointSystem]);
 
@@ -121,10 +129,14 @@ const GlobalLeaderboard: React.FC<Props> = ({ walletAddress, onClose }) => {
                 <Text>◆</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.bottomButtonCenter} onPress={() => {
+            <TouchableOpacity style={styles.bottomButtonCenter} onPress={async () => {
                 if (globalPointSystem) {
-                    const board = globalPointSystem.getLeaderboard();
-                    setLeaderboard(board);
+                    try {
+                        const board = await globalPointSystem.getLeaderboard();
+                        setLeaderboard(board);
+                    } catch (error) {
+                        console.error('Error refreshing leaderboard:', error);
+                    }
                 }
             }}>
                 <Text>🔄</Text>
@@ -136,10 +148,14 @@ const GlobalLeaderboard: React.FC<Props> = ({ walletAddress, onClose }) => {
 
             {/* Physical Device Buttons - overlaid on background image */}
             <TouchableOpacity style={styles.deviceButtonLeft} onPress={onClose} />
-            <TouchableOpacity style={styles.deviceButtonCenter} onPress={() => {
+            <TouchableOpacity style={styles.deviceButtonCenter} onPress={async () => {
                 if (globalPointSystem) {
-                    const board = globalPointSystem.getLeaderboard();
-                    setLeaderboard(board);
+                    try {
+                        const board = await globalPointSystem.getLeaderboard();
+                        setLeaderboard(board);
+                    } catch (error) {
+                        console.error('Error refreshing leaderboard:', error);
+                    }
                 }
             }} />
             <TouchableOpacity style={styles.deviceButtonRight} onPress={onClose} />

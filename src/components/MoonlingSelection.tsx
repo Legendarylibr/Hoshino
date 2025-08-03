@@ -1,13 +1,42 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, Dimensions, Animated, Platform, Easing } from 'react-native';
-import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Animated,
+    Image,
+    Alert,
+    Dimensions,
+    ScrollView,
+    StatusBar
+} from 'react-native';
 import { Connection, PublicKey } from '@solana/web3.js';
+import { useWallet } from '../contexts/WalletContext';
+
+// Helper function to get image source based on character image name
+const getImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'LYRA.png':
+            return require('../../assets/images/LYRA.png');
+        case 'ORION.png':
+            return require('../../assets/images/ORION.png');
+        case 'ARO.png':
+            return require('../../assets/images/ARO.png');
+        case 'SIRIUS.png':
+            return require('../../assets/images/SIRIUS.png');
+        case 'ZANIAH.png':
+            return require('../../assets/images/ZANIAH.png');
+        default:
+            return require('../../assets/images/LYRA.png'); // fallback
+    }
+};
 
 interface Character {
     id: string;
     name: string;
     description: string;
-    image: any; // Changed from string to any to handle require() statements
+    image: string;
     element: string;
     baseStats: {
         mood: number;
@@ -37,7 +66,7 @@ const CHARACTERS: Character[] = [
         id: 'lyra',
         name: 'Lyra',
         description: 'Anime-obsessed celestial maiden who knows every existing anime. Has a secret soft spot for Orion but would NEVER admit it. Very comprehensive when chatting, but turns into an exaggerated crying mess (Misa from Death Note style) if ignored. Lowkey jealous of you sentimentally but in a funny way. When angry, becomes irritable like someone with hormonal imbalance and will roast you. When sad, has existential crises.',
-        image: require('../../assets/images/LYRA.gif'),
+        image: 'LYRA.png',
         element: 'Love',
         baseStats: { mood: 4, hunger: 3, energy: 3 },
         rarity: 'Common',
@@ -48,7 +77,7 @@ const CHARACTERS: Character[] = [
         id: 'orion',
         name: 'Orion',
         description: 'Mystical guardian with moon and stars',
-        image: require('../../assets/images/ORION.gif'),
+        image: 'ORION.png',
         element: 'Moon',
         baseStats: { mood: 3, hunger: 4, energy: 3 },
         rarity: 'Rare',
@@ -59,7 +88,7 @@ const CHARACTERS: Character[] = [
         id: 'aro',
         name: 'Aro',
         description: 'Bright guardian full of celestial energy',
-        image: require('../../assets/images/ARO.gif'),
+        image: 'ARO.png',
         element: 'Star',
         baseStats: { mood: 5, hunger: 2, energy: 3 },
         rarity: 'Epic',
@@ -70,7 +99,7 @@ const CHARACTERS: Character[] = [
         id: 'sirius',
         name: 'Sirius',
         description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
-        image: require('../../assets/images/SIRIUS.gif'),
+        image: 'SIRIUS.png',
         element: 'Stellar',
         baseStats: { mood: 5, hunger: 3, energy: 4 },
         rarity: 'Legendary',
@@ -81,7 +110,7 @@ const CHARACTERS: Character[] = [
         id: 'zaniah',
         name: 'Zaniah',
         description: 'Mysterious cosmic entity with ethereal presence. Zaniah embodies the essence of distant stars and ancient wisdom. Quiet and contemplative, but harbors immense power within.',
-        image: require('../../assets/images/ZANIAH.gif'),
+        image: 'ZANIAH.png',
         element: 'Cosmic',
         baseStats: { mood: 4, hunger: 3, energy: 5 },
         rarity: 'Legendary',
@@ -112,10 +141,8 @@ const MoonlingSelection: React.FC<Props> = ({
     playerName,
     onNotification
 }) => {
-    const [authorizationResult, setAuthorizationResult] = useState<any>(null);
+    const { connected, publicKey, connect } = useWallet();
     const [isConnecting, setIsConnecting] = useState(false);
-    const connected = !!authorizationResult;
-    const publicKey = connected ? new PublicKey(authorizationResult.accounts[0].address) : null;
 
     const [currentCharacterIndex, setCurrentCharacterIndex] = useState<number>(0);
     const [isMinting, setIsMinting] = useState(false);
@@ -135,17 +162,11 @@ const MoonlingSelection: React.FC<Props> = ({
         return ownedCharacters.length > 0;
     };
 
-    const connect = async () => {
+    const handleConnect = async () => {
         if (isConnecting || connected) return;
         setIsConnecting(true);
         try {
-            await transact(async (wallet: any) => {
-                const auth = await wallet.authorize({
-                    cluster: 'mainnet-beta',
-                    identity: APP_IDENTITY,
-                });
-                setAuthorizationResult(auth);
-            });
+            await connect();
             onNotification?.('🎉 Connected successfully!', 'success');
         } catch (error: any) {
             onNotification?.(`❌ Connection failed: ${error.message}`, 'error');
@@ -153,59 +174,6 @@ const MoonlingSelection: React.FC<Props> = ({
             setIsConnecting(false);
         }
     };
-
-    const getAdapter = () => ({
-        signTransaction: async (tx: any) => {
-            let signed: any;
-            await transact(async (wallet: any) => {
-                let freshAuth = authorizationResult;
-                if (authorizationResult?.auth_token) {
-                    freshAuth = await wallet.reauthorize({
-                        auth_token: authorizationResult.auth_token,
-                        identity: APP_IDENTITY,
-                    });
-                    setAuthorizationResult(freshAuth);
-                } else {
-                    freshAuth = await wallet.authorize({
-                        cluster: 'mainnet-beta',
-                        identity: APP_IDENTITY,
-                    });
-                    setAuthorizationResult(freshAuth);
-                }
-                const signedTxs = await wallet.signTransactions({
-                    transactions: [tx],
-                });
-                signed = signedTxs[0];
-            });
-            return signed;
-        },
-        // Add signAndSendTransaction if needed by MetaplexService
-        signAndSendTransaction: async (tx: any) => {
-            let signature: any;
-            await transact(async (wallet: any) => {
-                // reauthorize similar to above
-                let freshAuth = authorizationResult;
-                if (authorizationResult?.auth_token) {
-                    freshAuth = await wallet.reauthorize({
-                        auth_token: authorizationResult.auth_token,
-                        identity: APP_IDENTITY,
-                    });
-                    setAuthorizationResult(freshAuth);
-                } else {
-                    freshAuth = await wallet.authorize({
-                        cluster: 'mainnet-beta',
-                        identity: APP_IDENTITY,
-                    });
-                    setAuthorizationResult(freshAuth);
-                }
-                const signatures = await wallet.signAndSendTransactions({
-                    transactions: [tx],
-                });
-                signature = signatures[0];
-            });
-            return signature;
-        },
-    });
 
     // Enhanced slot machine spin function with visible character cycling
     const spinSlotMachine = () => {
@@ -319,10 +287,12 @@ const MoonlingSelection: React.FC<Props> = ({
     // Handle character minting (actual NFT creation)
     const handleCharacterPayment = async (character: Character): Promise<boolean> => {
         if (!connected || !publicKey || !connection) {
-            if (!connected) await connect();
             if (!connected) {
-                onNotification?.('❌ Please connect your wallet first', 'error');
-                return false;
+                await handleConnect();
+                if (!connected) {
+                    onNotification?.('❌ Please connect your wallet first', 'error');
+                    return false;
+                }
             }
         }
 
@@ -330,51 +300,21 @@ const MoonlingSelection: React.FC<Props> = ({
             setIsMinting(true);
             onNotification?.(`🎭 Minting ${character.name} as NFT! Approve the transaction...`, 'info');
 
-            // Import and use MetaplexService for actual NFT minting
-            const { MetaplexService } = await import('../services/MetaplexService');
+            // For now, simulate successful minting since we're using mock services
+            console.log('🌟 Simulating NFT minting for character:', character.name);
+            
+            // Simulate minting delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            onNotification?.(`🎉 ${character.name} NFT minted successfully! (Simulated)`, 'success');
 
-            const adapter = getAdapter();
+            // Add character to owned characters locally
+            ownedCharacters.push(character.id);
 
-            const metaplexService = new MetaplexService(connection, adapter);
-
-            console.log('🌟 Minting NFT for character:', character.name);
-
-            // Call the actual NFT minting function
-            const result = await metaplexService.mintCharacterNFT({
-                ...character,
-                nftMint: character.nftMint || undefined
-            }, publicKey);
-
-            if (result.success) {
-                console.log('✅ NFT minted successfully!', result);
-
-                const addressInfo = 'address' in result ? result.address?.toString().slice(0, 8) + '...' :
-                    'characterPda' in result ? result.characterPda.slice(0, 8) + '...' : 'Unknown';
-
-                onNotification?.(`🎉 ${character.name} NFT minted successfully! Address: ${addressInfo}`, 'success');
-
-                // Add character to owned characters locally
-                ownedCharacters.push(character.id);
-
-                return true;
-            } else {
-                throw new Error('NFT minting failed');
-            }
+            return true;
         } catch (error: any) {
             console.error('❌ NFT minting failed:', error);
-
-            let errorMessage = 'Unknown error';
-            if (error.message?.includes('User rejected')) {
-                errorMessage = 'Transaction was rejected by user';
-            } else if (error.message?.includes('insufficient funds')) {
-                errorMessage = 'Insufficient SOL for minting (~0.01 SOL needed)';
-            } else if (error.message?.includes('timed out')) {
-                errorMessage = 'Transaction timed out - NFT may still be minting';
-            } else {
-                errorMessage = error.message || 'NFT minting failed';
-            }
-
-            onNotification?.(`❌ ${errorMessage}`, 'error');
+            onNotification?.(`❌ Minting failed: ${error.message}`, 'error');
             return false;
         } finally {
             setIsMinting(false);
@@ -484,20 +424,21 @@ const MoonlingSelection: React.FC<Props> = ({
                                             {isCharacterOwned(character.id) && (
                                                 <Text style={styles.ownershipBadge}>👑</Text>
                                             )}
-                                            {!isCharacterOwned(character.id) && connected && (
+                                            {/* {!isCharacterOwned(character.id) && connected && (
                                                 <Text style={styles.priceBadge}>{MINT_PRICE_SOL} SOL</Text>
-                                            )}
+                                            )} */}
                                         </>
                                     )}
 
                                     {/* Character Image */}
                                     <Image
-                                        source={character.image}
+                                        source={getImageSource(character.image)}
                                         style={[
                                             styles.characterImage,
                                             isSpinning && styles.spinningImage
                                         ]}
-                                        onError={() => console.log('Image load error')}
+                                        onError={(error) => console.log('Image load error for', character.name, ':', error)}
+                                        resizeMode="contain"
                                     />
 
                                     {/* Character Info (hidden during spin) */}
@@ -546,10 +487,14 @@ const MoonlingSelection: React.FC<Props> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.bottomButton, styles.center, (!connected || isSpinning) && styles.disabled]}
-                onPress={connected && !isMinting && !isSpinning ? handleCharacterSelect : undefined}
+                style={[styles.bottomButton, styles.center, (isSpinning || isMinting) && styles.disabled]}
+                onPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
             >
-                <Text>{isMinting ? '⏳' : (currentCharacter && !isCharacterOwned(currentCharacter.id) ? '🪙' : '✓')}</Text>
+                <Text>
+                    {isMinting ? '⏳' : 
+                     !connected ? '🔗' : 
+                     (currentCharacter && !isCharacterOwned(currentCharacter.id) ? '🪙' : '✓')}
+                </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -566,7 +511,7 @@ const MoonlingSelection: React.FC<Props> = ({
             />
             <TouchableOpacity
                 style={[styles.deviceButton, styles.centerPhysical]}
-                onPress={connected && !isMinting && !isSpinning ? handleCharacterSelect : undefined}
+                onPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
             />
             <TouchableOpacity
                 style={[styles.deviceButton, styles.rightPhysical]}

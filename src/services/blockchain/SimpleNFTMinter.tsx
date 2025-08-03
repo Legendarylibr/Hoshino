@@ -125,69 +125,65 @@ export class SimpleNFTMinter extends Component<{ metaplex: Metaplex }> {
         const items = this.getAvailableItems();
 
         return (
-            <ScrollView style= { styles.container } >
-            <Text style={ styles.header }> Available Characters < /Text>
-        {
-            characters.map((asset, index) => (
-                <View key= {`${asset.name}-${index}`} style = { styles.assetItem } >
-                    <Text>{ asset.name } < /Text>
-                    < Button
-        title = "Mint"
-        onPress = { async() => {
-            try {
-                // Assuming asset has an 'id' property; adjust if needed based on NFTAsset type
-                // If no 'id', map from keys separately
-                const sig = await this.mintCharacter(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
-                alert(`Minted: ${sig}`);
-            } catch (e) {
-                alert(`Error: ${(e as Error).message}`);
-            }
-        }
-    }
-            />
-    < /View>
-        ))}
+            <ScrollView style={styles.container}>
+                <Text style={styles.header}>Available Characters</Text>
+                {characters.map((asset, index) => (
+                    <View key={`${asset.name}-${index}`} style={styles.assetItem}>
+                        <Text>{asset.name}</Text>
+                        <Button
+                            title="Mint"
+                            onPress={async () => {
+                                try {
+                                    // Assuming asset has an 'id' property; adjust if needed based on NFTAsset type
+                                    // If no 'id', map from keys separately
+                                    const sig = await this.mintCharacter(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
+                                    alert(`Minted: ${sig}`);
+                                } catch (e) {
+                                    alert(`Error: ${(e as Error).message}`);
+                                }
+                            }}
+                        />
+                    </View>
+                ))}
 
-<Text style={ styles.header }> Available Achievements < /Text>
-{
-    achievements.map((asset, index) => (
-        <View key= {`${asset.name}-${index}`} style = { styles.assetItem } >
-            <Text>{ asset.name } < /Text>
-            < Button
-title = "Mint"
-onPress = { async() => {
-    try {
-        const sig = await this.mintAchievement(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
-        alert(`Minted: ${sig}`);
-    } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
-    }
-}}
-/>
-    < /View>
-        ))}
+                <Text style={styles.header}>Available Achievements</Text>
+                {achievements.map((asset, index) => (
+                    <View key={`${asset.name}-${index}`} style={styles.assetItem}>
+                        <Text>{asset.name}</Text>
+                        <Button
+                            title="Mint"
+                            onPress={async () => {
+                                try {
+                                    const sig = await this.mintAchievement(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
+                                    alert(`Minted: ${sig}`);
+                                } catch (e) {
+                                    alert(`Error: ${(e as Error).message}`);
+                                }
+                            }}
+                        />
+                    </View>
+                ))}
 
-<Text style={ styles.header }> Available Items < /Text>
-{
-    items.map((asset, index) => (
-        <View key= {`${asset.name}-${index}`} style = { styles.assetItem } >
-            <Text>{ asset.name } < /Text>
-            < Button
-title = "Mint"
-onPress = { async() => {
-    try {
-        const sig = await this.mintItem(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
-        alert(`Minted: ${sig}`);
-    } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
+                <Text style={styles.header}>Available Items</Text>
+                {items.map((asset, index) => (
+                    <View key={`${asset.name}-${index}`} style={styles.assetItem}>
+                        <Text>{asset.name}</Text>
+                        <Button
+                            title="Mint"
+                            onPress={async () => {
+                                try {
+                                    const sig = await this.mintItem(asset.id || Object.keys(ASSET_REGISTRY).find(key => ASSET_REGISTRY[key] === asset) || '');
+                                    alert(`Minted: ${sig}`);
+                                } catch (e) {
+                                    alert(`Error: ${(e as Error).message}`);
+                                }
+                            }}
+                        />
+                    </View>
+                ))}
+            </ScrollView>
+        );
     }
-}}
-/>
-    < /View>
-        ))}
-</ScrollView>
-    );
-  }
 }
 
 const styles = StyleSheet.create({

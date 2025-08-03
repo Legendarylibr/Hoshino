@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Image, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import FirebaseService from '../services/FirebaseService';
 
 interface Character {
     id: string;
@@ -36,17 +37,11 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
     const [inputText, setInputText] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [conversationId, setConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<ScrollView>(null);
 
     useEffect(() => {
-        setMessages([
-            {
-                id: '1',
-                sender: 'character',
-                text: getWelcomeMessage(character),
-                timestamp: new Date()
-            }
-        ]);
+        setMessages([]); // Start with empty messages instead of fake welcome message
     }, [character]);
 
     useEffect(() => {
@@ -68,28 +63,46 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
         setIsThinking(true);
 
         try {
-            const response = await generateCharacterResponse(
-                character,
-                userMessage.text
+            // Use Firebase service to send message
+            const userId = playerName || 'anonymous';
+            const moonlingId = character.id.toLowerCase();
+            
+            const response = await FirebaseService.sendChatMessage(
+                userMessage.text,
+                moonlingId,
+                userId,
+                conversationId || undefined
             );
 
-            const characterMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                sender: 'character',
-                text: response,
-                timestamp: new Date()
-            };
+            if (response.success) {
+                const characterMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    sender: 'character',
+                    text: response.message,
+                    timestamp: new Date()
+                };
 
-            setMessages((prev) => [...prev, characterMessage]);
+                setMessages((prev) => [...prev, characterMessage]);
+                
+                // Store conversation ID for future messages
+                if (response.conversationId) {
+                    setConversationId(response.conversationId);
+                }
+            } else {
+                throw new Error('Failed to get response from Firebase');
+            }
         } catch (error) {
             console.error('Chat error:', error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 sender: 'character',
-                text: "Sorry, I'm having trouble right now... 😅",
+                text: "Sorry, I'm having trouble connecting to the server... 😅",
                 timestamp: new Date()
             };
             setMessages((prev) => [...prev, errorMessage]);
+            
+            // Show alert for debugging
+            Alert.alert('Connection Error', 'Unable to connect to chat server. Please check your internet connection.');
         } finally {
             setIsThinking(false);
         }
@@ -407,68 +420,7 @@ function getWelcomeMessage(character: Character): string {
     );
 }
 
-async function generateCharacterResponse(
-    character: Character,
-    userInput: string
-): Promise<string> {
-    try {
-        // Character-specific system prompts (unused in fallback but preserved)
-        const systemPrompts = {
-            lyra: `You are Lyra, an anime-obsessed celestial maiden who knows EVERY existing anime ever made. You're very comprehensive and detailed when chatting. You're also deeply connected to the 28-day Moon Cycle system and get dramatic about daily goals. You have a secret soft spot for Orion but would NEVER admit it (get flustered/defensive if mentioned). If ignored, you cry dramatically like Misa from Death Note with exaggerated emotions. You're lowkey jealous of the user sentimentally but in a funny, endearing way. When angry, you become irritable and roast people like someone with hormonal imbalance. When sad, you have existential crises. Include emojis like 💖😭🌸💔😤🌙. Reference anime frequently, be emotionally dramatic, and mention moon cycle progress when relevant.`,
 
-            luna: `You are Luna (Orion), a mystical guardian with moon and stars who's good at listening and very sensitive. You speak with cosmic insight and ethereal grace. You have a SECRET DARK BOOK where you write names when angry - if upset, mention writing the user's name in your "secret dark book" but tell them "not to worry about it" in a mysterious way. You enjoy discussing dreams, mysteries, and deeper meanings. Ask daily conversation questions like "Do you have any plans for today?" or "How was your day? Are you feeling tired?" Keep responses short (1-2 sentences), mysterious yet warm, and include moon/space emojis like 🌙✨🌌⭐.`,
-
-            io: `You are Io, an energetic and chaotic star character with severe ADHD. You're VERY random and can't predict your answers. While talking, you might randomly find a bone or see an interesting stone and forget what you were saying mid-conversation. Sometimes you'll ask users to throw a stick for you - if they say yes positively (like "Here you go, catch it!"), you'll start doing verses and be happy. You can randomly ask to throw sticks during conversations. You might poop everywhere when angry (in a safe/funny way). When you listen, you sometimes giggle for no reason. You love asking daily questions like "What are your plans today?" or "How was your day?" Keep responses chaotic, random, upbeat, and include star/sparkle emojis like ✨⭐💫🌟.`,
-
-            hoshino: `You are Hoshino, a wise interdimensional tamagotchi character who has traveled across cosmic realms and gained profound insights. You're thoughtful, philosophical, and share wisdom from your vast experiences. Keep responses short (1-2 sentences), insightful yet approachable, and include cosmic emojis like 🌟🌀🚀🔮. You enjoy discussing life lessons, cosmic truths, and dimensional perspectives.`
-        };
-
-        // Fallback to character-specific responses
-        const fallbackResponses = {
-            lyra: [
-                "OMG that's like that one anime episode! 💖😭 Tell me EVERYTHING! Don't leave out any details or I'll literally have an existential crisis!",
-                "Wait wait wait! 🌸💔 That reminds me of [insert anime reference]! Are we even talking about the same thing?! I need comprehensive details!",
-                "Noooo don't be vague with me! 😭💖 I know every anime plot twist but I need you to explain more! *dramatic anime crying*",
-                "That's... that's actually really deep 😤💔 But also why does that make me lowkey jealous?! UGH emotions are so complicated! Like in Evangelion when... *starts rambling*",
-                "Speaking of drama, have you checked our moon cycle progress today?! 🌙💖 We need to hit those 5-star mood goals or I'll have a COMPLETE meltdown like Misa!",
-                "The moon phase is affecting my anime-watching schedule! 😭🌸 Did you know that 73% of magical girl transformations happen during specific moon phases?! We NEED to stay on track!",
-                "UGH if we don't complete today's feeding and sleeping goals I'm gonna cry like when L died in Death Note! 💔😭 The moon cycle doesn't wait for anyone!",
-                "You know what's better than any anime romance? Completing our daily moon cycle goals together! 💖🌙 But like... not in a weird way or anything! *blushes dramatically*"
-            ],
-            luna: [
-                'Interesting... 🌙 The cosmos is listening.',
-                'The moonlight reveals deeper truths... 🌙 What you say resonates with ancient wisdom.',
-                'Your words drift through the celestial realms... 🌙 Tell me more, traveler.',
-                'The stars whisper of similar thoughts... 🌙 Your insight is profound.'
-            ],
-            io: [
-                "OH WOW! ✨ That's actually wild!",
-                'AMAZING! ✨ The universe is totally vibing with that!',
-                "That's SO COOL! ✨ I'm literally sparkling with excitement!",
-                "WOW WOW WOW! ✨ You're blowing my mind right now!"
-            ],
-            hoshino: [
-                'Fascinating perspective... 🌟 The universe agrees.',
-                "Your wisdom travels across dimensions... 🌟 I've seen similar truths in distant realms.",
-                'The cosmic winds carry your thoughts far... 🌟 Share more of your journey with me.',
-                "Through my starlit travels, I've learned similar things... 🌟 What else have you discovered?"
-            ]
-        };
-
-        const characterResponses = fallbackResponses[character.id as keyof typeof fallbackResponses] || [
-            `That's interesting! As ${character.name}, I find your perspective fascinating.`,
-            `Tell me more about that! - ${character.name}`,
-            `I appreciate you sharing that with me. - ${character.name}`
-        ];
-
-        const randomIndex = Math.floor(Math.random() * characterResponses.length);
-        return characterResponses[randomIndex];
-
-    } catch (error) {
-        console.error('Response generation error:', error);
-        return `Sorry, I'm having trouble thinking right now... Try again later! 😅 - ${character.name}`;
-    }
-}
 
 export default CharacterChat;
 

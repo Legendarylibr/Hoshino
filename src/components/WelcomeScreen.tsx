@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useWallet } from '../contexts/WalletContext';
+
+// Get screen dimensions for responsive sizing
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isTablet = screenWidth > 768; // Common tablet breakpoint
 
 interface Props {
     onContinue: (playerName?: string) => void;
@@ -130,17 +134,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
 
     return (
         <View style={styles.tamagotchiScreenContainer}>
-            <View style={styles.cosmicMoon} />
-
-            <View style={styles.tamagotchiTopStatus}>
-                <Text style={styles.walletStatusText}>
-                    {connected ? '[connected wallet]' : 'Welcome to Hoshino 2025'}
-                </Text>
-            </View>
-
-            <Image source={require('../../assets/images/logo_final.png')} style={styles.hoshinoTitle} />
-
-            <View style={styles.tamagotchiMainScreen}>
+            <Image source={require('../../assets/images/casing.png')} style={styles.mainBackground} resizeMode="cover" />
+            
+            <View style={styles.innerScreen}>
+                <Image source={require('../../assets/images/screen bg.png')} style={styles.innerBackground} resizeMode="cover" />
                 <View style={styles.statsBar}>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Welcome</Text>
@@ -157,7 +154,6 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                 </View>
 
                 <View style={styles.mainDisplayArea}>
-                    <Image source={require('../../assets/images/screen bg.png')} style={styles.backgroundImage} resizeMode="cover" />
                     {currentPhase === 'story' && (
                         <TouchableOpacity style={styles.storySection} onPress={handleStoryClick}>
                             <View style={styles.storyCharacterCentered}>
@@ -183,21 +179,15 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
 
                     {currentPhase === 'name' && (
                         <>
-                            <View style={styles.starCharacterSection}>
+                            <View style={styles.eyesSection}>
                                 <Image
-                                    source={require('../../assets/images/hoshino star.png')}
-                                    style={styles.starCharacterImage}
+                                    source={require('../../assets/images/eyes.png')}
+                                    style={styles.eyesImage}
                                 />
                             </View>
 
                             <View style={styles.nameInputSection}>
                                 <View style={styles.nameInputContainer}>
-                                    <View style={styles.customEyes}>
-                                        <Image
-                                            source={require('../../assets/images/eyes.png')}
-                                            style={styles.pixelEyes}
-                                        />
-                                    </View>
                                     <View style={styles.nameInputTop}>
                                         <Text style={styles.namePrompt}>Enter your name!</Text>
                                         <Text style={styles.nameDisplay}>{getDisplayName()}</Text>
@@ -252,19 +242,17 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             </View>
 
             {currentPhase !== 'story' && (
-                <View style={styles.walletConnectionSection}>
-                    <TouchableOpacity
-                        style={styles.walletConnectButton}
-                        onPress={onConnectWallet}
-                    >
-                        <Text>
-                            {connected && publicKey
-                                ? `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`
-                                : 'Connect Solflare Wallet'
-                            }
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    style={styles.walletConnectButton}
+                    onPress={onConnectWallet}
+                >
+                    <Text style={styles.walletConnectText}>
+                        {connected && publicKey
+                            ? `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`
+                            : 'Connect'
+                        }
+                    </Text>
+                </TouchableOpacity>
             )}
         </View>
     );
@@ -275,41 +263,36 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'black',
         alignItems: 'center',
-        padding: 20,
-    },
-    cosmicMoon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'white',
-        opacity: 0.5,
-        position: 'absolute',
-        top: 50,
-        right: 50,
-    },
-    tamagotchiTopStatus: {
-        width: '100%',
-        height: 40,
-        backgroundColor: 'gray',
         justifyContent: 'center',
-        alignItems: 'center',
     },
-    walletStatusText: {
-        color: 'white',
-        fontSize: 18,
+    mainBackground: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        resizeMode: 'contain',
+    },
+    innerScreen: {
+        width: isTablet ? '75%' : '80%',
+        height: isTablet ? '75%' : '80%',
+        borderRadius: isTablet ? 25 : 15,
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    innerBackground: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
     },
     hoshinoTitle: {
-        width: 250,
-        height: 100,
+        width: isTablet ? 350 : 250,
+        height: isTablet ? 140 : 100,
         resizeMode: 'contain',
-        marginVertical: 20,
+        marginVertical: isTablet ? 30 : 20,
     },
     tamagotchiMainScreen: {
         width: '100%',
         flex: 1,
-        backgroundColor: 'darkgray',
-        borderRadius: 20,
-        overflow: 'hidden',
+        position: 'relative',
     },
     statsBar: {
         flexDirection: 'row',
@@ -332,11 +315,6 @@ const styles = StyleSheet.create({
     mainDisplayArea: {
         flex: 1,
     },
-    backgroundImage: {
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-    },
     storySection: {
         flex: 1,
         justifyContent: 'space-between',
@@ -348,8 +326,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     storyCharacterCenterImage: {
-        width: 150,
-        height: 150,
+        width: isTablet ? 400 : 300,
+        height: isTablet ? 400 : 300,
         resizeMode: 'contain',
     },
     storyDialogBottom: {
@@ -374,41 +352,46 @@ const styles = StyleSheet.create({
         color: 'gray',
     },
     starCharacterSection: {
-        height: 200,
+        height: isTablet ? 450 : 350,
         justifyContent: 'center',
         alignItems: 'center',
     },
     starCharacterImage: {
-        width: 150,
-        height: 150,
+        width: isTablet ? 500 : 400,
+        height: isTablet ? 500 : 400,
+        resizeMode: 'contain',
+    },
+    eyesSection: {
+        height: isTablet ? 120 : 80,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    eyesImage: {
+        width: isTablet ? 150 : 100,
+        height: isTablet ? 75 : 50,
         resizeMode: 'contain',
     },
     nameInputSection: {
         flex: 1,
         padding: 10,
+        justifyContent: 'space-between',
     },
     nameInputContainer: {
         flex: 1,
+        justifyContent: 'space-between',
     },
-    customEyes: {
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    pixelEyes: {
-        width: 100,
-        height: 50,
-        resizeMode: 'contain',
-    },
+
     nameInputTop: {
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 20,
+        paddingTop: 20,
     },
     namePrompt: {
-        fontSize: 18,
+        fontSize: isTablet ? 22 : 18,
         marginBottom: 5,
     },
     nameDisplay: {
-        fontSize: 24,
+        fontSize: isTablet ? 28 : 24,
         letterSpacing: 5,
     },
     virtualKeyboard: {
@@ -420,13 +403,13 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     keyboardKey: {
-        width: 40,
-        height: 40,
+        width: isTablet ? 50 : 40,
+        height: isTablet ? 50 : 40,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'lightgray',
-        margin: 2,
-        borderRadius: 5,
+        margin: isTablet ? 3 : 2,
+        borderRadius: isTablet ? 6 : 5,
     },
     selected: {
         backgroundColor: 'gray',
@@ -444,21 +427,27 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     welcomePlayer: {
-        fontSize: 24,
+        fontSize: isTablet ? 28 : 24,
         marginBottom: 10,
     },
     transitionText: {
-        fontSize: 16,
-    },
-    walletConnectionSection: {
-        marginTop: 20,
-        width: '100%',
+        fontSize: isTablet ? 18 : 16,
     },
     walletConnectButton: {
-        backgroundColor: 'blue',
-        padding: 15,
-        borderRadius: 10,
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+        paddingVertical: isTablet ? 8 : 6,
+        paddingHorizontal: isTablet ? 12 : 10,
+        borderRadius: isTablet ? 8 : 6,
         alignItems: 'center',
+        zIndex: 1000,
+    },
+    walletConnectText: {
+        color: 'white',
+        fontSize: isTablet ? 14 : 12,
+        fontWeight: 'bold',
     },
 });
 

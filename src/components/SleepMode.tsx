@@ -2,6 +2,24 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, TextInput, Switch, StyleSheet, Animated, Easing } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
+// Helper function to get image source based on character image name
+const getImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'LYRA.png':
+            return require('../../assets/images/LYRA.png');
+        case 'ORION.png':
+            return require('../../assets/images/ORION.png');
+        case 'ARO.png':
+            return require('../../assets/images/ARO.png');
+        case 'SIRIUS.png':
+            return require('../../assets/images/SIRIUS.png');
+        case 'ZANIAH.png':
+            return require('../../assets/images/ZANIAH.png');
+        default:
+            return require('../../assets/images/LYRA.png'); // fallback
+    }
+};
+
 interface Character {
     id: string;
     name: string;
@@ -248,7 +266,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
                         </View>
                     </View>
                                 <View style={styles.sleepingMoonlingContainer}>
-                <Image source={{ uri: character.image }} style={styles.sleepingMoonlingImage} />
+                                                    <Image source={getImageSource(character.image)} style={styles.sleepingMoonlingImage} />
                         <Text style={styles.sleepPrompt}>Tap "Start Sleep Session" to begin</Text>
                     </View>
                     <View style={styles.sleepSettings}>
@@ -343,7 +361,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
                     </View>
                     <View style={styles.sleepingMoonlingContainer}>
                         <Animated.Image
-                            source={{ uri: character.image }}
+                            source={getImageSource(character.image)}
                             style={[
                                 styles.sleepingMoonlingImage,
                                 {
@@ -464,7 +482,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
                         </View>
                         <View style={styles.moonlingReaction}>
                             <Animated.Image
-                                source={{ uri: character.image }}
+                                source={getImageSource(character.image)}
                                 style={[
                                     styles.reactionMoonlingImage,
                                     {

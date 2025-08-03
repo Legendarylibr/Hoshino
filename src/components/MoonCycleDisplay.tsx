@@ -35,28 +35,37 @@ const MoonCycleDisplay: React.FC<Props> = ({
     const [recentIngredient, setRecentIngredient] = useState<IngredientDiscovery | null>(null);
 
     useEffect(() => {
-        const cycle = moonCycleService.getCurrentCycle(characterMint);
-        setCurrentCycle(cycle);
-        updateProgress();
+        const loadData = async () => {
+            try {
+                const cycle = await moonCycleService.getCurrentCycle(characterMint);
+                setCurrentCycle(cycle);
+                updateProgress();
 
-        if (globalPointSystem && walletAddress) {
-            let points = globalPointSystem.getCurrentPoints();
-            if (!points) {
-                points = globalPointSystem.initializeUser(walletAddress);
+                if (globalPointSystem && walletAddress) {
+                    let points = await globalPointSystem.getCurrentPoints();
+                    if (!points) {
+                        points = await globalPointSystem.initializeUser(walletAddress);
+                    }
+                    setGlobalPoints(points);
+                }
+
+                const reward = await moonCycleService.checkCycleCompletion();
+                if (reward) {
+                    setShowRewards(true);
+                }
+            } catch (error) {
+                console.error('Error loading moon cycle data:', error);
             }
-            setGlobalPoints(points);
-        }
-
-        const reward = moonCycleService.checkCycleCompletion();
-        if (reward) {
-            setShowRewards(true);
-        }
+        };
+        
+        loadData();
     }, [characterMint, moonCycleService, onIngredientFound, globalPointSystem, walletAddress]);
 
-    const updateProgress = () => {
+    const updateProgress = async () => {
         setCycleProgress(moonCycleService.getCycleProgress());
         if (globalPointSystem) {
-            setGlobalPoints(globalPointSystem.getCurrentPoints());
+            const points = await globalPointSystem.getCurrentPoints();
+            setGlobalPoints(points);
         }
     };
 
@@ -78,15 +87,15 @@ const MoonCycleDisplay: React.FC<Props> = ({
         return '#f87171';
     };
 
-    const handleActionClick = (actionType: 'feed' | 'sleep' | 'chat') => {
+    const handleActionClick = async (actionType: 'feed' | 'sleep' | 'chat') => {
         if (actionType === 'sleep') {
             const today = new Date().toISOString().split('T')[0]
             const todayStats = currentCycle?.dailyStats.find(s => s.date === today)
 
             if (todayStats?.sleepStartTime) {
-                const sleepResult = moonCycleService.endSleep()
+                const sleepResult = await moonCycleService.endSleep()
                 if (sleepResult.success) {
-                    const result = moonCycleService.recordDailyStats(
+                    const result = await moonCycleService.recordDailyStats(
                         3,
                         3,
                         sleepResult.energyGained,
@@ -94,7 +103,7 @@ const MoonCycleDisplay: React.FC<Props> = ({
                         sleepResult.energyGained >= 5 ? 8.5 : sleepResult.energyGained * 1.7,
                         characterName
                     );
-                    updateProgress();
+                    await updateProgress();
                     onActionComplete?.(actionType, result.moodBonusEarned, result.pointsReward);
                     onIngredientFound?.({
                         id: 'sleep_end',
@@ -105,7 +114,7 @@ const MoonCycleDisplay: React.FC<Props> = ({
                     });
                 }
             } else {
-                const sleepStart = moonCycleService.startSleep()
+                const sleepStart = await moonCycleService.startSleep()
                 if (sleepStart.success) {
                     onIngredientFound?.({
                         id: 'sleep_start',
