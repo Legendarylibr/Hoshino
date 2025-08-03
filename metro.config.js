@@ -1,0 +1,42 @@
+const { getDefaultConfig } = require('expo/metro-config');
+
+const config = getDefaultConfig(__dirname);
+
+// Add Node.js polyfills for blockchain libraries
+config.resolver.alias = {
+  ...config.resolver.alias,
+  'assert': 'assert',
+  'buffer': 'buffer',
+  'crypto': 'crypto-browserify',
+  'stream': 'stream-browserify',
+  'util': 'util',
+  'process': 'process/browser',
+  'path': 'path-browserify',
+  'fs': false,
+  'os': false,
+  'http': false,
+  'https': false,
+  'url': false,
+  'querystring': false,
+  'zlib': false,
+  'tty': false,
+  'net': false,
+  'child_process': false,
+  'constants': false,
+  'domain': false,
+  'punycode': false,
+  'string_decoder': false,
+  'timers': false,
+  'tls': false,
+  'vm': false,
+  'worker_threads': false,
+  // Exclude problematic packages
+  '@irys/sdk': false,
+  '@irys/arweave': false,
+  '@irys/query': false,
+};
+
+// Add polyfills to the resolver
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
+
+module.exports = config; 
