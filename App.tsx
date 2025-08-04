@@ -660,7 +660,7 @@ function App() {
                 return selectedCharacter ? (
                     <CharacterChat
                         character={selectedCharacter}
-                        onExit={() => setCurrentView('selection')}
+                        onExit={() => setCurrentView('interaction')}
                         playerName={playerName}
                         onNotification={addNotification}
                     />
