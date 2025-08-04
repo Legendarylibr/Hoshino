@@ -27,11 +27,9 @@ class ChatService {
   private userId: string | null = null;
 
   constructor() {
-    // In production, this would be your Firebase Functions URL
-    // For development, you can use localhost or Firebase emulator
-    this.baseUrl = __DEV__ 
-      ? 'http://localhost:5001/your-project/us-central1'
-      : 'https://us-central1-your-project.cloudfunctions.net';
+    // Firebase Functions URL with correct project ID
+    // Using production URL for both dev and prod since emulator isn't running
+    this.baseUrl = 'https://us-central1-hoshino-996d0.cloudfunctions.net';
   }
 
   setUserId(userId: string) {

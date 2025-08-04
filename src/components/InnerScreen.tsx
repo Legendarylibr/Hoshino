@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, Keyboard } from 'react-native';
 
 // Get screen dimensions for responsive sizing
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -23,6 +23,7 @@ interface InnerScreenProps {
     backgroundImageSource?: any;
     isSelectionPage?: boolean; // New prop for selection page styling
     overlayMode?: boolean; // New prop for modal-like overlay effect
+    keyboardVisible?: boolean; // New prop for keyboard state
 }
 
 const InnerScreen: React.FC<InnerScreenProps> = ({
@@ -42,7 +43,8 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     showBackgroundImage = true,
     backgroundImageSource,
     isSelectionPage = false,
-    overlayMode = false
+    overlayMode = false,
+    keyboardVisible = false
 }) => {
     return (
         <View style={styles.tamagotchiScreenContainer}>
@@ -64,7 +66,8 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
             <View style={[
                 styles.innerScreen, 
                 isSelectionPage && styles.innerScreenLarge,
-                overlayMode && styles.overlayInnerScreen
+                overlayMode && styles.overlayInnerScreen,
+                keyboardVisible && styles.innerScreenWithKeyboard
             ]}>
                 {/* Screen background */}
                 {showBackgroundImage && (
@@ -176,8 +179,8 @@ const styles = StyleSheet.create({
         height: isTablet ? '65%' : '51%',
         borderRadius: isTablet ? 25 : 15,
         overflow: 'hidden',
-        position: 'relative',
-        marginTop: isTablet ? -20 : -40,
+        position: 'absolute',
+        top: isTablet ? '20%' : '22%',
         borderWidth: 2,
         borderColor: '#5A7B8A', // Same darker blue border as buttons
     },
@@ -196,6 +199,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.5,
         shadowRadius: 20,
+    },
+    innerScreenWithKeyboard: {
+        height: isTablet ? '45%' : '40%',
     },
     darkenedButtons: {
         opacity: 0.3,
