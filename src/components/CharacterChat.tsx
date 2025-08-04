@@ -36,6 +36,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [isThinking, setIsThinking] = useState(false);
+    const [showChat, setShowChat] = useState(false);
     const messagesEndRef = useRef<ScrollView>(null);
 
     // Helper function to get image source based on character image name
@@ -153,217 +154,218 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
         }
     };
 
+    const toggleChat = () => {
+        setShowChat(!showChat);
+    };
+
     return (
         <InnerScreen
             onLeftButtonPress={onExit}
-            onCenterButtonPress={() => onNotification?.('💬 Chat Help: Have a conversation with your cosmic companion!', 'info')}
+            onCenterButtonPress={toggleChat}
             onRightButtonPress={() => onNotification?.('💬 Chat Tips: Ask questions, share thoughts, or just chat naturally!', 'info')}
             leftButtonText="←"
-            centerButtonText="💬"
+            centerButtonText={showChat ? "Hide" : "Chat"}
             rightButtonText="?"
         >
-            {/* Main Display Area - Chat Interface */}
-            <View style={styles.mainDisplayArea}>
-                {/* Character Display Behind Chat */}
+            {/* Main Display Area - Always show character, optionally overlay chat */}
+            <View style={styles.container}>
+                {/* Character Display - Always visible */}
                 <View style={styles.characterDisplay}>
                     <Image
                         source={getImageSource(character.image)}
                         style={styles.characterImage}
                     />
+                    {!showChat && (
+                        <View style={styles.characterInfo}>
+                            <Text style={styles.characterName}>{character.name}</Text>
+                            <Text style={styles.characterStatus}>Ready to chat!</Text>
+                        </View>
+                    )}
                 </View>
 
-                {/* Built-in Chat Overlay */}
-                <View style={styles.builtInChatOverlay}>
-                    {/* Chat Header Bar */}
-                    <View style={styles.builtInChatHeader}>
-                        <Text style={styles.chatHeaderText}>Chatting with {character.name}</Text>
-                        <TouchableOpacity onPress={onExit} style={styles.builtInChatCloseBtn}>
-                            <Text style={styles.closeButtonText}>×</Text>
-                        </TouchableOpacity>
-                    </View>
+                {/* Chat Interface - Only show when toggled on */}
+                {showChat && (
+                    <View style={styles.chatContainer}>
+                        {/* Chat Header */}
+                        <View style={styles.chatHeader}>
+                            <Text style={styles.chatHeaderText}>Chatting with {character.name}</Text>
+                        </View>
 
-                    {/* Messages Area */}
-                    <ScrollView
-                        style={styles.builtInChatMessages}
-                        ref={messagesEndRef}
-                        contentContainerStyle={{ paddingBottom: 10 }}
-                        inverted
-                    >
-                        {messages.map((message) => (
-                            <View
-                                key={message.id}
-                                style={[styles.builtInChatMessage, message.sender === 'user' ? styles.user : styles.character]}
-                            >
-                                <Text style={styles.messageText}>{message.text}</Text>
-                            </View>
-                        ))}
-
-                        {isThinking && (
-                            <View style={styles.builtInChatThinking}>
-                                <Text style={styles.thinkingText}>{character.name} is thinking...</Text>
-                            </View>
-                        )}
-                    </ScrollView>
-
-                    {/* Input Area */}
-                    <View style={styles.builtInChatInputArea}>
-                        <TextInput
-                            style={styles.builtInChatInput}
-                            value={inputText}
-                            onChangeText={setInputText}
-                            placeholder={`Message ${character.name}...`}
-                            placeholderTextColor="#999"
-                            multiline
-                            maxLength={1000}
-                        />
-                        <TouchableOpacity
-                            style={[styles.builtInChatSendBtn, !inputText.trim() && styles.disabled]}
-                            onPress={sendMessage}
-                            disabled={!inputText.trim() || isThinking}
+                        {/* Messages Area */}
+                        <ScrollView
+                            style={styles.messagesContainer}
+                            ref={messagesEndRef}
+                            contentContainerStyle={{ paddingBottom: 10 }}
                         >
-                            <Text style={styles.builtInChatSendText}>Send</Text>
-                        </TouchableOpacity>
+                            {messages.map((message) => (
+                                <View
+                                    key={message.id}
+                                    style={[
+                                        styles.message,
+                                        message.sender === 'user' ? styles.userMessage : styles.characterMessage
+                                    ]}
+                                >
+                                    <Text style={styles.messageText}>{message.text}</Text>
+                                </View>
+                            ))}
+
+                            {isThinking && (
+                                <View style={styles.thinkingMessage}>
+                                    <Text style={styles.thinkingText}>{character.name} is thinking...</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        {/* Input Area */}
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.textInput}
+                                value={inputText}
+                                onChangeText={setInputText}
+                                placeholder={`Message ${character.name}...`}
+                                placeholderTextColor="#999"
+                                multiline
+                                maxLength={200}
+                            />
+                            <TouchableOpacity
+                                style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+                                onPress={sendMessage}
+                                disabled={!inputText.trim() || isThinking}
+                            >
+                                <Text style={styles.sendButtonText}>Send</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
+                )}
             </View>
         </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    mainDisplayArea: {
+    container: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+    },
+    characterDisplay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    characterDisplay: {
-        position: 'absolute',
         width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        opacity: 0.3,
-        zIndex: 1, // Behind chat overlay
     },
     characterImage: {
-        width: 280, // Slightly smaller to avoid overlap
-        height: 280,
+        width: 200,
+        height: 200,
         resizeMode: 'contain',
     },
-    builtInChatOverlay: {
-        position: 'absolute',
-        top: 60,
-        left: 20,
-        right: 20,
-        bottom: 100,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)', // More opaque for better readability
-        borderRadius: 20,
-        paddingBottom: 10,
-        zIndex: 2, // Above character
-    },
-    builtInChatHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    characterInfo: {
         alignItems: 'center',
-        padding: 16, // Increased padding
-        backgroundColor: 'rgba(128, 0, 32, 0.9)', // More opaque burgundy top bar
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        minHeight: 60, // Ensure enough height
+        marginTop: 10,
+    },
+    characterName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 4,
+    },
+    characterStatus: {
+        fontSize: 16,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+    chatContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        borderRadius: 10,
+        padding: 8,
+        zIndex: 10,
+    },
+    chatHeader: {
+        backgroundColor: 'rgba(128, 0, 32, 0.9)',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 8,
     },
     chatHeaderText: {
         color: 'white',
-        fontSize: 18, // Increased from 16
+        fontSize: 16,
         fontWeight: 'bold',
-        flex: 1, // Take available space
+        textAlign: 'center',
     },
-    builtInChatCloseBtn: {
-        padding: 8, // Increased padding for better touch target
-        backgroundColor: '#ef4444', // Solid red background
-        borderRadius: 20,
-        width: 36, // Increased size
-        height: 36,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 12,
-    },
-    closeButtonText: {
-        color: 'white',
-        fontSize: 24, // Much larger close button text
-        fontWeight: 'bold',
-        lineHeight: 24,
-    },
-    builtInChatMessages: {
+    messagesContainer: {
         flex: 1,
-        padding: 12, // Increased padding
+        paddingHorizontal: 4,
     },
-    builtInChatMessage: {
-        marginVertical: 6, // Increased spacing
-        padding: 12, // Increased padding
-        borderRadius: 12,
+    message: {
+        marginVertical: 4,
+        padding: 10,
+        borderRadius: 8,
         maxWidth: '85%',
     },
-    messageText: {
-        fontSize: 16, // Added explicit font size
-        color: 'white',
-        lineHeight: 22,
-    },
-    user: {
-        backgroundColor: 'rgba(0, 123, 255, 0.9)',
+    userMessage: {
+        backgroundColor: 'rgba(0, 123, 255, 0.8)',
         alignSelf: 'flex-end',
     },
-    character: {
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    characterMessage: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignSelf: 'flex-start',
     },
-    builtInChatThinking: {
-        padding: 12, // Increased padding
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        borderRadius: 12,
+    messageText: {
+        fontSize: 14,
+        color: 'white',
+        lineHeight: 18,
+    },
+    thinkingMessage: {
+        padding: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 8,
         alignSelf: 'flex-start',
-        marginVertical: 6,
+        marginVertical: 4,
     },
     thinkingText: {
-        fontSize: 16, // Added explicit font size
+        fontSize: 14,
         color: 'white',
         fontStyle: 'italic',
     },
-    builtInChatInputArea: {
+    inputContainer: {
         flexDirection: 'row',
-        padding: 12, // Increased padding
+        padding: 8,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        alignItems: 'flex-end', // Better alignment
+        borderRadius: 8,
+        alignItems: 'flex-end',
+        marginTop: 8,
     },
-    builtInChatInput: {
+    textInput: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: 20,
-        paddingHorizontal: 16, // Increased padding
-        paddingVertical: 12,
-        marginRight: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginRight: 8,
         color: 'black',
-        fontSize: 16, // Added explicit font size
-        maxHeight: 100,
-        minHeight: 44, // Ensure minimum touch target
+        fontSize: 14,
+        maxHeight: 80,
     },
-    builtInChatSendBtn: {
-        backgroundColor: 'rgba(0, 123, 255, 0.9)',
-        paddingHorizontal: 24, // Increased padding
-        paddingVertical: 12,
-        borderRadius: 20,
+    sendButton: {
+        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: 44, // Ensure minimum touch target
-        minWidth: 80,
     },
-    builtInChatSendText: {
+    sendButtonText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 16, // Added explicit font size
+        fontSize: 14,
     },
-    disabled: {
+    sendButtonDisabled: {
         opacity: 0.5,
     },
 });
