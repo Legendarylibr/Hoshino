@@ -18,6 +18,7 @@ import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
 import WalletButton from './WalletButton';
 
+
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
     switch (imageName) {
@@ -63,14 +64,14 @@ const CHARACTERS: Character[] = [
     {
         id: 'lyra',
         name: 'Lyra',
-        description: 'Anime-obsessed celestial maiden who knows every existing anime. Has a secret soft spot for Orion but would NEVER admit it. Very comprehensive when chatting, but turns into an exaggerated crying mess (Misa from Death Note style) if ignored. Lowkey jealous of you sentimentally but in a funny way. When angry, becomes irritable like someone with hormonal imbalance and will roast you. When sad, has existential crises.',
+        description: 'Lyra lives for attention, anime, and being just a little unhinged. She’ll flirt, cry, and roast you in the same breath. Don’t leave her on read — ever.',
         image: 'LYRA.gif',
         nftMint: null
     },
     {
         id: 'orion',
         name: 'Orion',
-        description: 'Mystical guardian with moon and stars',
+        description: 'A dramatic starboy with too many feelings and a quiet grudge. Sometimes you’ll catch him in a corner, blasting Lil Peep like it’s a coping mechanism. Don’t ask, he won’t tell.',
         image: 'ORION.gif',
         nftMint: null
     },
@@ -84,14 +85,14 @@ const CHARACTERS: Character[] = [
     {
         id: 'sirius',
         name: 'Sirius',
-        description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
+        description: 'A robot cat who thinks he’s hilarious. Loves making dad jokes about AI and insists you call him “Hey Sirius". But don’t worry, he’s still learning emotions… kind of.',
         image: 'SIRIUS.gif',
         nftMint: null
     },
     {
         id: 'zaniah',
         name: 'Zaniah',
-        description: 'Mysterious cosmic entity with ethereal presence. Zaniah embodies the essence of distant stars and ancient wisdom. Quiet and contemplative, but harbors immense power within.',
+        description: 'If she’s moody, don’t ask — it’s either Mercury retrograde or you’re a Scorpio. Or both. Let her vibe it out, she’s in her healing era.',
         image: 'ZANIAH.gif',
         nftMint: null
     }
@@ -119,6 +120,7 @@ const MoonlingSelection: React.FC<Props> = ({
     playerName,
     onNotification
 }) => {
+
     const { connected, publicKey, connect, disconnect } = useWallet();
     const [isConnecting, setIsConnecting] = useState(false);
 
@@ -416,7 +418,6 @@ const MoonlingSelection: React.FC<Props> = ({
                                 style={[
                                     styles.slotMachineCard,
                                     { 
-                                        borderColor: actualIndex === currentCharacterIndex ? '#ff8c42' : '#9CA3AF',
                                         marginHorizontal: 10
                                     }
                                 ]}
@@ -542,13 +543,14 @@ const styles = StyleSheet.create({
     slotMachineCard: {
         width: 200,
         height: 200,
-        backgroundColor: 'white',
+        backgroundColor: '#E8F5E8',
         borderRadius: 10,
         marginHorizontal: 10,
         padding: 10,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 3,
+        borderColor: '#2E5A3E',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
@@ -612,19 +614,9 @@ const styles = StyleSheet.create({
     },
     characterName: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
+        color: '#2E5A3E',
         textAlign: 'center',
-    },
-    characterElement: {
-        fontSize: 14,
-        color: 'gray',
-    },
-    characterRarity: {
-        padding: 5,
-        borderRadius: 5,
-        color: 'white',
-        marginTop: 5,
+        fontFamily: 'PressStart2P',
     },
     spinControls: {
         marginTop: 20,
@@ -644,7 +636,8 @@ const styles = StyleSheet.create({
     spinText: {
         color: '#2E5A3E',
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: 'PressStart2P',
+        transform: [{ translateX: 1 }, { translateY: 4 }],
     },
     selectedCharacterDetails: {
         marginTop: 20,
@@ -745,6 +738,7 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 10,
         textAlign: 'center',
+        fontFamily: 'PressStart2P',
     },
     modalDescription: {
         fontSize: 14,

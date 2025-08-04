@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import InnerScreen from './InnerScreen';
+import chatService from '../services/ChatService';
 
 interface Character {
     id: string;
@@ -37,23 +38,39 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
     const [inputText, setInputText] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const [showChat, setShowChat] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
     const messagesEndRef = useRef<ScrollView>(null);
+
+    // Keyboard event listeners
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+            setKeyboardVisible(true);
+        });
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+            setKeyboardVisible(false);
+        });
+
+        return () => {
+            keyboardDidShowListener?.remove();
+            keyboardDidHideListener?.remove();
+        };
+    }, []);
 
     // Helper function to get image source based on character image name
     const getImageSource = (imageName: string) => {
         switch (imageName) {
-            case 'LYRA.png':
-                return require('../../assets/images/LYRA.png');
-            case 'ORION.png':
-                return require('../../assets/images/ORION.png');
-            case 'ARO.png':
-                return require('../../assets/images/ARO.png');
-            case 'SIRIUS.png':
-                return require('../../assets/images/SIRIUS.png');
-            case 'ZANIAH.png':
-                return require('../../assets/images/ZANIAH.png');
+            case 'LYRA.gif':
+                return require('../../assets/images/LYRA.gif');
+            case 'ORION.gif':
+                return require('../../assets/images/ORION.gif');
+            case 'ARO.gif':
+                return require('../../assets/images/ARO.gif');
+            case 'SIRIUS.gif':
+                return require('../../assets/images/SIRIUS.gif');
+            case 'ZANIAH.gif':
+                return require('../../assets/images/ZANIAH.gif');
             default:
-                return require('../../assets/images/LYRA.png'); // fallback
+                return require('../../assets/images/LYRA.gif'); // fallback
         }
     };
 
@@ -62,63 +79,29 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
         messagesEndRef.current?.scrollToEnd({ animated: true });
     }, [messages]);
 
-    // Generate character response based on input
+    // Generate character response using Firebase AI
     const generateCharacterResponse = async (userInput: string): Promise<string> => {
-        // Simulate thinking time
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        try {
+            // Always set a user ID (use playerName or fallback to 'anonymous')
+            const userId = playerName || 'anonymous';
+            chatService.setUserId(userId);
 
-        const responses = [
-            `Oh, that's interesting! Tell me more about that, ${playerName || 'friend'}!`,
-            `Hmm, I see what you mean. That's quite fascinating!`,
-            `I love talking with you! You always have such interesting things to say.`,
-            `That reminds me of something... *thinks deeply*`,
-            `You know, you're really special to me. I'm so glad we can chat like this!`,
-            `*nods thoughtfully* That's a great point!`,
-            `I feel like I understand you better now. Thank you for sharing that with me.`,
-            `You're absolutely right! I never thought about it that way before.`,
-            `This conversation is making me so happy! 🌟`,
-            `I wish we could talk like this forever! You're the best companion ever!`
-        ];
-
-        // Add character-specific responses
-        if (character.name === 'Lyra') {
-            responses.push(
-                `*adjusts anime hair* Oh my gosh, that's just like in that one anime!`,
-                `You know what this reminds me of? There's this amazing anime where...`,
-                `*dramatic anime pose* This is giving me major protagonist energy!`,
-                `Wait, wait, wait! This is totally like that scene from... *starts rambling about anime*`
-            );
-        } else if (character.name === 'Orion') {
-            responses.push(
-                `*gazes at the stars* The cosmos speak to me, and they agree with you.`,
-                `In the grand scheme of the universe, what you're saying makes perfect sense.`,
-                `*mystical aura intensifies* I sense great wisdom in your words.`,
-                `The moon and stars align with your thoughts tonight.`
-            );
-        } else if (character.name === 'Aro') {
-            responses.push(
-                `*radiates with celestial energy* Your words are like starlight to my soul!`,
-                `*sparkles with excitement* That's absolutely brilliant!`,
-                `You're making me glow with happiness! ✨`,
-                `*bounces with energy* I love your perspective on this!`
-            );
-        } else if (character.name === 'Sirius') {
-            responses.push(
-                `*stands tall with determination* Your words carry the strength of a thousand suns!`,
-                `*fierce loyalty in eyes* I will remember this conversation forever.`,
-                `You speak with the wisdom of the ancients. I am honored.`,
-                `*radiates powerful energy* Your thoughts are as bright as my namesake star!`
-            );
-        } else if (character.name === 'Zaniah') {
-            responses.push(
-                `*contemplates with ancient wisdom* Your words echo through the cosmic void...`,
-                `*ethereal presence intensifies* There is great depth in what you say.`,
-                `*whispers mysteriously* The stars have whispered of this moment...`,
-                `*quietly powerful* Your perspective transcends the ordinary.`
-            );
+            // Get moonling ID from character name
+            const moonlingId = character.name.toLowerCase();
+            
+            // Send message to Firebase AI service
+            const response = await chatService.sendMessage(userInput, moonlingId);
+            
+            if (response.success) {
+                return response.message;
+            } else {
+                throw new Error(response.message || 'Failed to get AI response');
+            }
+        } catch (error) {
+            console.error('AI response error:', error);
+            // Fallback to a simple response if AI fails
+            return `I'm having trouble connecting right now, ${playerName || 'friend'}. But I'm still here for you! ✨`;
         }
-
-        return responses[Math.floor(Math.random() * responses.length)];
     };
 
     const sendMessage = async () => {
@@ -166,6 +149,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
             leftButtonText="←"
             centerButtonText={showChat ? "Hide" : "Chat"}
             rightButtonText="?"
+            keyboardVisible={keyboardVisible}
         >
             {/* Main Display Area - Always show character, optionally overlay chat */}
             <View style={styles.container}>
