@@ -170,11 +170,6 @@ function App() {
 
             if (connected) {
                 setStatusMessage('Wallet already connected! 🎉');
-                if (currentView === 'welcome') {
-                    setTimeout(() => {
-                        handleContinueFromWelcome();
-                    }, 1000);
-                }
                 setTimeout(() => setStatusMessage(''), 3000);
                 return;
             }
@@ -190,11 +185,6 @@ function App() {
             });
 
             setStatusMessage('Wallet connected successfully! 🎉');
-            if (currentView === 'welcome') {
-                setTimeout(() => {
-                    handleContinueFromWelcome();
-                }, 1000);
-            }
             setTimeout(() => setStatusMessage(''), 3000);
         } catch (error: any) {
             console.error('❌ Wallet connection failed:', error);

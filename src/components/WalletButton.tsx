@@ -18,7 +18,8 @@ const WalletButton: React.FC<WalletButtonProps> = ({
         if (!connected || !publicKey) {
             return 'Connect';
         }
-        return `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`;
+        // Display the base58 address properly
+        return `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`;
     };
 
     return (
@@ -50,10 +51,12 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     connectButton: {
-        backgroundColor: '#4CAF50',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        backgroundColor: '#2E5A3E',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#E8F5E8',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
@@ -61,25 +64,29 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     connectText: {
-        color: '#fff',
-        fontSize: 14,
+        color: '#E8F5E8',
+        fontSize: 10,
         fontWeight: '600',
+        fontFamily: 'PressStart2P',
     },
     connectedButton: {
-        backgroundColor: '#A8E6CF',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        backgroundColor: 'rgba(232, 245, 232, 0.65)',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(46, 90, 62, 0.4)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        elevation: 3,
     },
     connectedText: {
-        color: '#fff',
-        fontSize: 14,
+        color: '#2E5A3E',
+        fontSize: 10,
         fontWeight: '600',
+        fontFamily: 'PressStart2P',
     },
 });
 
