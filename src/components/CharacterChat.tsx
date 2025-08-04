@@ -186,6 +186,8 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                     <ScrollView
                         style={styles.builtInChatMessages}
                         ref={messagesEndRef}
+                        contentContainerStyle={{ paddingBottom: 10 }}
+                        inverted
                     >
                         {messages.map((message) => (
                             <View
@@ -212,7 +214,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                             placeholder={`Message ${character.name}...`}
                             placeholderTextColor="#999"
                             multiline
-                            maxLength={200}
+                            maxLength={1000}
                         />
                         <TouchableOpacity
                             style={[styles.builtInChatSendBtn, !inputText.trim() && styles.disabled]}
@@ -249,22 +251,23 @@ const styles = StyleSheet.create({
     },
     builtInChatOverlay: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderRadius: 10,
-        margin: 10,
+        top: 60,
+        left: 20,
+        right: 20,
+        bottom: 100,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)', // darker but more transparent
+        borderRadius: 20,
+        paddingBottom: 10,
     },
+
     builtInChatHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
+        padding: 12,
+        backgroundColor: 'rgba(128, 0, 32, 0.8)', // burgundy top bar
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
     },
     chatHeaderText: {
         color: 'white',
@@ -272,11 +275,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     builtInChatCloseBtn: {
-        padding: 5,
-        backgroundColor: 'rgba(255, 0, 0, 0.7)',
+        padding: 4,
+        backgroundColor: 'white',
         borderRadius: 15,
-        width: 30,
-        height: 30,
+        width: 28,
+        height: 28,
         justifyContent: 'center',
         alignItems: 'center',
     },
