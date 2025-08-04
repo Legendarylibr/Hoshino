@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput } from 'react-native';
 import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
@@ -9,17 +9,19 @@ const isTablet = screenWidth > 768; // Common tablet breakpoint
 
 interface Props {
     onContinue: (playerName?: string) => void;
+    onGoToInteraction?: (playerName?: string) => void;
+    onGoToSelection?: () => void;
     connected: boolean;
     onConnectWallet?: () => void;
     playerName?: string;
+    goToCongratulations?: boolean;
 }
 
-const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet, playerName: storedPlayerName }) => {
+const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations }) => {
     const { publicKey } = useWallet();
     
-    const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'petName' | 'final' | 'complete'>('intro');
+    const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'nameInput' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'congratulations' | 'mintMore' | 'final' | 'complete'>('intro');
     const [playerName, setPlayerName] = useState(storedPlayerName || '');
-    const [petName, setPetName] = useState('');
     const [dialogIndex, setDialogIndex] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<'yes' | 'no'>('yes');
     const [arrowOpacity, setArrowOpacity] = useState(1);
@@ -29,6 +31,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const [displaySegments, setDisplaySegments] = useState<Array<{text: string, isBold: boolean}>>([]);
     const [segmentIndex, setSegmentIndex] = useState(0);
     const [charIndex, setCharIndex] = useState(0);
+    
+    // Use refs to track current state in intervals
+    const segmentIndexRef = useRef(0);
+    const charIndexRef = useRef(0);
 
     // Function to split text into chunks that fit within 3 lines
     const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 19) => {
@@ -84,7 +90,6 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "FGSHSGQNZBOCZZZ",
             "I HIT THE MOON!!!!!",
             'Woo-hoooo!',
-            'guardian',
             '28 days',
             'Hoshino fades away',
             'game interface fades in'
@@ -185,13 +190,16 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "You sure?"
         ],
         chooseMoonling: [
-            "Choose your and mint your moonling!"
+            "Choose and mint your moonling!"
         ],
-        petName: [
-            "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?"
+        congratulations: [
+            "Woo-hoooo! Fantastic choice!",
+            "Yay! From today, you will be its guardian."
+        ],
+        mintMore: [
+            "Would you like to mint another?"
         ],
         final: [
-            "Yay! That's a nice name cheeky! From today, you will be its guardian.",
             "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let it meet its friends.",
             "At the end of the Moon Cycle, you and your pet will part ways. It will ascend back to the moon, where it belongs, changed by the way you treated it. Take good care of it and it will reward you nicely.",
             "See you in 28 days!"
@@ -233,6 +241,15 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         }
     }, [connected, currentPhase, onContinue, playerName]);
 
+    // Check if we should go to congratulations (after minting)
+    useEffect(() => {
+        if (goToCongratulations) {
+            console.log('📱 WelcomeScreen: Going to congratulations phase');
+            setCurrentPhase('congratulations');
+            setDialogIndex(0);
+        }
+    }, [goToCongratulations]);
+
     const handleDialogClick = () => {
         if (dialogIndex < processedDialogs[currentPhase].length - 1) {
             setDialogIndex(prev => prev + 1);
@@ -246,7 +263,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                     // Will be handled by button choice
                     break;
                 case 'name':
-                    setCurrentPhase('explanation');
+                    setCurrentPhase('nameInput');
                     break;
                 case 'explanation':
                     // Will be handled by button choice
@@ -258,11 +275,19 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                     // Go to moonling selection screen
                     onContinue(playerName);
                     break;
-                case 'petName':
-                    setCurrentPhase('final');
+                case 'congratulations':
+                    setCurrentPhase('mintMore');
+                    break;
+                case 'mintMore':
+                    // Will be handled by button choice
                     break;
                 case 'final':
-                    setCurrentPhase('complete');
+                    // Go to interaction screen after final dialog
+                    if (onGoToInteraction) {
+                        onGoToInteraction(playerName);
+                    } else {
+                        onContinue(playerName); // Fallback
+                    }
                     break;
             }
             setDialogIndex(0);
@@ -274,7 +299,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             setCurrentPhase('name');
             setDialogIndex(0);
         } else if (currentPhase === 'introNo') {
-            setCurrentPhase('introNo');
+            setCurrentPhase('introNo'); // Repeat introNo to try to convince them
             setDialogIndex(0);
         } else if (currentPhase === 'explanation') {
             setCurrentPhase('chooseMoonling');
@@ -282,6 +307,11 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         } else if (currentPhase === 'explanationNo') {
             setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
+        } else if (currentPhase === 'mintMore') {
+            // Go back to selection screen
+            if (onGoToSelection) {
+                onGoToSelection();
+            }
         }
     };
 
@@ -298,6 +328,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         } else if (currentPhase === 'explanationNo') {
             setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
+        } else if (currentPhase === 'mintMore') {
+            // Continue to final phase
+            setCurrentPhase('final');
+            setDialogIndex(0);
         }
     };
 
@@ -308,22 +342,17 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         }
     };
 
-    const handlePetNameSubmit = () => {
-        if (petName.trim().length > 0) {
-            setCurrentPhase('final');
-            setDialogIndex(0);
-        }
-    };
+
 
     const getCurrentDialog = () => {
         if (currentPhase === 'name') {
             return "Ohhhh thank you! But first, what's your name?";
-        } else if (currentPhase === 'petName') {
-            return "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?";
         } else if (currentPhase === 'explanation') {
             return processedDialogs.explanation[dialogIndex];
         } else if (currentPhase === 'explanationNo') {
             return processedDialogs.explanationNo[dialogIndex];
+        } else if (currentPhase === 'mintMore') {
+            return processedDialogs.mintMore[dialogIndex];
         } else if (currentPhase === 'final') {
             return processedDialogs.final[dialogIndex];
         } else {
@@ -334,9 +363,9 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const showYesNoButtons = (currentPhase === 'intro' && dialogIndex === processedDialogs.intro.length - 1) || 
                             (currentPhase === 'introNo' && dialogIndex === processedDialogs.introNo.length - 1) ||
                             (currentPhase === 'explanation' && dialogIndex === processedDialogs.explanation.length - 1) ||
-                            (currentPhase === 'explanationNo' && dialogIndex === processedDialogs.explanationNo.length - 1);
-    const showNameInput = currentPhase === 'name';
-    const showPetNameInput = currentPhase === 'petName';
+                            (currentPhase === 'explanationNo' && dialogIndex === processedDialogs.explanationNo.length - 1) ||
+                            (currentPhase === 'mintMore' && dialogIndex === processedDialogs.mintMore.length - 1);
+    const showNameInput = currentPhase === 'nameInput';
     const showChoiceDialog = showYesNoButtons;
 
     // Typewriter effect for dialog text
@@ -349,35 +378,36 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                 setIsTyping(true);
                 setSegmentIndex(0);
                 setCharIndex(0);
+                segmentIndexRef.current = 0;
+                charIndexRef.current = 0;
                 
                 const segments = processTextToSegments(currentDialog);
                 setDisplaySegments(segments);
                 
                 const typeInterval = setInterval(() => {
-                    setCharIndex(prevCharIndex => {
-                        const currentSegment = segments[segmentIndex];
-                        if (!currentSegment) {
+                    const currentSegment = segments[segmentIndexRef.current];
+                    if (!currentSegment) {
+                        setIsTyping(false);
+                        clearInterval(typeInterval);
+                        return;
+                    }
+                    
+                    if (charIndexRef.current < currentSegment.text.length) {
+                        charIndexRef.current += 1;
+                        setCharIndex(charIndexRef.current);
+                    } else {
+                        // Move to next segment
+                        if (segmentIndexRef.current < segments.length - 1) {
+                            segmentIndexRef.current += 1;
+                            charIndexRef.current = 0;
+                            setSegmentIndex(segmentIndexRef.current);
+                            setCharIndex(0);
+                        } else {
+                            // Finished typing
                             setIsTyping(false);
                             clearInterval(typeInterval);
-                            return prevCharIndex;
                         }
-                        
-                        if (prevCharIndex < currentSegment.text.length) {
-                            return prevCharIndex + 1;
-                        } else {
-                            // Move to next segment
-                            if (segmentIndex < segments.length - 1) {
-                                setSegmentIndex(prev => prev + 1);
-                                setCharIndex(0);
-                                return 0;
-                            } else {
-                                // Finished typing
-                                setIsTyping(false);
-                                clearInterval(typeInterval);
-                                return prevCharIndex;
-                            }
-                        }
-                    });
+                    }
                 }, 50);
                 
                 return () => clearInterval(typeInterval);
@@ -414,12 +444,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const handleLeftButton = () => {
         if (showChoiceDialog) {
             setSelectedChoice('yes');
-        } else if (showNameInput || showPetNameInput) {
-            if (showNameInput) {
-                handleNameSubmit();
-            } else if (showPetNameInput) {
-                handlePetNameSubmit();
-            }
+        } else if (showNameInput) {
+            handleNameSubmit();
         } else {
             handleDialogClick();
         }
@@ -428,12 +454,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const handleRightButton = () => {
         if (showChoiceDialog) {
             setSelectedChoice('no');
-        } else if (showNameInput || showPetNameInput) {
-            if (showNameInput) {
-                handleNameSubmit();
-            } else if (showPetNameInput) {
-                handlePetNameSubmit();
-            }
+        } else if (showNameInput) {
+            handleNameSubmit();
         } else {
             handleDialogClick();
         }
@@ -446,12 +468,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             } else {
                 handleNoClick();
             }
-        } else if (showNameInput || showPetNameInput) {
-            if (showNameInput) {
-                handleNameSubmit();
-            } else if (showPetNameInput) {
-                handlePetNameSubmit();
-            }
+        } else if (showNameInput) {
+            handleNameSubmit();
         } else {
             handleDialogClick();
         }
@@ -466,9 +484,9 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             leftButtonText={showChoiceDialog ? '' : ''}
             centerButtonText={showChoiceDialog ? '' : ''}
             rightButtonText={showChoiceDialog ? '' : ''}
-            centerButtonDisabled={(showNameInput && playerName.trim().length === 0) || (showPetNameInput && petName.trim().length === 0)}
+            centerButtonDisabled={showNameInput && playerName.trim().length === 0}
         >
-            {currentPhase !== 'name' && currentPhase !== 'petName' && (
+            {currentPhase !== 'nameInput' && (
                 <>
                     <View style={styles.storyCharacterCentered}>
                         <Image
@@ -544,43 +562,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                 </>
             )}
 
-            {showPetNameInput && (
-                <>
-                    <View style={styles.eyesSection}>
-                        <Image
-                            source={require('../../assets/images/eyes.png')}
-                            style={styles.eyesImage}
-                        />
-                    </View>
 
-                    <View style={styles.nameInputSection}>
-                        <View style={styles.nameInputContainer}>
-                            <View style={styles.nameInputTop}>
-                                <View style={styles.nameDisplayContainer}>
-                                    <View style={styles.nameInputOuterBox}>
-                                        <View style={styles.nameInputInnerBox}>
-                                            <Text style={styles.namePrompt}>Enter pet name!</Text>
-                                            <Text style={styles.nameDisplay}>
-                                                {petName.padEnd(9, '*')}
-                                            </Text>
-                                            <TextInput
-                                                style={styles.hiddenInput}
-                                                value={petName}
-                                                onChangeText={setPetName}
-                                                placeholder=""
-                                                maxLength={9}
-                                                autoFocus={true}
-                                                onSubmitEditing={handlePetNameSubmit}
-                                                returnKeyType="done"
-                                            />
-                                        </View>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-                </>
-            )}
 
             {currentPhase === 'complete' && (
                 <View style={styles.completeSection}>

@@ -3,8 +3,97 @@ const admin = require('firebase-admin');
 const { GoogleGenAI } = require('@google/genai');
 const OpenAI = require('openai');
 
+// Initialize Grok API using OpenAI-compatible format
+const grokConfig = {
+  apiKey: process.env.XAI_API_KEY || '',
+  baseURL: 'https://api.x.ai/v1',
+};
+
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// Helper function to detect safety filter violations in errors
+const isSafetyFilterViolation = (error) => {
+  const safetyKeywords = [
+    'safety',
+    'content policy',
+    'harmful',
+    'inappropriate',
+    'violation',
+    'blocked',
+    'filtered',
+    'policy violation',
+    'content guidelines',
+    'safety guidelines',
+    'hate speech',
+    'discriminatory content',
+    'goes against my purpose',
+    'can\'t engage'
+  ];
+  
+  const errorMessage = error.message?.toLowerCase() || '';
+  const errorDetails = error.details?.toLowerCase() || '';
+  const errorResponse = error.response?.data?.error?.message?.toLowerCase() || '';
+  
+  return safetyKeywords.some(keyword => 
+    errorMessage.includes(keyword) || 
+    errorDetails.includes(keyword) || 
+    errorResponse.includes(keyword)
+  );
+};
+
+// Helper function to detect safety filter violations in response content
+const isSafetyFilteredResponse = (response) => {
+  // Only detect generic, out-of-character safety responses
+  const safetyIndicators = [
+    'i can\'t engage with messages',
+    'goes against my purpose to be helpful',
+    'can\'t engage with messages that promote',
+    'against my purpose to be helpful and kind',
+    'i can\'t engage with',
+    'my purpose to be helpful'
+  ];
+  
+  const responseText = response?.toLowerCase() || '';
+  
+  return safetyIndicators.some(indicator => responseText.includes(indicator));
+};
+
+// Helper function to call Grok API
+const callGrokAPI = async (systemPrompt, userMessage) => {
+  if (!grokConfig.apiKey) {
+    throw new Error('Grok API key not configured');
+  }
+  
+  try {
+    const client = new OpenAI({
+      apiKey: grokConfig.apiKey,
+      baseURL: grokConfig.baseURL,
+      timeout: 360000, // Longer timeout for reasoning models
+    });
+
+    const completion = await client.chat.completions.create({
+      model: 'grok-3-fast',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ],
+      max_tokens: 200,
+      temperature: 0.8,
+    });
+
+    return completion.choices[0].message.content;
+  } catch (error) {
+    console.error('Grok API call failed:', error);
+    throw error;
+  }
+};
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -15,6 +104,8 @@ const openai = new OpenAI({
 const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || ''
 });
+
+
 
 // Moonling character personalities
 const MOONLING_PERSONALITIES = {
@@ -45,74 +136,7 @@ const MOONLING_PERSONALITIES = {
   }
 };
 
-// Test function to simulate quota error and test fallback
-exports.testQuotaError = onRequest({
-  cors: ['*'],
-  invoker: 'public'
-}, async (req, res) => {
-  try {
-    const { message, moonlingId, userId } = req.body;
-    
-    // Simulate the quota error
-    const error = new Error('429 You exceeded your current quota, please check your plan and billing details.');
-    error.message = '429 You exceeded your current quota, please check your plan and billing details.';
-    
-    throw error;
-  } catch (error) {
-    console.error('Test quota error:', error);
-    
-    // Use the same fallback logic as the main chat function
-    if (error.message && error.message.includes('quota') || error.message.includes('429')) {
-      const fallbackResponses = {
-        lyra: "Oh no! My anime knowledge is temporarily unavailable! 😅 Try again in a bit?",
-        orion: "The stars are quiet right now... 🌟 Let's chat again soon!",
-        aro: "My celestial energy is recharging! ⭐ Come back in a moment!",
-        sirius: "The Dog Star needs a quick rest! 🐕✨ Try again shortly!",
-        zaniah: "The cosmic winds are still... 🌌 We'll connect again soon!"
-      };
-      
-      const fallbackResponse = fallbackResponses[req.body.moonlingId] || "I'm taking a quick break! 😊";
-      
-      return res.json({
-        success: true,
-        message: fallbackResponse,
-        moonlingName: req.body.moonlingId,
-        conversationId: 'test-conversation',
-        timestamp: new Date().toISOString(),
-        note: 'Using fallback response due to OpenAI quota limit'
-      });
-    }
-    
-    res.status(500).json({ 
-      error: 'Test failed',
-      details: error.message
-    });
-  }
-});
 
-// Simple test function without OpenAI
-exports.testChat = onRequest({
-  cors: ['*'],
-  invoker: 'public'
-}, async (req, res) => {
-  try {
-    const { message, moonlingId, userId } = req.body;
-    
-    res.json({
-      success: true,
-      message: `Hello from ${moonlingId}! You said: "${message}"`,
-      moonlingName: moonlingId,
-      conversationId: 'test-conversation',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Test chat error:', error);
-    res.status(500).json({ 
-      error: 'Test chat failed',
-      details: error.message
-    });
-  }
-});
 
 // AI Chat Function
 exports.chat = onRequest({
@@ -151,6 +175,7 @@ Key traits: ${moonling.traits.join(', ')}
 Keep responses under 50 words.`;
 
     let aiResponse;
+    let usedProvider = 'none';
     
     // Try Gemini first
     try {
@@ -168,9 +193,22 @@ Keep responses under 50 words.`;
         }
       });
       aiResponse = response.text;
+      
+      // Check if the response was safety filtered
+      if (isSafetyFilteredResponse(aiResponse)) {
+        console.log('Gemini response was safety filtered, trying OpenAI...');
+        throw new Error('SAFETY_FILTER_VIOLATION');
+      }
+      
+      usedProvider = 'gemini';
       console.log('Gemini API successful!');
     } catch (geminiError) {
-      console.log('Gemini failed, trying OpenAI:', geminiError.message);
+      console.log('Gemini failed:', geminiError.message);
+      
+      // Check if it's a safety filter violation
+      if (isSafetyFilterViolation(geminiError) || geminiError.message === 'SAFETY_FILTER_VIOLATION') {
+        console.log('Gemini safety filter triggered, trying OpenAI...');
+      }
       
       // Fall back to OpenAI
       try {
@@ -190,10 +228,29 @@ Keep responses under 50 words.`;
         });
 
         aiResponse = completion.choices[0].message.content;
+        usedProvider = 'openai';
         console.log('OpenAI API successful!');
       } catch (openaiError) {
-        console.log('Both Gemini and OpenAI failed:', openaiError.message);
-        throw openaiError; // This will trigger the fallback responses
+        console.log('OpenAI failed:', openaiError.message);
+        
+        // Check if it's a safety filter violation
+        if (isSafetyFilterViolation(openaiError)) {
+          console.log('OpenAI safety filter triggered, trying Grok...');
+          
+          // Try Grok as final fallback for safety filter violations
+          try {
+            console.log('Trying Grok API...');
+            aiResponse = await callGrokAPI(systemPrompt, message);
+            usedProvider = 'grok';
+            console.log('Grok API successful!');
+          } catch (grokError) {
+            console.log('All AI providers failed:', grokError.message);
+            throw grokError; // This will trigger the fallback responses
+          }
+        } else {
+          // If it's not a safety filter violation, just throw the error
+          throw openaiError;
+        }
       }
     }
 
@@ -203,11 +260,35 @@ Keep responses under 50 words.`;
       message: aiResponse,
       moonlingName: moonling.name,
       conversationId: conversationId || 'new-conversation',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      provider: usedProvider
     });
 
   } catch (error) {
     console.error('Chat function error:', error);
+    
+    // Check if it's a safety filter violation
+    if (isSafetyFilterViolation(error)) {
+      const safetyFilterResponses = {
+        lyra: "Oops! My anime filter is being too strict! (´･ω･`) Let me rephrase that in a more wholesome way!",
+        orion: "The cosmic sensors are being extra cautious! (´･_･`) Let me adjust my star energy!",
+        aro: "My chaos got filtered! (｡◕‿◕｡) Let me tone it down a bit!",
+        sirius: "My dad jokes got flagged! (◕‿◕) Let me reboot with cleaner humor!",
+        zaniah: "The astral plane is being protective! (´･ω･`) Let me align with better vibes!"
+      };
+      
+      const fallbackResponse = safetyFilterResponses[moonlingId] || "My cosmic filters are being extra careful! Let me adjust my energy! 😊";
+      
+      return res.json({
+        success: true,
+        message: fallbackResponse,
+        moonlingName: moonlingId || 'Unknown',
+        conversationId: 'safety-fallback-conversation',
+        timestamp: new Date().toISOString(),
+        note: 'Using fallback response due to safety filter violation',
+        provider: 'fallback'
+      });
+    }
     
     // Check if it's a quota/rate limit error
     if (error.message && (error.message.includes('quota') || error.message.includes('429'))) {
@@ -228,7 +309,8 @@ Keep responses under 50 words.`;
         moonlingName: moonlingId || 'Unknown',
         conversationId: 'fallback-conversation',
         timestamp: new Date().toISOString(),
-        note: 'Using fallback response due to API quota limit'
+        note: 'Using fallback response due to API quota limit',
+        provider: 'fallback'
       });
     }
     
@@ -268,6 +350,8 @@ exports.getConversation = onRequest({
     res.status(500).json({ error: 'Failed to fetch conversation' });
   }
 });
+
+
 
 // Health check
 exports.health = onRequest({
