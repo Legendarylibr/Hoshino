@@ -58,6 +58,7 @@ interface Props {
     connection?: Connection;
     playerName?: string;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+    onGoToCongratulations?: (character?: Character) => void;
 }
 
 const CHARACTERS: Character[] = [
@@ -118,7 +119,8 @@ const MoonlingSelection: React.FC<Props> = ({
     ownedCharacters = [],
     connection,
     playerName,
-    onNotification
+    onNotification,
+    onGoToCongratulations
 }) => {
 
     const { connected, publicKey, connect, disconnect } = useWallet();
@@ -129,6 +131,8 @@ const MoonlingSelection: React.FC<Props> = ({
     const [isSpinning, setIsSpinning] = useState(false);
     const [showCharacterModal, setShowCharacterModal] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+    const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
+    const [congratulationsCharacter, setCongratulationsCharacter] = useState<Character | null>(null);
     const scrollerRef = useRef<any>(null);
 
     const currentCharacter = CHARACTERS[currentCharacterIndex];
@@ -256,13 +260,12 @@ const MoonlingSelection: React.FC<Props> = ({
                 
                 setIsSpinning(false);
                 
-                // After spin completes, automatically select the character and navigate to interaction
+                // After spin completes, show congratulations modal
                 const selectedCharacter = CHARACTERS[finalIndex];
                 if (selectedCharacter) {
-                    // Small delay to let the user see the final result
-                    setTimeout(() => {
-                        onSelectCharacter(selectedCharacter);
-                    }, 1000); // 1 second delay
+                    // Show congratulations modal immediately
+                    setCongratulationsCharacter(selectedCharacter);
+                    setShowCongratulationsModal(true);
                 }
             }
         };
@@ -346,6 +349,24 @@ const MoonlingSelection: React.FC<Props> = ({
         setSelectedCharacter(null);
     };
 
+    const closeCongratulationsModal = () => {
+        setShowCongratulationsModal(false);
+        setCongratulationsCharacter(null);
+    };
+
+    const handleMintCharacter = () => {
+        if (congratulationsCharacter) {
+            // Mock mint function - navigate to congratulations phase
+            closeCongratulationsModal();
+            // Call a new prop to go to congratulations instead of back
+            if (onGoToCongratulations) {
+                onGoToCongratulations(congratulationsCharacter);
+            } else {
+                onBack(); // Fallback to back
+            }
+        }
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <WalletButton
@@ -355,14 +376,15 @@ const MoonlingSelection: React.FC<Props> = ({
                 onDisconnect={disconnect}
             />
             <InnerScreen
-                onLeftButtonPress={onBack}
-                onCenterButtonPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}
-                onRightButtonPress={isSpinning || isMinting ? undefined : spinSlotMachine}
+                onLeftButtonPress={undefined}
+                onCenterButtonPress={undefined}
+                onRightButtonPress={undefined}
                 leftButtonText=""
                 centerButtonText=""
                 rightButtonText=""
-                centerButtonDisabled={isMinting || isSpinning}
-                rightButtonDisabled={isSpinning || isMinting}
+                centerButtonDisabled={true}
+                rightButtonDisabled={true}
+                leftButtonDisabled={true}
                 isSelectionPage={true}
                 overlayMode={true}
             >
@@ -503,6 +525,48 @@ const MoonlingSelection: React.FC<Props> = ({
                                 <Text style={styles.modalCharacterName}>{selectedCharacter.name}</Text>
                                 
                                 <Text style={styles.modalDescription}>{selectedCharacter.description}</Text>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Congratulations Modal */}
+            <Modal
+                visible={showCongratulationsModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={closeCongratulationsModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        {congratulationsCharacter && (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.modalCloseButton}
+                                    onPress={closeCongratulationsModal}
+                                >
+                                    <Text style={styles.modalCloseText}>✕</Text>
+                                </TouchableOpacity>
+                                
+                                <Text style={styles.congratulationsTitle}>🎉 Congratulations! 🎉</Text>
+                                
+                                <Image
+                                    source={getImageSource(congratulationsCharacter.image)}
+                                    style={styles.modalCharacterImage}
+                                    resizeMode="contain"
+                                />
+                                
+                                <Text style={styles.modalCharacterName}>{congratulationsCharacter.name}</Text>
+                                
+                                <Text style={styles.modalDescription}>{congratulationsCharacter.description}</Text>
+                                
+                                <TouchableOpacity
+                                    style={styles.mintButton}
+                                    onPress={handleMintCharacter}
+                                >
+                                    <Text style={styles.mintButtonText}>Continue</Text>
+                                </TouchableOpacity>
                             </>
                         )}
                     </View>
@@ -697,7 +761,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: '#E8F5E8',
         borderRadius: 20,
         padding: 20,
         margin: 20,
@@ -717,15 +781,18 @@ const styles = StyleSheet.create({
         zIndex: 1,
         width: 30,
         height: 30,
-        borderRadius: 15,
-        backgroundColor: '#f0f0f0',
+        borderRadius: 4,
+        backgroundColor: '#2E5A3E',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#2E5A3E',
     },
     modalCloseText: {
         fontSize: 18,
-        color: '#666',
-        fontWeight: 'bold',
+        color: '#E8F5E8',
+        fontFamily: 'PressStart2P',
+        transform: [{ translateY: -1 }],
     },
     modalCharacterImage: {
         width: 120,
@@ -733,19 +800,45 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     modalCharacterName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#333',
+        fontSize: 22,
+
+        color: '#2E5A3E',
         marginBottom: 10,
         textAlign: 'center',
         fontFamily: 'PressStart2P',
     },
     modalDescription: {
-        fontSize: 14,
-        color: '#333',
+        fontSize: 12,
+        color: '#2E5A3E',
         textAlign: 'center',
         lineHeight: 20,
         marginBottom: 15,
+        fontFamily: 'PressStart2P',
+    },
+    congratulationsTitle: {
+        fontSize: 18,
+        color: '#2E5A3E',
+        textAlign: 'center',
+        marginBottom: 15,
+        fontFamily: 'PressStart2P',
+        fontWeight: 'bold',
+    },
+    mintButton: {
+        backgroundColor: '#2E5A3E',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#E8F5E8',
+        marginTop: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    mintButtonText: {
+        color: '#E8F5E8',
+        fontSize: 14,
+        fontFamily: 'PressStart2P',
+        fontWeight: 'bold',
     },
 
 });

@@ -90,6 +90,7 @@ function App() {
 
     const { connected, publicKey, connect, disconnect } = useWallet();
     const [currentView, setCurrentView] = useState('welcome');
+    const [shouldGoToCongratulations, setShouldGoToCongratulations] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
         null
     );
@@ -449,6 +450,32 @@ function App() {
         setCurrentView('selection');
     };
 
+    const handleGoToInteraction = (name?: string) => {
+        if (name && publicKey) {
+            setPlayerName(name);
+            savePlayerName(name, publicKey.toString());
+        }
+        setCurrentView('interaction');
+    };
+
+    const handleGoToCongratulations = (character?: Character) => {
+        if (character) {
+            // Store the minted character
+            setSelectedCharacter(character);
+            setCharacterStats({
+                mood: 3,
+                hunger: 2,
+                energy: 4
+            });
+        }
+        setShouldGoToCongratulations(true);
+        setCurrentView('welcome');
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            setShouldGoToCongratulations(false);
+        }, 100);
+    };
+
     const handleFeed = async (
         foodType: string,
         hungerBoost: number,
@@ -488,9 +515,12 @@ function App() {
                 return (
                     <WelcomeScreen
                         onContinue={handleContinueFromWelcome}
+                        onGoToInteraction={handleGoToInteraction}
+                        onGoToSelection={() => setCurrentView('selection')}
                         connected={connected}
                         onConnectWallet={connectWallet}
                         playerName={playerName}
+                        goToCongratulations={shouldGoToCongratulations}
                     />
                 );
             case 'selection':
@@ -506,6 +536,7 @@ function App() {
                         playerName={playerName}
                         onNotification={addNotification}
                         onViewCollection={() => setCurrentView('collection')}
+                        onGoToCongratulations={handleGoToCongratulations}
                     />
                 );
             case 'collection':

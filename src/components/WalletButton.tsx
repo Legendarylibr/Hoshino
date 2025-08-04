@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
         fontFamily: 'PressStart2P',
+        transform: [{ translateY: 3 }],
     },
     connectedButton: {
         backgroundColor: 'rgba(232, 245, 232, 0.65)',
@@ -87,6 +88,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
         fontFamily: 'PressStart2P',
+        transform: [{ translateY: 3 }],
     },
 });
 
