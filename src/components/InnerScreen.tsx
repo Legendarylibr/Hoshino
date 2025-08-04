@@ -88,6 +88,12 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                 <View style={styles.screenCornerPixelBR1} />
                 <View style={styles.screenCornerPixelBR2} />
 
+                {/* Inner corner light fills - Game Boy LCD effect */}
+                <View style={styles.innerCornerFillTL} />
+                <View style={styles.innerCornerFillTR} />
+                <View style={styles.innerCornerFillBL} />
+                <View style={styles.innerCornerFillBR} />
+
                 {/* Dithered shadow system */}
                 <View style={styles.screenShadowMain} />
                 <View style={styles.screenShadowCorner1} />
@@ -452,6 +458,44 @@ const styles = StyleSheet.create({
         height: isTablet ? 3 : 2,
         backgroundColor: '#6A8B9A',
         zIndex: -1,
+    },
+
+    // Inner corner light fills - Game Boy LCD bezel effect
+    innerCornerFillTL: {
+        position: 'absolute',
+        top: isTablet ? 8 : 6,
+        left: isTablet ? 8 : 6,
+        width: isTablet ? 6 : 4,
+        height: isTablet ? 6 : 4,
+        backgroundColor: '#7A9BAA', // Lighter fill color
+        zIndex: 5,
+    },
+    innerCornerFillTR: {
+        position: 'absolute',
+        top: isTablet ? 8 : 6,
+        right: isTablet ? 8 : 6,
+        width: isTablet ? 6 : 4,
+        height: isTablet ? 6 : 4,
+        backgroundColor: '#7A9BAA',
+        zIndex: 5,
+    },
+    innerCornerFillBL: {
+        position: 'absolute',
+        bottom: isTablet ? 8 : 6,
+        left: isTablet ? 8 : 6,
+        width: isTablet ? 6 : 4,
+        height: isTablet ? 6 : 4,
+        backgroundColor: '#7A9BAA',
+        zIndex: 5,
+    },
+    innerCornerFillBR: {
+        position: 'absolute',
+        bottom: isTablet ? 8 : 6,
+        right: isTablet ? 8 : 6,
+        width: isTablet ? 6 : 4,
+        height: isTablet ? 6 : 4,
+        backgroundColor: '#7A9BAA',
+        zIndex: 5,
     },
 
     statsBar: {
