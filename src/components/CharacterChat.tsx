@@ -136,7 +136,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
 
         try {
             const characterResponse = await generateCharacterResponse(inputText);
-            
+
             const characterMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 text: characterResponse,
@@ -178,7 +178,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                     <View style={styles.builtInChatHeader}>
                         <Text style={styles.chatHeaderText}>Chatting with {character.name}</Text>
                         <TouchableOpacity onPress={onExit} style={styles.builtInChatCloseBtn}>
-                            <Text>×</Text>
+                            <Text style={styles.closeButtonText}>×</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -194,13 +194,13 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                 key={message.id}
                                 style={[styles.builtInChatMessage, message.sender === 'user' ? styles.user : styles.character]}
                             >
-                                <Text>{message.text}</Text>
+                                <Text style={styles.messageText}>{message.text}</Text>
                             </View>
                         ))}
 
                         {isThinking && (
                             <View style={styles.builtInChatThinking}>
-                                <Text>{character.name} is thinking...</Text>
+                                <Text style={styles.thinkingText}>{character.name} is thinking...</Text>
                             </View>
                         )}
                     </ScrollView>
@@ -243,10 +243,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         opacity: 0.3,
+        zIndex: 1, // Behind chat overlay
     },
     characterImage: {
-        width: 300,
-        height: 300,
+        width: 280, // Slightly smaller to avoid overlap
+        height: 280,
         resizeMode: 'contain',
     },
     builtInChatOverlay: {
@@ -255,87 +256,112 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
         bottom: 100,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', // darker but more transparent
+        backgroundColor: 'rgba(0, 0, 0, 0.85)', // More opaque for better readability
         borderRadius: 20,
         paddingBottom: 10,
+        zIndex: 2, // Above character
     },
-
     builtInChatHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 12,
-        backgroundColor: 'rgba(128, 0, 32, 0.8)', // burgundy top bar
+        padding: 16, // Increased padding
+        backgroundColor: 'rgba(128, 0, 32, 0.9)', // More opaque burgundy top bar
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
+        minHeight: 60, // Ensure enough height
     },
     chatHeaderText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: 18, // Increased from 16
         fontWeight: 'bold',
+        flex: 1, // Take available space
     },
     builtInChatCloseBtn: {
-        padding: 4,
-        backgroundColor: 'white',
-        borderRadius: 15,
-        width: 28,
-        height: 28,
+        padding: 8, // Increased padding for better touch target
+        backgroundColor: '#ef4444', // Solid red background
+        borderRadius: 20,
+        width: 36, // Increased size
+        height: 36,
         justifyContent: 'center',
         alignItems: 'center',
+        marginLeft: 12,
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 24, // Much larger close button text
+        fontWeight: 'bold',
+        lineHeight: 24,
     },
     builtInChatMessages: {
         flex: 1,
-        padding: 10,
+        padding: 12, // Increased padding
     },
     builtInChatMessage: {
-        marginVertical: 5,
-        padding: 10,
-        borderRadius: 10,
-        maxWidth: '80%',
+        marginVertical: 6, // Increased spacing
+        padding: 12, // Increased padding
+        borderRadius: 12,
+        maxWidth: '85%',
+    },
+    messageText: {
+        fontSize: 16, // Added explicit font size
+        color: 'white',
+        lineHeight: 22,
     },
     user: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+        backgroundColor: 'rgba(0, 123, 255, 0.9)',
         alignSelf: 'flex-end',
     },
     character: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
         alignSelf: 'flex-start',
     },
     builtInChatThinking: {
-        padding: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 10,
+        padding: 12, // Increased padding
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 12,
         alignSelf: 'flex-start',
-        marginVertical: 5,
+        marginVertical: 6,
+    },
+    thinkingText: {
+        fontSize: 16, // Added explicit font size
+        color: 'white',
+        fontStyle: 'italic',
     },
     builtInChatInputArea: {
         flexDirection: 'row',
-        padding: 10,
+        padding: 12, // Increased padding
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 10,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        alignItems: 'flex-end', // Better alignment
     },
     builtInChatInput: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 20,
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        marginRight: 10,
+        paddingHorizontal: 16, // Increased padding
+        paddingVertical: 12,
+        marginRight: 12,
         color: 'black',
+        fontSize: 16, // Added explicit font size
         maxHeight: 100,
+        minHeight: 44, // Ensure minimum touch target
     },
     builtInChatSendBtn: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
+        backgroundColor: 'rgba(0, 123, 255, 0.9)',
+        paddingHorizontal: 24, // Increased padding
+        paddingVertical: 12,
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        minHeight: 44, // Ensure minimum touch target
+        minWidth: 80,
     },
     builtInChatSendText: {
         color: 'white',
         fontWeight: 'bold',
+        fontSize: 16, // Added explicit font size
     },
     disabled: {
         opacity: 0.5,
