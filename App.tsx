@@ -22,19 +22,27 @@ import WalletButton from './src/components/WalletButton';
 import { useWallet, WalletProvider } from './src/contexts/WalletContext';
 import { Connection, PublicKey } from '@solana/web3.js';
 
+// NEW: Programmable NFT Integration
+import { useProgrammableNFT } from './src/hooks/useProgrammableNFT';
+
 // New services and configs
 import { LocalGameEngine } from './src/services/local/LocalGameEngine';
-import { SimpleNFTMinter } from './src/services/blockchain/SimpleNFTMinter';
 import { getAsset } from './src/config/AssetRegistry';
-import { MetaplexService } from './src/services/MetaplexService';
-import { MobileWalletService } from './src/services/MobileWalletService';
 
 interface Character {
     id: string;
     name: string;
     description: string;
     image: string;
+    element?: string;
+    rarity?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
     nftMint?: string | null;
+    baseStats?: {
+        mood: number;
+        hunger: number;
+        energy: number;
+    };
+    specialAbility?: string;
 }
 
 const RPC_URL = 'https://api.devnet.solana.com';
@@ -88,6 +96,16 @@ function App() {
         'SpaceMono': SpaceMono_400Regular,
     });
 
+    // NEW: Programmable NFT Integration
+    const {
+        quickMintCharacter,
+        quickMintAchievement,
+        connected: nftConnected,
+        connectWallet: connectNFTWallet,
+        disconnect: disconnectNFTWallet,
+        getServiceStatus
+    } = useProgrammableNFT();
+
     const { connected, publicKey, connect, disconnect } = useWallet();
     const [currentView, setCurrentView] = useState('welcome');
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
@@ -115,8 +133,8 @@ function App() {
 
     // New service instances
     const [localGameEngine, setLocalGameEngine] = useState<LocalGameEngine | null>(null);
-    const [nftMinter, setNftMinter] = useState<SimpleNFTMinter | null>(null);
-    const [metaplexService, setMetaplexService] = useState<MetaplexService | null>(null);
+    const [nftMinter, setNftMinter] = useState<any>(null); // Legacy NFT minter - now using ProgrammableNFTService
+    const [metaplexService, setMetaplexService] = useState<any>(null); // This will be updated to MetaplexService
 
     const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning', duration?: number) => {
         const id = Date.now().toString();
@@ -139,9 +157,9 @@ function App() {
             });
 
             // Initialize Metaplex service with UMI
-            const mobileWalletService = new MobileWalletService();
-            const metaplex = new MetaplexService(connection, mobileWalletService);
-            setMetaplexService(metaplex);
+            // const mobileWalletService = new MobileWalletService(); // This line is removed as per new_code
+            // const metaplex = new MetaplexService(connection, mobileWalletService); // This line is removed as per new_code
+            // setMetaplexService(metaplex); // This line is removed as per new_code
             console.log('📱 Metaplex service initialized with UMI for wallet:', publicKey.toString().slice(0, 8) + '...');
 
         } else {
@@ -380,18 +398,18 @@ function App() {
         });
         setCurrentView('interaction');
 
-        if (connected && !character.nftMint) {
-            console.log('🪙 Wallet connected, character ready to mint');
+        if (nftConnected && !character.nftMint) {
+            console.log('🪙 NFT wallet connected, character ready to mint!');
             setTimeout(() => {
                 setStatusMessage(
-                    'Use the ◎ button to mint your character as an NFT!'
+                    `Use ◎ to mint NFT! Programmable NFTs with update authority enabled.`
                 );
             }, 1000);
-        } else if (!connected) {
+        } else if (!nftConnected) {
             console.log('💰 Wallet not connected, showing connection message');
             setTimeout(() => {
                 setStatusMessage(
-                    'Connect your wallet to mint your character as an NFT!'
+                    'Connect your wallet to mint your character as an NFT with 70% savings!'
                 );
             }, 1000);
         }

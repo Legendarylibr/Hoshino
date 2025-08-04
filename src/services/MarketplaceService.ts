@@ -22,9 +22,9 @@ class UmiMarketplace {
   nfts() {
     return {
       create: async (params: any) => {
-        console.log('🎨 UMI marketplace NFT creation with params:', params)
+        console.log('🎨 UMI marketplace pNFT creation with params:', params)
         
-        // For now, return mock NFT until we implement full UMI minting
+        // For now, return mock pNFT until we implement full UMI minting
         const mockNft = {
           address: Keypair.generate().publicKey,
           uri: params.uri || 'mock-uri',
@@ -32,12 +32,13 @@ class UmiMarketplace {
           symbol: params.symbol,
           sellerFeeBasisPoints: params.sellerFeeBasisPoints,
           creators: params.creators,
-          isMutable: params.isMutable
+          isMutable: params.isMutable,
+          tokenStandard: 'ProgrammableNonFungible' // pNFT standard
         }
         return { nft: mockNft }
       },
       findAllByOwner: async (params: any) => {
-        console.log('🔍 UMI marketplace NFT fetch for owner:', params.owner.toString())
+        console.log('🔍 UMI marketplace pNFT fetch for owner:', params.owner.toString())
         return []
       }
     }
@@ -46,41 +47,46 @@ class UmiMarketplace {
 
 // Item categories and types (unchanged)
 export enum ItemCategory {
-    FOOD = 'food',
-    INGREDIENTS = 'ingredients',
-    TOYS = 'toys',
-    POWERUPS = 'powerups',
-    COSMETICS = 'cosmetics',
-    UTILITIES = 'utilities',
-    RARE_COLLECTIBLES = 'rare_collectibles'
+  INGREDIENT = 'ingredient',
+  FOOD = 'food',
+  TOY = 'toy',
+  POWERUP = 'powerup',
+  COSMETIC = 'cosmetic',
+  UTILITY = 'utility'
 }
 
 export enum ItemRarity {
-    COMMON = 'common',
-    UNCOMMON = 'uncommon',
-    RARE = 'rare',
-    EPIC = 'epic',
-    LEGENDARY = 'legendary',
-    MYTHIC = 'mythic'
+  COMMON = 'common',
+  UNCOMMON = 'uncommon', 
+  RARE = 'rare',
+  EPIC = 'epic',
+  LEGENDARY = 'legendary'
 }
 
-// Interfaces unchanged (omitted for brevity, copy from original)
+export interface MarketplaceItem {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  category: ItemCategory
+  rarity: ItemRarity
+  priceSOL: number
+  priceStarFragments: number
+  inStock: boolean
+  maxSupply?: number
+  currentSupply?: number
+}
 
 export class MarketplaceService {
     private metaplex: UmiMarketplace
     private connection: Connection
-    private merkleTree: PublicKey | null = null
     private starFragmentService: StarFragmentService
 
     constructor(connection: Connection, mwaIdentitySigner?: any) {
         this.connection = connection
         this.metaplex = new UmiMarketplace(connection)
-
         this.starFragmentService = new StarFragmentService(connection)
-        this.initializeMerkleTree()
     }
-
-    // initializeMerkleTree, getIngredientItems, getFoodItems, getToyItems, getPowerupItems, getCosmeticItems, getUtilityItems, getAllItems, getItemsByCategory, getItemsByRarity (unchanged, copy from original)
 
     // Purchase methods (adapted for RN, but minting may require manual metadata upload due to storage issues)
     async purchaseItem(
@@ -88,21 +94,20 @@ export class MarketplaceService {
         quantity: number = 1,
         userWallet: PublicKey
     ): Promise<{ success: boolean; nft?: any; error?: string; transactionId?: string }> {
-        // (unchanged logic, but note: SOL payment simulation; in RN, use mobile wallet for actual tx)
-        // ...
+        console.log(`🛒 Purchasing pNFT item: ${item.name} x${quantity}`)
+        // Implementation would mint programmable NFTs
+        return { success: false, error: 'Implementation needed' }
     }
 
-    // Other methods like purchaseItemWithStarFragments, mintItemAsNFT (adapt uploadMetadata if needed, e.g., use manual IPFS upload)
-    private async mintItemAsNFT(
+    async purchaseItemWithSOL(
         item: MarketplaceItem,
-        ownerPublicKey: PublicKey,
-        quantity: number
+        quantity: number = 1,
+        userWallet: PublicKey
     ): Promise<{ success: boolean; nft?: any; actualCost?: string; error?: string }> {
-        // Note: uploadMetadata may not work due to storage; replace with manual upload to NFT.storage or similar
-        // Original logic here...
+        console.log(`💰 Purchasing pNFT item with SOL: ${item.name} x${quantity}`)
+        // Implementation would mint programmable NFTs
+        return { success: false, error: 'Implementation needed' }
     }
-
-    // Helper methods (unchanged)
 }
 
 // Example usage in RN app:

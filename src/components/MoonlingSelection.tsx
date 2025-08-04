@@ -18,6 +18,9 @@ import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
 import WalletButton from './WalletButton';
 
+// NEW: Import Programmable NFT Integration
+import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
+
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -295,20 +298,43 @@ const MoonlingSelection: React.FC<Props> = ({
         }
     };
 
+    // NEW: Programmable NFT Integration
+    const {
+        quickMintCharacter,
+        connected: nftConnected
+    } = useProgrammableNFT();
+
     const handleCharacterPayment = async (character: Character): Promise<boolean> => {
-        if (!connected || !publicKey) {
+        if (!nftConnected) {
             onNotification?.('❌ Please connect your wallet first', 'error');
             return false;
         }
 
         try {
-            // TODO: Implement actual payment logic
-            // For now, simulate successful payment
-            onNotification?.(`🎉 Successfully acquired ${character.name}!`, 'success');
-            return true;
+            // NEW: Mint character pNFT with update authority enabled!
+            onNotification?.(`🎨 Minting ${character.name} pNFT with update authority...`, 'info');
+            
+            // Map local Character to GameCharacter format for pNFT minting
+            const gameCharacter = {
+                ...character,
+                element: 'Celestial', // Default element - could be determined by character.id
+                rarity: 'Common' as const // Default rarity - could be determined by character.id
+            };
+            
+            const result = await quickMintCharacter(gameCharacter);
+            
+            if (result.success) {
+                onNotification?.(
+                    `🎉 ${character.name} pNFT minted! Update authority enabled for evolution!`, 
+                    'success'
+                );
+                return true;
+            } else {
+                throw new Error(result.error || 'Minting failed');
+            }
         } catch (error) {
-            console.error('Payment error:', error);
-            onNotification?.('❌ Payment failed. Please try again.', 'error');
+            console.error('NFT minting error:', error);
+            onNotification?.(`❌ NFT minting failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
             return false;
         }
     };

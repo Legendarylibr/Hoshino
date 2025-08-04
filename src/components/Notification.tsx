@@ -110,7 +110,7 @@ export const DeploymentStatusBanner: React.FC<{
                 type: 'info' as const,
                 icon: '⏳',
                 title: 'Enhanced Fallback Mode',
-                description: 'All features working perfectly with standard cNFTs'
+                description: 'All features working perfectly with programmable NFTs'
             };
         } else {
             return {

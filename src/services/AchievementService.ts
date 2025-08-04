@@ -1,140 +1,303 @@
 import { Connection, PublicKey, Keypair } from '@solana/web3.js'
-import { createUmi } from '@metaplex-foundation/umi'
-import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { WalletAdapter } from '@solana/wallet-adapter-base'
-import { Program, AnchorProvider } from '@coral-xyz/anchor'
+import { StarFragmentService } from './StarFragmentService'
+import { ProgrammableNFTService, GameAchievement } from './ProgrammableNFTService'
 
-// Achievement types and reward periods
-export enum RewardType {
-  ACHIEVEMENT = 0,
-  DAILY = 1,
-  WEEKLY = 2,
-  MONTHLY = 3,
-  SPECIAL_EVENT = 4
-}
-
-export enum AchievementRarity {
-  COMMON = 0,
-  UNCOMMON = 1,
-  RARE = 2,
-  EPIC = 3,
-  LEGENDARY = 4
-}
+export type AchievementRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary'
 
 export interface Achievement {
   id: string
   name: string
   description: string
-  rarity: AchievementRarity
-  rewardType: RewardType
-  unlockedAt?: Date
-  expiresAt?: Date
-  isRareDrop: boolean
-  nftMint?: string
   imageUrl: string
+  rarity: AchievementRarity
+  pointsReward: number
+  isUnlocked: boolean
+  unlockedAt?: Date
+  requirements: {
+    type: 'streak' | 'total' | 'single' | 'milestone'
+    target: number
+    metric: string
+  }
+}
+
+export interface AchievementProgress {
+  achievementId: string
+  currentProgress: number
+  isCompleted: boolean
+  completedAt?: Date
+}
+
+export interface MissionReward {
+  type: 'star_fragments' | 'nft' | 'cosmetic'
+  amount?: number
+  item?: Achievement
+}
+
+export interface PointsReward {
+  pointsEarned: number
+  bonusMultiplier: number
+  source: string
+  description: string
 }
 
 export interface TimedReward {
+  id: string
   name: string
   description: string
-  period: 'daily' | 'weekly' | 'monthly'
-  expiresAt: Date
+
   rarity: AchievementRarity
   isActive: boolean
   imageUrl: string
 }
 
-// UMI-based Metaplex implementation for React Native compatibility
-class UmiMetaplex {
-  private umi: any
-  private connection: Connection
-
-  constructor(connection: Connection) {
-    this.connection = connection
-    // For now, use mock implementation to avoid UMI interface issues
-    console.log('🔧 Using mock UMI achievement implementation for React Native compatibility')
-  }
-
-  use(identity: any) {
-    console.log('🔧 UMI identity set')
-    // UMI handles identity differently - we'll implement this as needed
-  }
-
-  nfts() {
-    return {
-      create: async (params: any) => {
-        console.log('🎨 UMI NFT creation with params:', params)
-        
-        // For now, return mock NFT until we implement full UMI minting
-        const mockNft = {
-          address: Keypair.generate().publicKey,
-          uri: params.uri || 'mock-uri',
-          name: params.name,
-          symbol: params.symbol,
-          sellerFeeBasisPoints: params.sellerFeeBasisPoints,
-          creators: params.creators,
-          isMutable: params.isMutable
-        }
-        return { nft: mockNft }
-      },
-      findAllByOwner: async (params: any) => {
-        console.log('🔍 UMI NFT fetch for owner:', params.owner.toString())
-        return []
-      }
-    }
-  }
-}
-
-// Custom program integration
-// Using valid placeholder until achievement program is deployed
-const HOSHINO_ACHIEVEMENT_PROGRAM_ID = new PublicKey("22222222222222222222222222222222")
-
 export class AchievementService {
-  private metaplex: UmiMetaplex
+  private nftService: ProgrammableNFTService
   private connection: Connection
   private wallet: WalletAdapter
-  private merkleTree: PublicKey | null = null
-  private program: Program | null = null
 
   constructor(connection: Connection, wallet: WalletAdapter) {
     this.connection = connection
     this.wallet = wallet
-    this.metaplex = new UmiMetaplex(connection)
+    this.nftService = new ProgrammableNFTService(connection.rpcEndpoint)
     
-    this.initializeProgram()
-    this.initializeMerkleTree()
-  }
-
-  private async initializeProgram() {
-    try {
-      if (this.wallet.publicKey) {
-        const provider = new AnchorProvider(this.connection, this.wallet as any, {})
-        // Note: In production, you'd import the actual IDL
-        // this.program = new Program(IDL, HOSHINO_ACHIEVEMENT_PROGRAM_ID, provider)
-      }
-    } catch (error) {
-      console.warn('Could not initialize achievement program:', error)
-    }
-  }
-
-  private async initializeMerkleTree() {
-    try {
-      const treeKeypair = Keypair.generate()
-      this.merkleTree = treeKeypair.publicKey
-    } catch (error) {
-      console.warn('Could not initialize achievement tree:', error)
+    // Set wallet signer for NFT minting
+    if (wallet.publicKey) {
+      this.nftService.setWalletSigner(wallet.publicKey)
     }
   }
 
   // Mock metadata upload for React Native compatibility
   private async mockUploadMetadata(metadata: any): Promise<string> {
-    // Generate a mock IPFS URI for React Native compatibility
-    // In a real implementation, this would upload to IPFS or Arweave
-    const mockHash = Math.random().toString(36).substring(2, 15)
-    const mockUri = `https://mock-ipfs.io/ipfs/${mockHash}`
-    
-    console.log('📤 Mock metadata upload:', mockUri)
+    // In production, this would upload to IPFS or Arweave
+    const metadataString = JSON.stringify(metadata)
+    const mockUri = `https://mock-storage.com/${Buffer.from(metadataString).toString('base64')}`
+    console.log('📝 Mock metadata uploaded:', mockUri)
     return mockUri
+  }
+
+  /**
+   * Mint achievement as programmable NFT
+   */
+  async mintAchievementNFT(achievement: Achievement): Promise<{ success: boolean; mintAddress?: string; error?: string }> {
+    try {
+      if (!this.wallet.publicKey) {
+        return { success: false, error: 'Wallet not connected' }
+      }
+
+      console.log(`🏆 Minting achievement pNFT: ${achievement.name}`)
+
+      // Convert Achievement to GameAchievement format
+      const gameAchievement: GameAchievement = {
+        id: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        rarity: achievement.rarity
+      }
+
+      // Use mock IPFS CID for testing
+      const mockImageCid = `QmMockAchievement${achievement.id}${Math.random().toString(36).substring(7)}`
+
+      // Mint as programmable NFT
+      const result = await this.nftService.mintAchievementPNFT(
+        gameAchievement,
+        mockImageCid,
+        this.wallet.publicKey
+      )
+
+      if (result.success) {
+        console.log('✅ Achievement pNFT minted:', result.mintAddress)
+        return {
+          success: true,
+          mintAddress: result.mintAddress
+        }
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to mint achievement NFT'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Achievement NFT minting failed:', error)
+      return {
+        success: false,
+        error: `Failed to mint achievement: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Create a standard achievement NFT with programmable features
+   */
+  async createAchievementNFT(
+    achievementData: {
+      name: string
+      description: string
+      imageUrl: string
+      rarity: AchievementRarity
+      attributes?: Array<{ trait_type: string; value: string | number }>
+    }
+  ): Promise<{ success: boolean; nft?: any; error?: string }> {
+    try {
+      if (!this.wallet.publicKey) {
+        return { success: false, error: 'Wallet not connected' }
+      }
+
+      console.log(`🎨 Creating achievement pNFT: ${achievementData.name}`)
+
+      const metadata = {
+        name: achievementData.name,
+        description: achievementData.description,
+        image: achievementData.imageUrl,
+        external_url: 'https://hoshino.game',
+        attributes: [
+          { trait_type: 'Type', value: 'Achievement' },
+          { trait_type: 'Rarity', value: achievementData.rarity },
+          { trait_type: 'Game', value: 'Hoshino' },
+          ...(achievementData.attributes || [])
+        ],
+        properties: {
+          category: 'image',
+          creators: [{
+            address: this.wallet.publicKey.toString(),
+            share: 100
+          }]
+        }
+      }
+
+      const metadataUri = await this.mockUploadMetadata(metadata)
+
+      // Convert to GameAchievement format
+      const gameAchievement: GameAchievement = {
+        id: `achievement_${Date.now()}`,
+        name: achievementData.name,
+        description: achievementData.description,
+        rarity: achievementData.rarity
+      }
+
+      // Use mock IPFS CID
+      const mockImageCid = `QmMockAchievement${Date.now()}${Math.random().toString(36).substring(7)}`
+
+      // Mint as programmable NFT
+      const result = await this.nftService.mintAchievementPNFT(
+        gameAchievement,
+        mockImageCid,
+        this.wallet.publicKey
+      )
+
+      if (result.success) {
+        console.log('✅ Achievement pNFT created successfully:', result.mintAddress)
+        return {
+          success: true,
+          nft: {
+            address: result.mintAddress,
+            name: achievementData.name,
+            uri: metadataUri,
+            updateAuthority: result.updateAuthority
+          }
+        }
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to create achievement NFT'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Achievement NFT creation failed:', error)
+      return {
+        success: false,
+        error: `Failed to create achievement: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Create a special event achievement NFT
+   */
+  async createSpecialEventNFT(
+    eventMetadata: {
+      name: string
+      description: string
+      imageUrl: string
+      eventId: string
+      startDate: Date
+      endDate: Date
+      maxSupply?: number
+    }
+  ): Promise<{ success: boolean; nft?: any; error?: string }> {
+    try {
+      if (!this.wallet.publicKey) {
+        return { success: false, error: 'Wallet not connected' }
+      }
+
+      console.log(`🎊 Creating special event pNFT: ${eventMetadata.name}`)
+
+      const metadata = {
+        name: eventMetadata.name,
+        description: eventMetadata.description,
+        image: eventMetadata.imageUrl,
+        external_url: 'https://hoshino.game',
+        attributes: [
+          { trait_type: 'Type', value: 'Special Event' },
+          { trait_type: 'Event ID', value: eventMetadata.eventId },
+          { trait_type: 'Start Date', value: eventMetadata.startDate.toISOString() },
+          { trait_type: 'End Date', value: eventMetadata.endDate.toISOString() },
+          { trait_type: 'Rarity', value: 'Legendary' },
+          { trait_type: 'Game', value: 'Hoshino' }
+        ],
+        properties: {
+          category: 'image',
+          creators: [{
+            address: this.wallet.publicKey.toString(),
+            share: 100
+          }]
+        }
+      }
+
+      const metadataUri = await this.mockUploadMetadata(metadata)
+
+      // Convert to GameAchievement format
+      const gameAchievement: GameAchievement = {
+        id: eventMetadata.eventId,
+        name: eventMetadata.name,
+        description: eventMetadata.description,
+        rarity: 'Legendary'
+      }
+
+      // Use mock IPFS CID
+      const mockImageCid = `QmMockEvent${eventMetadata.eventId}${Math.random().toString(36).substring(7)}`
+
+      // Mint as programmable NFT
+      const result = await this.nftService.mintAchievementPNFT(
+        gameAchievement,
+        mockImageCid,
+        this.wallet.publicKey
+      )
+
+      if (result.success) {
+        console.log('✅ Special event pNFT created successfully:', result.mintAddress)
+        return {
+          success: true,
+          nft: {
+            address: result.mintAddress,
+            name: eventMetadata.name,
+            uri: metadataUri,
+            updateAuthority: result.updateAuthority
+          }
+        }
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to create special event NFT'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Special event NFT creation failed:', error)
+      return {
+        success: false,
+        error: `Failed to create special event: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
   }
 
   // PERIODIC REWARD SYSTEM - Automatically mint rewards at specific intervals
@@ -153,8 +316,6 @@ export class AchievementService {
       const timedReward: TimedReward = {
         name: randomReward.name,
         description: "Daily reward for consistent Hoshino care",
-        period: 'daily',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
@@ -182,8 +343,6 @@ export class AchievementService {
       const timedReward: TimedReward = {
         name: randomReward.name,
         description: "Weekly reward for exceptional Hoshino dedication",
-        period: 'weekly',
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
@@ -211,8 +370,6 @@ export class AchievementService {
       const timedReward: TimedReward = {
         name: randomReward.name,
         description: "Monthly reward for ultimate Hoshino mastery",
-        period: 'monthly',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
@@ -316,10 +473,8 @@ export class AchievementService {
         HOSHINO_ACHIEVEMENT_PROGRAM_ID
       )
 
-      const [treeConfigPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("tree_config"), this.merkleTree!.toBuffer()],
-        HOSHINO_ACHIEVEMENT_PROGRAM_ID
-      )
+              // Note: Program-based achievement minting would be implemented here
+        // For now, using programmable NFT service
 
       // This would be the actual custom program call
       // const tx = await this.program.methods
@@ -334,7 +489,7 @@ export class AchievementService {
       //   .accounts({
       //     achievement: achievementPda,
       //     treeConfig: treeConfigPda,
-      //     merkleTree: this.merkleTree,
+              //     Using programmable NFT service instead
       //     leafOwner: ownerPublicKey,
       //     // ... other accounts
       //   })
@@ -535,7 +690,7 @@ export class AchievementService {
         console.warn('Custom special event program not available, using standard NFT')
       }
 
-      // Standard compressed special event NFT
+      // Standard programmable special event NFT
       const { nft } = await this.metaplex.nfts().create({
         name: eventMetadata.name,
         uri,
