@@ -7,6 +7,8 @@ import FeedingAnimation from './FeedingAnimation';
 import SleepMode from './SleepMode';
 import IngredientSelection from './IngredientSelection';
 import InnerScreen from './InnerScreen';
+import WalletButton from './WalletButton';
+import { useWallet } from '../contexts/WalletContext';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
 import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
 
@@ -40,7 +42,6 @@ interface Props {
     selectedCharacter: Character | null;
     onSelectCharacter: () => void;
     onFeed?: () => void;
-    onMint?: () => void;
     connected: boolean;
     walletAddress?: string;
     playerName?: string;
@@ -53,16 +54,14 @@ interface Props {
     onInventory?: () => void;
     onChat?: () => void;
     onBack?: () => void;
-    // ✅ New props for local game engine and achievement minting
+    // ✅ New props for local game engine
     localGameEngine?: LocalGameEngine | null;
-    onMintAchievements?: () => void;
 }
 
 const MoonlingInteraction: React.FC<Props> = ({
     selectedCharacter,
     onSelectCharacter,
     onFeed,
-    onMint,
     connected,
     walletAddress,
     playerName,
@@ -76,9 +75,9 @@ const MoonlingInteraction: React.FC<Props> = ({
     onChat,
     onBack,
     // ✅ New props
-    localGameEngine,
-    onMintAchievements
+    localGameEngine
 }) => {
+    const { connected: walletConnected, publicKey, connect, disconnect } = useWallet();
     // ✅ Use GameStats from LocalGameEngine instead of simple stats
     const [currentStats, setCurrentStats] = useState<GameStats>({
         mood: 3,
@@ -278,20 +277,19 @@ const MoonlingInteraction: React.FC<Props> = ({
         sleep: require('../../assets/images/sleepzzzz.png'),
         shop: require('../../assets/images/shop.png'),
         inventory: require('../../assets/images/backpack.png'),
-        gallery: require('../../assets/images/gallery.png'),
-        mint: require('../../assets/images/chunky_bubbly_2.webp'),
+                gallery: require('../../assets/images/gallery.png'),
+        settings: require('../../assets/images/settings.png'),
     };
 
     return (
-        <InnerScreen
-            topStatusContent={
-                <Text style={styles.walletStatusText}>
-                    {connected && walletAddress ? (
-                        playerName ? `👋 ${playerName} [${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}]` :
-                            `[${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}]`
-                    ) : 'Wallet Disconnected'}
-                </Text>
-            }
+        <>
+            <WalletButton
+                connected={walletConnected}
+                publicKey={publicKey}
+                onConnect={connect}
+                onDisconnect={disconnect}
+            />
+            <InnerScreen
             showStatsBar={true}
             statsBarContent={
                 <>
@@ -477,7 +475,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                 >
                     <Image source={imageSources.inventory} style={styles.menuImage} />
                 </TouchableOpacity>
-                <TouchableOpacity
+                                <TouchableOpacity
                     style={styles.menuIcon}
                     onPress={() => setShowGallery(true)}
                 >
@@ -486,47 +484,20 @@ const MoonlingInteraction: React.FC<Props> = ({
                 <TouchableOpacity
                     style={styles.menuIcon}
                     onPress={() => {
-                        if (selectedCharacter && !selectedCharacter.nftMint && connected) {
-                            if (onMint) {
-                                onMint();
-                            }
-                        } else if (selectedCharacter?.nftMint) {
-                            onNotification?.(`✅ ${selectedCharacter.name} is already minted! NFT Address: ${selectedCharacter.nftMint?.slice(0, 8)}...${selectedCharacter.nftMint?.slice(-8)}`, 'success');
-                        } else {
-                            onNotification?.('❌ Connect wallet and select character to mint', 'info');
-                        }
+                        onNotification?.('⚙️ Settings coming soon!', 'info');
                     }}
                 >
-                    <Image source={imageSources.mint} style={styles.menuImage} />
+                    <Image source={imageSources.settings} style={styles.menuImage} />
                 </TouchableOpacity>
             </View>
 
-            {/* ✅ Achievement Status Section */}
-            {localGameEngine && localGameEngine.getQueuedAchievements().length > 0 && (
-                <View style={styles.achievementStatusSection}>
-                    <View style={styles.achievementNotification}>
-                        <Text>🏆 {localGameEngine.getQueuedAchievements().length} achievement{localGameEngine.getQueuedAchievements().length > 1 ? 's' : ''} ready to mint!</Text>
-                        {onMintAchievements && (
-                            <TouchableOpacity
-                                style={styles.mintAchievementsBtn}
-                                onPress={onMintAchievements}
-                            >
-                                <Text style={styles.mintAchievementsText}>Mint NFTs</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
-            )}
+
         </InnerScreen>
+        </>
     );
 };
 
 const styles = StyleSheet.create({
-    walletStatusText: {
-        fontSize: 14,
-        color: '#333',
-        textAlign: 'center',
-    },
     statItem: {
         alignItems: 'center',
         flex: 1,
@@ -551,9 +522,10 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     characterImage: {
-        width: 300,
-        height: 300,
+        width: 250,
+        height: 250,
         resizeMode: 'contain',
+        marginTop: -20,
     },
     noCharacterPlaceholder: {
         flex: 1,
@@ -587,16 +559,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    mintAchievementsBtn: {
-        backgroundColor: '#007bff',
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 5,
-    },
-    mintAchievementsText: {
-        color: '#fff',
-        fontSize: 12,
-    },
+
     feedingAnimationOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.3)',

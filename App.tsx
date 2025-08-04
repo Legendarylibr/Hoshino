@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { useFonts } from 'expo-font';
+import {
+    PressStart2P_400Regular,
+} from '@expo-google-fonts/press-start-2p';
+import {
+    SpaceMono_400Regular,
+} from '@expo-google-fonts/space-mono';
 import MoonlingSelection from './src/components/MoonlingSelection';
 import MoonlingInteraction from './src/components/MoonlingInteraction';
 import MoonlingCollection from './src/components/MoonlingCollection';
@@ -9,6 +16,7 @@ import WelcomeScreen from './src/components/WelcomeScreen';
 import CharacterChat from './src/components/CharacterChat';
 import GlobalLeaderboard from './src/components/GlobalLeaderboard';
 import Notification, { DeploymentStatusBanner } from './src/components/Notification';
+import WalletButton from './src/components/WalletButton';
 
 // React Native compatible wallet integration
 import { useWallet, WalletProvider } from './src/contexts/WalletContext';
@@ -75,6 +83,11 @@ const createRateLimiter = (maxAttempts: number, windowMs: number) => {
 const mintRateLimiter = createRateLimiter(3, 60000);
 
 function App() {
+    const [fontsLoaded] = useFonts({
+        'PressStart2P': PressStart2P_400Regular,
+        'SpaceMono': SpaceMono_400Regular,
+    });
+
     const { connected, publicKey, connect, disconnect } = useWallet();
     const [currentView, setCurrentView] = useState('welcome');
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
@@ -746,18 +759,20 @@ function App() {
         }
     };
 
+    if (!fontsLoaded) {
+        return null; // or a loading screen
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             {renderContent()}
-
-            {connected && publicKey && (
-                <View style={styles.walletStatus}>
-                    <Text style={styles.walletText}>[{publicKey.toString().slice(0, 6)}...{publicKey.toString().slice(-4)}]</Text>
-                    <TouchableOpacity onPress={disconnectWallet} style={styles.disconnectButton}>
-                        <Text style={styles.disconnectText}>×</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+            
+            <WalletButton
+                connected={connected}
+                publicKey={publicKey}
+                onConnect={connectWallet}
+                onDisconnect={disconnectWallet}
+            />
 
             {statusMessage && (
                 <View style={[styles.statusMessage, lastError ? styles.error : styles.success]}>
@@ -782,37 +797,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    walletStatus: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        zIndex: 1000,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    walletText: {
-        fontSize: 14,
-        color: '#000',
-    },
-    disconnectButton: {
-        marginLeft: 8,
-        padding: 4,
-        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-        borderRadius: 4,
-    },
-    disconnectText: {
-        color: '#fff',
-        fontSize: 16,
-    },
+
     statusMessage: {
         position: 'absolute',
         top: 50,

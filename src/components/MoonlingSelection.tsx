@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
+import WalletButton from './WalletButton';
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -118,7 +119,7 @@ const MoonlingSelection: React.FC<Props> = ({
     playerName,
     onNotification
 }) => {
-    const { connected, publicKey, connect } = useWallet();
+    const { connected, publicKey, connect, disconnect } = useWallet();
     const [isConnecting, setIsConnecting] = useState(false);
 
     const [currentCharacterIndex, setCurrentCharacterIndex] = useState<number>(2); // Start with Aro (index 2)
@@ -345,6 +346,12 @@ const MoonlingSelection: React.FC<Props> = ({
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
+            <WalletButton
+                connected={connected}
+                publicKey={publicKey}
+                onConnect={handleConnect}
+                onDisconnect={disconnect}
+            />
             <InnerScreen
                 onLeftButtonPress={onBack}
                 onCenterButtonPress={!isMinting && !isSpinning ? handleCharacterSelect : undefined}

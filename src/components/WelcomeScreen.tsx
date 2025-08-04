@@ -30,14 +30,60 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     const [segmentIndex, setSegmentIndex] = useState(0);
     const [charIndex, setCharIndex] = useState(0);
 
+    // Function to split text into chunks that fit within 3 lines
+    const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 19) => {
+        // Special case for "I HIT THE MOON!!" to ensure it's on 2 lines when bold
+        if (text === "I HIT THE MOON!!!!!") {
+            return ["I HIT THE\nMOON!!!!!"];
+        }
+        
+        const words = text.split(' ');
+        const chunks: string[] = [];
+        let currentChunk = '';
+        
+        words.forEach((word) => {
+            const testChunk = currentChunk + (currentChunk ? ' ' : '') + word;
+            
+            if (testChunk.length <= maxCharsPerLine) {
+                currentChunk = testChunk;
+            } else {
+                if (currentChunk) {
+                    chunks.push(currentChunk);
+                }
+                currentChunk = word;
+            }
+        });
+        
+        if (currentChunk) {
+            chunks.push(currentChunk);
+        }
+        
+        // Split into groups of 3 lines max
+        const lineGroups: string[] = [];
+        let currentGroup = '';
+        
+        chunks.forEach((chunk, index) => {
+            if (index > 0 && index % 3 === 0) {
+                lineGroups.push(currentGroup.trim());
+                currentGroup = '';
+            }
+            currentGroup += (currentGroup ? '\n' : '') + chunk;
+        });
+        
+        if (currentGroup) {
+            lineGroups.push(currentGroup.trim());
+        }
+        
+        return lineGroups;
+    };
+
     // Function to process text into segments with bold formatting
     const processTextToSegments = (text: string) => {
         const boldWords = [
-            'CRASHHHH KABOOOOMMMMM',
-            'FGSHSHDGJQNDBZBSBOCZZZZ', 
-            'I HIT THE MOON!!!',
+            "CRASHHH KABOOMM",
+            "FGSHSGQNZBOCZZZ",
+            "I HIT THE MOON!!!!!",
             'Woo-hoooo!',
-            'Moon Cycle?',
             'guardian',
             '28 days',
             'Hoshino fades away',
@@ -73,34 +119,40 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
 
     // Function to render segments with current typewriter progress
     const renderSegments = (segments: Array<{text: string, isBold: boolean}>, currentSegmentIndex: number, currentCharIndex: number) => {
-        return segments.map((segment, index) => {
-            if (index < currentSegmentIndex) {
-                // Fully rendered segment
-                return (
-                    <Text key={index} style={[styles.storyTextLarge, segment.isBold && styles.boldText]}>
-                        {segment.text}
-                    </Text>
-                );
-            } else if (index === currentSegmentIndex) {
-                // Currently typing segment
-                const visibleText = segment.text.substring(0, currentCharIndex);
-                return (
-                    <Text key={index} style={[styles.storyTextLarge, segment.isBold && styles.boldText]}>
-                        {visibleText}
-                    </Text>
-                );
-            } else {
-                // Not yet reached
-                return null;
-            }
-        });
+        return (
+            <Text style={styles.storyTextLarge}>
+                {segments.map((segment, index) => {
+                    if (index < currentSegmentIndex) {
+                        // Fully rendered segment
+                        return (
+                            <Text key={index} style={[segment.isBold && styles.boldText]}>
+                                {segment.text}
+                            </Text>
+                        );
+                    } else if (index === currentSegmentIndex) {
+                        // Currently typing segment
+                        const visibleText = segment.text.substring(0, currentCharIndex);
+                        return (
+                            <Text key={index} style={[segment.isBold && styles.boldText]}>
+                                {visibleText}
+                            </Text>
+                        );
+                    } else {
+                        // Not yet reached
+                        return null;
+                    }
+                })}
+            </Text>
+        );
     };
 
-    // Dialog content for each phase
+    // Dialog content for each phase with proper text splitting
     const dialogs = {
         intro: [
             "Uggggghhhh... Oh?",
-            "Hi! My name is Hoshino, I'm a little in trouble right now... Do you want to help me?"
+            "Hi! My name is Hoshino!",
+            "I'm a little in trouble right now...",
+            "Do you want to help me?"
         ],
         introNo: [
             "O-ok...",
@@ -112,18 +164,19 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         ],
         explanation: [
             "Amazing, " + playerName + "! Let me explain.",
-            "I was on a long travel and I couldn't find a safe area for me to rest,",
-            "I was sooo tired and at some point I...",
+            "I was on a long travel and I couldn't find a safe area for me to rest, I was sooo",
+            "tired and at some point I...",
             "I...",
             "zzzzz...",
             "zzzzzzzzzzzzz...",
             "Until...",
-            "CRASHHHH KABOOOOMMMMM",
-            "FGSHSHDGJQNDBZBSBOCZZZZ",
-            "I HIT THE MOON!!!",
+            "CRASHHH KABOOMM",
+            "FGSHSGQNZBOCZZZ",
+            "I HIT THE MOON!!!!!",
             "I did a mess, it wasn't my intention I swear!",
             "But the problem doesn't finish here...",
-            "Since the crash, some tiny creatures started emerging from the crater I made.",
+            "Since the crash, some tiny creatures...",
+            "started emerging from the crater I made.",
             "I don't know what to do with them, is it ok if I send you one every new Moon Cycle?"
         ],
         explanationNo: [
@@ -131,7 +184,6 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "I saw one that was so cute I thought you would have loved it but...",
             "You sure?"
         ],
-
         chooseMoonling: [
             "Choose your and mint your moonling!"
         ],
@@ -139,12 +191,22 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
             "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?"
         ],
         final: [
-            "Yay! That's a nice name cheeky! From today, you will be its **guardian**.",
+            "Yay! That's a nice name cheeky! From today, you will be its guardian.",
             "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let it meet its friends.",
             "At the end of the Moon Cycle, you and your pet will part ways. It will ascend back to the moon, where it belongs, changed by the way you treated it. Take good care of it and it will reward you nicely.",
             "See you in 28 days!"
         ]
     };
+
+    // Process dialogs to ensure no message is longer than 3 lines
+    const processedDialogs = Object.keys(dialogs).reduce((acc, phase) => {
+        acc[phase] = [];
+        dialogs[phase].forEach((message) => {
+            const chunks = splitTextIntoChunks(message);
+            acc[phase].push(...chunks);
+        });
+        return acc;
+    }, {} as Record<string, string[]>);
 
     // Update local state when stored player name changes
     useEffect(() => {
@@ -172,7 +234,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
     }, [connected, currentPhase, onContinue, playerName]);
 
     const handleDialogClick = () => {
-        if (dialogIndex < dialogs[currentPhase].length - 1) {
+        if (dialogIndex < processedDialogs[currentPhase].length - 1) {
             setDialogIndex(prev => prev + 1);
         } else {
             // Move to next phase
@@ -259,20 +321,20 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
         } else if (currentPhase === 'petName') {
             return "Woo-hoooo! Fantastic choice! Now let's chose a name for it, what's it gonna be?";
         } else if (currentPhase === 'explanation') {
-            return dialogs.explanation[dialogIndex];
+            return processedDialogs.explanation[dialogIndex];
         } else if (currentPhase === 'explanationNo') {
-            return dialogs.explanationNo[dialogIndex];
+            return processedDialogs.explanationNo[dialogIndex];
         } else if (currentPhase === 'final') {
-            return dialogs.final[dialogIndex];
+            return processedDialogs.final[dialogIndex];
         } else {
-            return dialogs[currentPhase]?.[dialogIndex] || "";
+            return processedDialogs[currentPhase]?.[dialogIndex] || "";
         }
     };
 
-    const showYesNoButtons = (currentPhase === 'intro' && dialogIndex === dialogs.intro.length - 1) || 
-                            (currentPhase === 'introNo' && dialogIndex === dialogs.introNo.length - 1) ||
-                            (currentPhase === 'explanation' && dialogIndex === dialogs.explanation.length - 1) ||
-                            (currentPhase === 'explanationNo' && dialogIndex === dialogs.explanationNo.length - 1);
+    const showYesNoButtons = (currentPhase === 'intro' && dialogIndex === processedDialogs.intro.length - 1) || 
+                            (currentPhase === 'introNo' && dialogIndex === processedDialogs.introNo.length - 1) ||
+                            (currentPhase === 'explanation' && dialogIndex === processedDialogs.explanation.length - 1) ||
+                            (currentPhase === 'explanationNo' && dialogIndex === processedDialogs.explanationNo.length - 1);
     const showNameInput = currentPhase === 'name';
     const showPetNameInput = currentPhase === 'petName';
     const showChoiceDialog = showYesNoButtons;
@@ -461,14 +523,14 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                                         <View style={styles.nameInputInnerBox}>
                                             <Text style={styles.namePrompt}>Tell me your name!</Text>
                                             <Text style={styles.nameDisplay}>
-                                                {playerName.padEnd(8, '*')}
+                                                {playerName.padEnd(9, '*')}
                                             </Text>
                                             <TextInput
                                                 style={styles.hiddenInput}
                                                 value={playerName}
                                                 onChangeText={setPlayerName}
                                                 placeholder=""
-                                                maxLength={8}
+                                                maxLength={9}
                                                 autoFocus={true}
                                                 onSubmitEditing={handleNameSubmit}
                                                 returnKeyType="done"
@@ -499,14 +561,14 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                                         <View style={styles.nameInputInnerBox}>
                                             <Text style={styles.namePrompt}>Enter pet name!</Text>
                                             <Text style={styles.nameDisplay}>
-                                                {petName.padEnd(8, '*')}
+                                                {petName.padEnd(9, '*')}
                                             </Text>
                                             <TextInput
                                                 style={styles.hiddenInput}
                                                 value={petName}
                                                 onChangeText={setPetName}
                                                 placeholder=""
-                                                maxLength={8}
+                                                maxLength={9}
                                                 autoFocus={true}
                                                 onSubmitEditing={handlePetNameSubmit}
                                                 returnKeyType="done"
@@ -602,7 +664,7 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         justifyContent: 'flex-start', // Changed to flex-start to bring content up
-        paddingTop: 20, // Add top padding for spacing
+        paddingTop: 17, // Add top padding for spacing
     },
     storySpeakerLarge: {
         fontWeight: 'bold',
@@ -611,18 +673,21 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     storyTextLarge: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#2E5A3E', // Dark green text
         lineHeight: 20,
+        fontFamily: 'PressStart2P',
     },
     boldText: {
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontFamily: 'PressStart2P',
     },
     storyPromptLarge: {
         fontSize: 12,
         color: '#4A7A5A', // Medium green for subtle text
         marginTop: 5,
         fontStyle: 'italic',
+        fontFamily: 'PressStart2P',
     },
     starCharacterSection: {
         height: isTablet ? 450 : 350,
@@ -636,9 +701,10 @@ const styles = StyleSheet.create({
         marginLeft: -3,
     },
     eyesSection: {
-        height: isTablet ? 120 : 80,
+        height: isTablet ? 60 : 40,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 5,
     },
     eyesImage: {
         width: isTablet ? 150 : 100,
@@ -646,12 +712,11 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
     nameInputSection: {
-        flex: 1,
-        padding: 10,
-        justifyContent: 'center',
+        padding: 0,
+        justifyContent: 'flex-start',
+        paddingTop: 0,
     },
     nameInputContainer: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -660,28 +725,31 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     namePrompt: {
-        fontSize: isTablet ? 16 : 14,
-        marginBottom: 5,
+        fontSize: isTablet ? 16 : 13,
+        marginBottom: 2,
         textAlign: 'center',
         color: '#2E5A3E', // Same dark green as the input text
+        fontFamily: 'PressStart2P',
     },
     nameDisplayContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        maxWidth: 300,
+        maxWidth: 320,
         position: 'relative',
     },
     nameDisplay: {
-        fontSize: isTablet ? 28 : 24,
+        fontSize: isTablet ? 28 : 14,
         textAlign: 'center',
         color: '#2E5A3E', // Dark green text to match border
-        letterSpacing: 5,
+        letterSpacing: 2,
         width: '100%',
         lineHeight: isTablet ? 28 : 24,
         includeFontPadding: false,
         textAlignVertical: 'center',
+        fontFamily: 'PressStart2P',
+        flexWrap: 'nowrap',
     },
     hiddenInput: {
         position: 'absolute',
@@ -704,9 +772,11 @@ const styles = StyleSheet.create({
     welcomePlayer: {
         fontSize: isTablet ? 28 : 24,
         marginBottom: 10,
+        fontFamily: 'PressStart2P',
     },
     transitionText: {
         fontSize: isTablet ? 18 : 16,
+        fontFamily: 'PressStart2P',
     },
     nameInputOuterBox: {
         width: '80%',
@@ -725,7 +795,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#4A7A5A', // Medium teal inner border
         width: '100%',
-        height: 70, // Increased height from 50 to 70
+        height: 80, // Increased height from 50 to 70
         justifyContent: 'center',
         alignItems: 'center',
         display: 'flex',
@@ -744,11 +814,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#4A7A5A', // Medium green for choice text
         marginHorizontal: 30, // Increased horizontal spacing instead of gap
+        fontFamily: 'PressStart2P',
     },
     selectedChoice: {
         color: '#2E5A3E', // Dark green for selected choice
         textDecorationLine: 'underline',
         textDecorationColor: '#2E5A3E', // Dark green underline
+        fontFamily: 'PressStart2P',
     },
     continueArrow: {
         position: 'absolute',
