@@ -21,6 +21,8 @@ interface InnerScreenProps {
     topStatusContent?: React.ReactNode;
     showBackgroundImage?: boolean;
     backgroundImageSource?: any;
+    isSelectionPage?: boolean; // New prop for selection page styling
+    overlayMode?: boolean; // New prop for modal-like overlay effect
 }
 
 const InnerScreen: React.FC<InnerScreenProps> = ({
@@ -38,14 +40,16 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     statsBarContent,
     topStatusContent,
     showBackgroundImage = true,
-    backgroundImageSource
+    backgroundImageSource,
+    isSelectionPage = false,
+    overlayMode = false
 }) => {
     return (
         <View style={styles.tamagotchiScreenContainer}>
             {/* Background casing image */}
             <Image 
                 source={require('../../assets/images/casing.png')} 
-                style={styles.mainBackground} 
+                style={[styles.mainBackground, overlayMode && styles.darkenedBackground]} 
                 resizeMode="cover" 
             />
             
@@ -57,7 +61,11 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
             )}
 
             {/* Inner screen with rounded borders */}
-            <View style={styles.innerScreen}>
+            <View style={[
+                styles.innerScreen, 
+                isSelectionPage && styles.innerScreenLarge,
+                overlayMode && styles.overlayInnerScreen
+            ]}>
                 {/* Screen background */}
                 {showBackgroundImage && (
                     <Image 
@@ -96,7 +104,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
             </View>
 
             {/* Bottom Navigation Buttons */}
-            <View style={styles.bottomButtonContainer}>
+            <View style={[styles.bottomButtonContainer, overlayMode && styles.darkenedButtons]}>
                 <TouchableOpacity 
                     style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]} 
                     onPress={!leftButtonDisabled ? onLeftButtonPress : undefined}
@@ -173,6 +181,25 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#5A7B8A', // Same darker blue border as buttons
     },
+    innerScreenLarge: {
+        width: isTablet ? '85%' : '88%',
+        height: isTablet ? '75%' : '65%',
+        marginTop: isTablet ? -10 : -20,
+    },
+    darkenedBackground: {
+        opacity: 0.3,
+    },
+    overlayInnerScreen: {
+        zIndex: 1000,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+    },
+    darkenedButtons: {
+        opacity: 0.3,
+    },
     innerBackground: {
         position: 'absolute',
         width: '100%',
@@ -230,7 +257,8 @@ const styles = StyleSheet.create({
         marginLeft: 'auto',
     },
     disabled: {
-        opacity: 0.5,
+        opacity: 0.3,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     buttonText: {
         color: '#2E5A3E', // Dark green for better contrast

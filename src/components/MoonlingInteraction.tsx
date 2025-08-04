@@ -33,14 +33,6 @@ interface Character {
     name: string;
     description: string;
     image: string;
-    element: string;
-    baseStats: {
-        mood: number;
-        hunger: number;
-        energy: number;
-    };
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-    specialAbility: string;
     nftMint?: string | null;
 }
 
@@ -190,8 +182,12 @@ const MoonlingInteraction: React.FC<Props> = ({
     useEffect(() => {
         if (selectedCharacter && !localGameEngine) {
             (async () => {
-                // Initialize character in stat decay service with base stats
-                await statDecayService.initializeCharacter(selectedCharacter.id, selectedCharacter.baseStats);
+                // Initialize character in stat decay service with default stats
+                await statDecayService.initializeCharacter(selectedCharacter.id, {
+                    mood: 3,
+                    hunger: 2,
+                    energy: 4
+                });
 
                 // Update stats with current decay
                 const updatedStats = await statDecayService.updateCharacterStats(selectedCharacter.id);

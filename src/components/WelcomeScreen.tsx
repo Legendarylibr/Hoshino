@@ -410,7 +410,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, connected, onConnectWallet
                 <>
                     <View style={styles.storyCharacterCentered}>
                         <Image
-                            source={require('../../assets/images/hoshino star.png')}
+                            source={require('../../assets/images/hoshino star.gif')}
                             style={styles.starCharacterImage}
                         />
                     </View>
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        marginTop: 60, // Increased from 30 to move star down
+        marginTop: 80, // Increased from 30 to move star down
     },
     storyDialogBottom: {
         width: '100%',

@@ -26,14 +26,6 @@ interface Character {
     name: string;
     description: string;
     image: string;
-    element: string;
-    baseStats: {
-        mood: number;
-        hunger: number;
-        energy: number;
-    };
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-    specialAbility: string;
     nftMint?: string | null;
 }
 
@@ -55,13 +47,6 @@ const validateCharacterInput = (character: Character): boolean => {
         !character?.image ||
         character.image.length === 0 ||
         character.image.length > 500
-    ) {
-        return false;
-    }
-    if (
-        !character?.element ||
-        character.element.length === 0 ||
-        character.element.length > 20
     ) {
         return false;
     }
@@ -376,9 +361,9 @@ function App() {
 
         setSelectedCharacter(character);
         setCharacterStats({
-            mood: character.baseStats.mood,
-            hunger: character.baseStats.hunger,
-            energy: character.baseStats.energy
+            mood: 3,
+            hunger: 2,
+            energy: 4
         });
         setCurrentView('interaction');
 
