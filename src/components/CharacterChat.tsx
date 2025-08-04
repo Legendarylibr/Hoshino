@@ -178,7 +178,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                     {!showChat && (
                         <View style={styles.characterInfo}>
                             <Text style={styles.characterName}>{character.name}</Text>
-                            <Text style={styles.characterStatus}>Ready to chat!</Text>
+                            <Text style={styles.characterStatus}>READY TO CHAT!</Text>
                         </View>
                     )}
                 </View>
@@ -186,9 +186,14 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                 {/* Chat Interface - Only show when toggled on */}
                 {showChat && (
                     <View style={styles.chatContainer}>
+                        {/* Scan Lines Effect */}
+                        <View style={styles.scanLines} />
+
                         {/* Chat Header */}
                         <View style={styles.chatHeader}>
-                            <Text style={styles.chatHeaderText}>Chatting with {character.name}</Text>
+                            <View style={styles.headerBorder}>
+                                <Text style={styles.chatHeaderText}>CHATTING WITH {character.name.toUpperCase()}</Text>
+                            </View>
                         </View>
 
                         {/* Messages Area */}
@@ -205,35 +210,51 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                         message.sender === 'user' ? styles.userMessage : styles.characterMessage
                                     ]}
                                 >
-                                    <Text style={styles.messageText}>{message.text}</Text>
+                                    <View style={styles.messageBorder}>
+                                        <Text style={[
+                                            styles.messageText,
+                                            message.sender === 'user' ? styles.userMessageText : styles.characterMessageText
+                                        ]}>
+                                            {message.text}
+                                        </Text>
+                                    </View>
                                 </View>
                             ))}
 
                             {isThinking && (
                                 <View style={styles.thinkingMessage}>
-                                    <Text style={styles.thinkingText}>{character.name} is thinking...</Text>
+                                    <View style={styles.thinkingBorder}>
+                                        <Text style={styles.thinkingText}>
+                                            {character.name.toUpperCase()} IS THINKING...
+                                        </Text>
+                                        <Text style={styles.thinkingDots}>• • •</Text>
+                                    </View>
                                 </View>
                             )}
                         </ScrollView>
 
                         {/* Input Area */}
                         <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.textInput}
-                                value={inputText}
-                                onChangeText={setInputText}
-                                placeholder={`Message ${character.name}...`}
-                                placeholderTextColor="#999"
-                                multiline
-                                maxLength={200}
-                            />
-                            <TouchableOpacity
-                                style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
-                                onPress={sendMessage}
-                                disabled={!inputText.trim() || isThinking}
-                            >
-                                <Text style={styles.sendButtonText}>Send</Text>
-                            </TouchableOpacity>
+                            <View style={styles.inputBorder}>
+                                <TextInput
+                                    style={styles.textInput}
+                                    value={inputText}
+                                    onChangeText={setInputText}
+                                    placeholder={`MESSAGE ${character.name.toUpperCase()}...`}
+                                    placeholderTextColor="#00FF00"
+                                    multiline
+                                    maxLength={200}
+                                />
+                                <TouchableOpacity
+                                    style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+                                    onPress={sendMessage}
+                                    disabled={!inputText.trim() || isThinking}
+                                >
+                                    <View style={styles.sendButtonBorder}>
+                                        <Text style={styles.sendButtonText}>SEND</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 )}
@@ -263,17 +284,25 @@ const styles = StyleSheet.create({
     characterInfo: {
         alignItems: 'center',
         marginTop: 10,
+        backgroundColor: '#000000',
+        borderWidth: 2,
+        borderColor: '#00FF00',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
     },
     characterName: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 4,
+        color: '#00FF00',
+        marginBottom: 2,
+        fontFamily: 'monospace',
+        letterSpacing: 1,
     },
     characterStatus: {
-        fontSize: 16,
-        color: '#666',
-        fontStyle: 'italic',
+        fontSize: 12,
+        color: '#FFFF00',
+        fontFamily: 'monospace',
+        letterSpacing: 1,
     },
     chatContainer: {
         position: 'absolute',
@@ -281,93 +310,160 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        borderRadius: 10,
-        padding: 8,
+        backgroundColor: '#000000',
+        borderWidth: 3,
+        borderColor: '#333333',
+        padding: 4,
         zIndex: 10,
     },
+    scanLines: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        opacity: 0.1,
+        // Create scan line effect with linear gradient would go here in web
+        // For React Native, we'll use a subtle overlay
+        borderWidth: 0,
+    },
     chatHeader: {
-        backgroundColor: 'rgba(128, 0, 32, 0.9)',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 8,
+        marginBottom: 6,
+    },
+    headerBorder: {
+        backgroundColor: '#001100',
+        borderWidth: 2,
+        borderColor: '#00FF00',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
     },
     chatHeaderText: {
-        color: 'white',
-        fontSize: 16,
+        color: '#00FF00',
+        fontSize: 14,
         fontWeight: 'bold',
         textAlign: 'center',
+        fontFamily: 'monospace',
+        letterSpacing: 1,
     },
     messagesContainer: {
         flex: 1,
         paddingHorizontal: 4,
     },
     message: {
-        marginVertical: 4,
-        padding: 10,
-        borderRadius: 8,
+        marginVertical: 3,
         maxWidth: '85%',
     },
     userMessage: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
         alignSelf: 'flex-end',
     },
     characterMessage: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignSelf: 'flex-start',
+    },
+    messageBorder: {
+        borderWidth: 2,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
     },
     messageText: {
-        fontSize: 14,
-        color: 'white',
-        lineHeight: 18,
+        fontSize: 13,
+        lineHeight: 16,
+        fontFamily: 'monospace',
+    },
+    userMessageText: {
+        color: '#FFFF00',
+    },
+    characterMessageText: {
+        color: '#00FF00',
     },
     thinkingMessage: {
-        padding: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 8,
         alignSelf: 'flex-start',
-        marginVertical: 4,
+        marginVertical: 3,
+    },
+    thinkingBorder: {
+        borderWidth: 2,
+        borderColor: '#FF00FF',
+        backgroundColor: '#110011',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     thinkingText: {
-        fontSize: 14,
-        color: 'white',
-        fontStyle: 'italic',
+        fontSize: 12,
+        color: '#FF00FF',
+        fontFamily: 'monospace',
+        letterSpacing: 1,
+        flex: 1,
+    },
+    thinkingDots: {
+        fontSize: 16,
+        color: '#FF00FF',
+        fontFamily: 'monospace',
+        marginLeft: 8,
     },
     inputContainer: {
+        marginTop: 6,
+    },
+    inputBorder: {
+        borderWidth: 2,
+        borderColor: '#00FF00',
+        backgroundColor: '#001100',
+        padding: 6,
         flexDirection: 'row',
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 8,
         alignItems: 'flex-end',
-        marginTop: 8,
     },
     textInput: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 15,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        marginRight: 8,
-        color: 'black',
-        fontSize: 14,
-        maxHeight: 80,
+        backgroundColor: '#000000',
+        borderWidth: 1,
+        borderColor: '#333333',
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        marginRight: 6,
+        color: '#00FF00',
+        fontSize: 12,
+        fontFamily: 'monospace',
+        maxHeight: 60,
+        minHeight: 32,
     },
     sendButton: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 15,
-        justifyContent: 'center',
+        minWidth: 50,
+    },
+    sendButtonBorder: {
+        backgroundColor: '#003300',
+        borderWidth: 2,
+        borderColor: '#00FF00',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     sendButtonText: {
-        color: 'white',
+        color: '#00FF00',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 12,
+        fontFamily: 'monospace',
+        letterSpacing: 1,
     },
     sendButtonDisabled: {
         opacity: 0.5,
     },
 });
+
+// Add conditional styling based on message sender
+const getMessageStyle = (sender: 'user' | 'character') => {
+    if (sender === 'user') {
+        return {
+            backgroundColor: '#110011',
+            borderColor: '#FFFF00',
+        };
+    } else {
+        return {
+            backgroundColor: '#001100',
+            borderColor: '#00FF00',
+        };
+    }
+};
 
 export default CharacterChat;
