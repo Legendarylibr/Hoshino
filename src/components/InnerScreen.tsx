@@ -47,12 +47,12 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     return (
         <View style={styles.tamagotchiScreenContainer}>
             {/* Background casing image */}
-            <Image 
-                source={require('../../assets/images/casing.png')} 
-                style={[styles.mainBackground, overlayMode && styles.darkenedBackground]} 
-                resizeMode="cover" 
+            <Image
+                source={require('../../assets/images/casing.png')}
+                style={[styles.mainBackground, overlayMode && styles.darkenedBackground]}
+                resizeMode="cover"
             />
-            
+
             {/* Top Status Bar */}
             {topStatusContent && (
                 <View style={styles.topStatus}>
@@ -60,21 +60,52 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                 </View>
             )}
 
-            {/* Inner screen with rounded borders */}
+            {/* Inner screen with pixelated borders */}
             <View style={[
-                styles.innerScreen, 
+                styles.innerScreen,
                 isSelectionPage && styles.innerScreenLarge,
                 overlayMode && styles.overlayInnerScreen
             ]}>
+                {/* Pixelated border system for main screen */}
+                <View style={styles.screenBorderTop} />
+                <View style={styles.screenBorderBottom} />
+                <View style={styles.screenBorderLeft} />
+                <View style={styles.screenBorderRight} />
+
+                {/* Pixelated corners */}
+                <View style={styles.screenCornerTL} />
+                <View style={styles.screenCornerTR} />
+                <View style={styles.screenCornerBL} />
+                <View style={styles.screenCornerBR} />
+
+                {/* Additional corner pixels for authentic Game Boy look */}
+                <View style={styles.screenCornerPixelTL1} />
+                <View style={styles.screenCornerPixelTL2} />
+                <View style={styles.screenCornerPixelTR1} />
+                <View style={styles.screenCornerPixelTR2} />
+                <View style={styles.screenCornerPixelBL1} />
+                <View style={styles.screenCornerPixelBL2} />
+                <View style={styles.screenCornerPixelBR1} />
+                <View style={styles.screenCornerPixelBR2} />
+
+                {/* Dithered shadow system */}
+                <View style={styles.screenShadowMain} />
+                <View style={styles.screenShadowCorner1} />
+                <View style={styles.screenShadowCorner2} />
+                <View style={styles.screenDither1} />
+                <View style={styles.screenDither2} />
+                <View style={styles.screenDither3} />
+                <View style={styles.screenDither4} />
+
                 {/* Screen background */}
                 {showBackgroundImage && (
-                    <Image 
-                        source={backgroundImageSource || require('../../assets/images/screen bg.png')} 
-                        style={styles.innerBackground} 
-                        resizeMode="cover" 
+                    <Image
+                        source={backgroundImageSource || require('../../assets/images/screen bg.png')}
+                        style={styles.innerBackground}
+                        resizeMode="cover"
                     />
                 )}
-                
+
                 {/* Stats Bar */}
                 {showStatsBar && (
                     <View style={styles.statsBar}>
@@ -96,7 +127,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                         )}
                     </View>
                 )}
-                
+
                 {/* Main content area */}
                 <View style={styles.mainDisplayArea}>
                     {children}
@@ -105,8 +136,8 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
 
             {/* Bottom Navigation Buttons */}
             <View style={[styles.bottomButtonContainer, overlayMode && styles.darkenedButtons]}>
-                <TouchableOpacity 
-                    style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]} 
+                <TouchableOpacity
+                    style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]}
                     onPress={!leftButtonDisabled ? onLeftButtonPress : undefined}
                 >
                     <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
@@ -174,12 +205,15 @@ const styles = StyleSheet.create({
     innerScreen: {
         width: isTablet ? '75%' : '78%',
         height: isTablet ? '65%' : '51%',
-        borderRadius: isTablet ? 25 : 15,
-        overflow: 'hidden',
+        borderRadius: 0, // Remove smooth corners
+        overflow: 'visible', // Allow pixelated borders to show
         position: 'relative',
         marginTop: isTablet ? -20 : -40,
-        borderWidth: 2,
-        borderColor: '#5A7B8A', // Same darker blue border as buttons
+        borderWidth: 0, // Remove CSS border
+        backgroundColor: 'transparent', // Let the background image show through
+        // Add space for shadows
+        marginRight: isTablet ? 12 : 8,
+        marginBottom: isTablet ? 12 : 8,
     },
     innerScreenLarge: {
         width: isTablet ? '85%' : '88%',
@@ -192,10 +226,6 @@ const styles = StyleSheet.create({
     overlayInnerScreen: {
         zIndex: 1000,
         elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
     },
     darkenedButtons: {
         opacity: 0.3,
@@ -204,12 +234,232 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: '100%',
         height: '100%',
+        zIndex: 1,
     },
+
+    // Pixelated border system for main screen
+    screenBorderTop: {
+        position: 'absolute',
+        top: 0,
+        left: isTablet ? 6 : 4,
+        right: isTablet ? 6 : 4,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A', // Same as original border color
+        zIndex: 10,
+    },
+    screenBorderBottom: {
+        position: 'absolute',
+        bottom: 0,
+        left: isTablet ? 6 : 4,
+        right: isTablet ? 6 : 4,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenBorderLeft: {
+        position: 'absolute',
+        top: isTablet ? 4 : 3,
+        bottom: isTablet ? 4 : 3,
+        left: 0,
+        width: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenBorderRight: {
+        position: 'absolute',
+        top: isTablet ? 4 : 3,
+        bottom: isTablet ? 4 : 3,
+        right: 0,
+        width: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+
+    // Main corner pixels
+    screenCornerTL: {
+        position: 'absolute',
+        top: isTablet ? 2 : 1,
+        left: isTablet ? 2 : 1,
+        width: isTablet ? 4 : 3,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerTR: {
+        position: 'absolute',
+        top: isTablet ? 2 : 1,
+        right: isTablet ? 2 : 1,
+        width: isTablet ? 4 : 3,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerBL: {
+        position: 'absolute',
+        bottom: isTablet ? 2 : 1,
+        left: isTablet ? 2 : 1,
+        width: isTablet ? 4 : 3,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerBR: {
+        position: 'absolute',
+        bottom: isTablet ? 2 : 1,
+        right: isTablet ? 2 : 1,
+        width: isTablet ? 4 : 3,
+        height: isTablet ? 4 : 3,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+
+    // Additional corner detail pixels
+    screenCornerPixelTL1: {
+        position: 'absolute',
+        top: isTablet ? 1 : 0,
+        left: isTablet ? 6 : 4,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelTL2: {
+        position: 'absolute',
+        top: isTablet ? 6 : 4,
+        left: isTablet ? 1 : 0,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelTR1: {
+        position: 'absolute',
+        top: isTablet ? 1 : 0,
+        right: isTablet ? 6 : 4,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelTR2: {
+        position: 'absolute',
+        top: isTablet ? 6 : 4,
+        right: isTablet ? 1 : 0,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelBL1: {
+        position: 'absolute',
+        bottom: isTablet ? 1 : 0,
+        left: isTablet ? 6 : 4,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelBL2: {
+        position: 'absolute',
+        bottom: isTablet ? 6 : 4,
+        left: isTablet ? 1 : 0,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelBR1: {
+        position: 'absolute',
+        bottom: isTablet ? 1 : 0,
+        right: isTablet ? 6 : 4,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+    screenCornerPixelBR2: {
+        position: 'absolute',
+        bottom: isTablet ? 6 : 4,
+        right: isTablet ? 1 : 0,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#5A7B8A',
+        zIndex: 10,
+    },
+
+    // Dithered shadow system
+    screenShadowMain: {
+        position: 'absolute',
+        top: isTablet ? 8 : 6,
+        right: isTablet ? -8 : -6,
+        bottom: isTablet ? -8 : -6,
+        width: isTablet ? 8 : 6,
+        backgroundColor: '#4A6B7A', // Darker shadow
+        zIndex: -1,
+    },
+    screenShadowCorner1: {
+        position: 'absolute',
+        bottom: isTablet ? -8 : -6,
+        left: isTablet ? 8 : 6,
+        right: isTablet ? -8 : -6,
+        height: isTablet ? 8 : 6,
+        backgroundColor: '#4A6B7A',
+        zIndex: -1,
+    },
+    screenShadowCorner2: {
+        position: 'absolute',
+        bottom: isTablet ? -8 : -6,
+        right: isTablet ? -8 : -6,
+        width: isTablet ? 8 : 6,
+        height: isTablet ? 8 : 6,
+        backgroundColor: '#3A5B6A', // Even darker corner
+        zIndex: -1,
+    },
+
+    // Dithering pixels for authentic Game Boy look
+    screenDither1: {
+        position: 'absolute',
+        top: isTablet ? 6 : 4,
+        right: isTablet ? -6 : -4,
+        width: isTablet ? 3 : 2,
+        height: isTablet ? 3 : 2,
+        backgroundColor: '#5A7B8A', // Lighter dither
+        zIndex: -1,
+    },
+    screenDither2: {
+        position: 'absolute',
+        bottom: isTablet ? -6 : -4,
+        left: isTablet ? 6 : 4,
+        width: isTablet ? 3 : 2,
+        height: isTablet ? 3 : 2,
+        backgroundColor: '#5A7B8A',
+        zIndex: -1,
+    },
+    screenDither3: {
+        position: 'absolute',
+        top: isTablet ? 12 : 8,
+        right: isTablet ? -4 : -3,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#6A8B9A', // Medium dither
+        zIndex: -1,
+    },
+    screenDither4: {
+        position: 'absolute',
+        bottom: isTablet ? -4 : -3,
+        left: isTablet ? 12 : 8,
+        width: isTablet ? 2 : 1,
+        height: isTablet ? 2 : 1,
+        backgroundColor: '#6A8B9A',
+        zIndex: -1,
+    },
+
     statsBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         padding: 10,
         backgroundColor: 'darkgray',
+        zIndex: 2,
     },
     statItem: {
         alignItems: 'center',
@@ -229,6 +479,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        zIndex: 2,
     },
     bottomButtonContainer: {
         flexDirection: 'row',
@@ -301,4 +552,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default InnerScreen; 
+export default InnerScreen;
