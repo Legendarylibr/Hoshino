@@ -13,18 +13,18 @@ import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
     switch (imageName) {
-        case 'LYRA.png':
-            return require('../../assets/images/LYRA.png');
-        case 'ORION.png':
-            return require('../../assets/images/ORION.png');
-        case 'ARO.png':
-            return require('../../assets/images/ARO.png');
-        case 'SIRIUS.png':
-            return require('../../assets/images/SIRIUS.png');
-        case 'ZANIAH.png':
-            return require('../../assets/images/ZANIAH.png');
+        case 'LYRA.gif':
+            return require('../../assets/images/LYRA.gif');
+        case 'ORION.gif':
+            return require('../../assets/images/ORION.gif');
+        case 'ARO.gif':
+            return require('../../assets/images/ARO.gif');
+        case 'SIRIUS.gif':
+            return require('../../assets/images/SIRIUS.gif');
+        case 'ZANIAH.gif':
+            return require('../../assets/images/ZANIAH.gif');
         default:
-            return require('../../assets/images/LYRA.png'); // fallback
+            return require('../../assets/images/LYRA.gif'); // fallback
     }
 };
 
@@ -551,8 +551,8 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     characterImage: {
-        width: 400,
-        height: 400,
+        width: 300,
+        height: 300,
         resizeMode: 'contain',
     },
     noCharacterPlaceholder: {

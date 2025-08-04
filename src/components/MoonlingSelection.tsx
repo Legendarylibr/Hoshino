@@ -229,16 +229,7 @@ const MoonlingSelection: React.FC<Props> = ({
                     extendedIndex - 2 - CHARACTERS.length : 
                     extendedIndex - 2;
             
-            // Debug logging
-            console.log('Spin Debug:', {
-                elapsed,
-                progress,
-                scrollDistance,
-                extendedPosition,
-                extendedIndex,
-                actualIndex,
-                characterName: CHARACTERS[actualIndex]?.name
-            });
+
             
             setCurrentCharacterIndex(actualIndex);
             
