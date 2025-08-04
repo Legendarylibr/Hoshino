@@ -178,7 +178,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                     {!showChat && (
                         <View style={styles.characterInfo}>
                             <Text style={styles.characterName}>{character.name}</Text>
-                            <Text style={styles.characterStatus}>READY TO CHAT!</Text>
+                            <Text style={styles.characterStatus}>✨ Ready to chat! ✨</Text>
                         </View>
                     )}
                 </View>
@@ -186,13 +186,20 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                 {/* Chat Interface - Only show when toggled on */}
                 {showChat && (
                     <View style={styles.chatContainer}>
-                        {/* Scan Lines Effect */}
-                        <View style={styles.scanLines} />
+                        {/* Cosmic Background Effect */}
+                        <View style={styles.cosmicBackground}>
+                            {/* Simulated stars */}
+                            <View style={[styles.star, { top: '10%', left: '15%' }]} />
+                            <View style={[styles.star, { top: '25%', right: '20%' }]} />
+                            <View style={[styles.star, { top: '60%', left: '10%' }]} />
+                            <View style={[styles.star, { bottom: '30%', right: '15%' }]} />
+                            <View style={[styles.star, { bottom: '15%', left: '25%' }]} />
+                        </View>
 
                         {/* Chat Header */}
                         <View style={styles.chatHeader}>
                             <View style={styles.headerBorder}>
-                                <Text style={styles.chatHeaderText}>CHATTING WITH {character.name.toUpperCase()}</Text>
+                                <Text style={styles.chatHeaderText}>✨ Chatting with {character.name} ✨</Text>
                             </View>
                         </View>
 
@@ -210,7 +217,10 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                         message.sender === 'user' ? styles.userMessage : styles.characterMessage
                                     ]}
                                 >
-                                    <View style={styles.messageBorder}>
+                                    <View style={[
+                                        styles.messageBorder,
+                                        message.sender === 'user' ? styles.userMessageBorder : styles.characterMessageBorder
+                                    ]}>
                                         <Text style={[
                                             styles.messageText,
                                             message.sender === 'user' ? styles.userMessageText : styles.characterMessageText
@@ -225,9 +235,9 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                 <View style={styles.thinkingMessage}>
                                     <View style={styles.thinkingBorder}>
                                         <Text style={styles.thinkingText}>
-                                            {character.name.toUpperCase()} IS THINKING...
+                                            🌟 {character.name} is thinking...
                                         </Text>
-                                        <Text style={styles.thinkingDots}>• • •</Text>
+                                        <Text style={styles.thinkingDots}>✨ ✨ ✨</Text>
                                     </View>
                                 </View>
                             )}
@@ -240,8 +250,8 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                     style={styles.textInput}
                                     value={inputText}
                                     onChangeText={setInputText}
-                                    placeholder={`MESSAGE ${character.name.toUpperCase()}...`}
-                                    placeholderTextColor="#00FF00"
+                                    placeholder={`Message ${character.name}...`}
+                                    placeholderTextColor="#B8860B"
                                     multiline
                                     maxLength={200}
                                 />
@@ -251,7 +261,7 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                                     disabled={!inputText.trim() || isThinking}
                                 >
                                     <View style={styles.sendButtonBorder}>
-                                        <Text style={styles.sendButtonText}>SEND</Text>
+                                        <Text style={styles.sendButtonText}>Send ✨</Text>
                                     </View>
                                 </TouchableOpacity>
                             </View>
@@ -284,25 +294,26 @@ const styles = StyleSheet.create({
     characterInfo: {
         alignItems: 'center',
         marginTop: 10,
-        backgroundColor: '#000000',
+        backgroundColor: 'rgba(25, 25, 112, 0.8)', // Deep space blue
         borderWidth: 2,
-        borderColor: '#00FF00',
+        borderColor: '#FFD700', // Cosmic gold
         paddingHorizontal: 16,
         paddingVertical: 8,
+        borderRadius: 8,
     },
     characterName: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#00FF00',
+        color: '#FFD700', // Golden yellow
         marginBottom: 2,
         fontFamily: 'monospace',
         letterSpacing: 1,
     },
     characterStatus: {
         fontSize: 12,
-        color: '#FFFF00',
+        color: '#E6E6FA', // Lavender
         fontFamily: 'monospace',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     chatContainer: {
         position: 'absolute',
@@ -310,45 +321,53 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: '#000000',
+        backgroundColor: 'rgba(25, 25, 112, 0.95)', // Deep space blue background
         borderWidth: 3,
-        borderColor: '#333333',
+        borderColor: '#4169E1', // Royal blue border
+        borderRadius: 8,
         padding: 4,
         zIndex: 10,
     },
-    scanLines: {
+    cosmicBackground: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
         backgroundColor: 'transparent',
-        opacity: 0.1,
-        // Create scan line effect with linear gradient would go here in web
-        // For React Native, we'll use a subtle overlay
-        borderWidth: 0,
+    },
+    star: {
+        position: 'absolute',
+        width: 3,
+        height: 3,
+        backgroundColor: '#FFD700',
+        borderRadius: 1.5,
+        opacity: 0.8,
     },
     chatHeader: {
         marginBottom: 6,
+        zIndex: 2,
     },
     headerBorder: {
-        backgroundColor: '#001100',
+        backgroundColor: 'rgba(72, 61, 139, 0.9)', // Dark slate blue
         borderWidth: 2,
-        borderColor: '#00FF00',
+        borderColor: '#FFD700', // Golden border
         paddingVertical: 8,
         paddingHorizontal: 12,
+        borderRadius: 6,
     },
     chatHeaderText: {
-        color: '#00FF00',
+        color: '#FFD700', // Golden text
         fontSize: 14,
         fontWeight: 'bold',
         textAlign: 'center',
         fontFamily: 'monospace',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     messagesContainer: {
         flex: 1,
         paddingHorizontal: 4,
+        zIndex: 2,
     },
     message: {
         marginVertical: 3,
@@ -364,6 +383,15 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         paddingHorizontal: 10,
         paddingVertical: 6,
+        borderRadius: 4,
+    },
+    userMessageBorder: {
+        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Cosmic purple
+        borderColor: '#DA70D6', // Orchid border
+    },
+    characterMessageBorder: {
+        backgroundColor: 'rgba(70, 130, 180, 0.8)', // Steel blue
+        borderColor: '#87CEEB', // Sky blue border
     },
     messageText: {
         fontSize: 13,
@@ -371,10 +399,10 @@ const styles = StyleSheet.create({
         fontFamily: 'monospace',
     },
     userMessageText: {
-        color: '#FFFF00',
+        color: '#E6E6FA', // Lavender
     },
     characterMessageText: {
-        color: '#00FF00',
+        color: '#F0F8FF', // Alice blue
     },
     thinkingMessage: {
         alignSelf: 'flex-start',
@@ -382,88 +410,78 @@ const styles = StyleSheet.create({
     },
     thinkingBorder: {
         borderWidth: 2,
-        borderColor: '#FF00FF',
-        backgroundColor: '#110011',
+        borderColor: '#FF69B4', // Hot pink for thinking
+        backgroundColor: 'rgba(199, 21, 133, 0.6)', // Medium violet red
         paddingHorizontal: 10,
         paddingVertical: 6,
         flexDirection: 'row',
         alignItems: 'center',
+        borderRadius: 4,
     },
     thinkingText: {
         fontSize: 12,
-        color: '#FF00FF',
+        color: '#FFB6C1', // Light pink
         fontFamily: 'monospace',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
         flex: 1,
     },
     thinkingDots: {
-        fontSize: 16,
-        color: '#FF00FF',
+        fontSize: 12,
+        color: '#FFB6C1',
         fontFamily: 'monospace',
         marginLeft: 8,
     },
     inputContainer: {
         marginTop: 6,
+        zIndex: 2,
     },
     inputBorder: {
         borderWidth: 2,
-        borderColor: '#00FF00',
-        backgroundColor: '#001100',
+        borderColor: '#4169E1', // Royal blue
+        backgroundColor: 'rgba(72, 61, 139, 0.8)', // Dark slate blue
+        borderRadius: 6,
         padding: 6,
         flexDirection: 'row',
         alignItems: 'flex-end',
     },
     textInput: {
         flex: 1,
-        backgroundColor: '#000000',
+        backgroundColor: 'rgba(25, 25, 112, 0.9)', // Deep space blue
         borderWidth: 1,
-        borderColor: '#333333',
+        borderColor: '#6495ED', // Cornflower blue
+        borderRadius: 4,
         paddingHorizontal: 8,
         paddingVertical: 6,
         marginRight: 6,
-        color: '#00FF00',
+        color: '#E6E6FA', // Lavender text
         fontSize: 12,
         fontFamily: 'monospace',
         maxHeight: 60,
         minHeight: 32,
     },
     sendButton: {
-        minWidth: 50,
+        minWidth: 60,
     },
     sendButtonBorder: {
-        backgroundColor: '#003300',
+        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Cosmic purple
         borderWidth: 2,
-        borderColor: '#00FF00',
+        borderColor: '#DA70D6', // Orchid
+        borderRadius: 4,
         paddingHorizontal: 10,
         paddingVertical: 6,
         alignItems: 'center',
         justifyContent: 'center',
     },
     sendButtonText: {
-        color: '#00FF00',
+        color: '#E6E6FA', // Lavender
         fontWeight: 'bold',
         fontSize: 12,
         fontFamily: 'monospace',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     sendButtonDisabled: {
         opacity: 0.5,
     },
 });
-
-// Add conditional styling based on message sender
-const getMessageStyle = (sender: 'user' | 'character') => {
-    if (sender === 'user') {
-        return {
-            backgroundColor: '#110011',
-            borderColor: '#FFFF00',
-        };
-    } else {
-        return {
-            backgroundColor: '#001100',
-            borderColor: '#00FF00',
-        };
-    }
-};
 
 export default CharacterChat;
