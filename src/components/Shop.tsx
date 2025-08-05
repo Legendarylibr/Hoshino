@@ -1,91 +1,288 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import MarketplaceService, {
-    MarketplaceItem,
-    ItemCategory,
-    ItemRarity,
-    UserInventory
-} from '../services/MarketplaceService';
-import { GlobalPointSystem } from '../services/GlobalPointSystem';
-import { useWallet } from '../contexts/WalletContext';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import InnerScreen from './InnerScreen';
 
-interface InventoryProps {
-    connection: Connection;
+interface ShopProps {
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     onClose: () => void;
+    walletConnected?: boolean;
+    userBalance?: number;
 }
 
-const Inventory: React.FC<InventoryProps> = ({ connection, onNotification, onClose }) => {
-    const wallet = useWallet();
-    const [selectedCategory, setSelectedCategory] = useState<ItemCategory>(ItemCategory.FOOD);
-    const [userInventory, setUserInventory] = useState<UserInventory | null>(null);
-    const [marketplaceService, setMarketplaceService] = useState<MarketplaceService | null>(null);
-    const [globalPointSystem, setGlobalPointSystem] = useState<GlobalPointSystem | null>(null);
-    const [starFragmentBalance, setStarFragmentBalance] = useState(0);
+interface ShopItem {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: ItemCategory;
+    rarity: ItemRarity;
+    icon: string;
+    starFragmentPrice: number;
+}
+
+interface StarFragmentPack {
+    id: string;
+    name: string;
+    description: string;
+    solPrice: number;
+    fragments: number;
+    rarity: ItemRarity;
+}
+
+enum ItemCategory {
+    CURRENCY = 'CURRENCY',
+    FOOD = 'FOOD',
+    POWERUPS = 'POWERUPS',
+    COSMETICS = 'COSMETICS',
+    ACCESSORIES = 'ACCESSORIES'
+}
+
+enum ItemRarity {
+    COMMON = 'COMMON',
+    UNCOMMON = 'UNCOMMON',
+    RARE = 'RARE',
+    EPIC = 'EPIC',
+    LEGENDARY = 'LEGENDARY',
+    MYTHIC = 'MYTHIC'
+}
+
+const Shop: React.FC<ShopProps> = ({
+    onNotification,
+    onClose,
+    walletConnected = true,
+    userBalance = 1.5
+}) => {
+    const [selectedCategory, setSelectedCategory] = useState<ItemCategory>(ItemCategory.CURRENCY);
+    const [selectedItem, setSelectedItem] = useState<ShopItem | StarFragmentPack | null>(null);
+    const [starFragmentBalance, setStarFragmentBalance] = useState(125);
+    const [solBalance, setSolBalance] = useState(userBalance);
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        if (wallet.connected && connection) {
-            const service = new MarketplaceService(connection, wallet as any);
-            setMarketplaceService(service);
-
-            if (wallet.publicKey) {
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                service.getUserInventory(publicKeyObj).then(inventory => {
-                    setUserInventory(inventory);
-                });
-
-                const pointSystem = new GlobalPointSystem(wallet.publicKey);
-                setGlobalPointSystem(pointSystem);
-
-                let pointsData = pointSystem.getCurrentPoints();
-                if (!pointsData) {
-                    pointsData = pointSystem.initializeUser(wallet.publicKey);
-                }
-                setStarFragmentBalance(pointsData.starFragments);
-            }
+    // Star Fragment Packs (Currency Category)
+    const starFragmentPacks: StarFragmentPack[] = [
+        {
+            id: 'sf-small',
+            name: 'Small Pack',
+            description: 'Perfect starter pack',
+            solPrice: 0.1,
+            fragments: 50,
+            rarity: ItemRarity.COMMON
+        },
+        {
+            id: 'sf-medium',
+            name: 'Medium Pack',
+            description: 'Great value pack',
+            solPrice: 0.25,
+            fragments: 125,
+            rarity: ItemRarity.UNCOMMON
+        },
+        {
+            id: 'sf-large',
+            name: 'Large Pack',
+            description: 'Best value pack',
+            solPrice: 0.5,
+            fragments: 275,
+            rarity: ItemRarity.RARE
+        },
+        {
+            id: 'sf-mega',
+            name: 'Mega Pack',
+            description: 'For power users',
+            solPrice: 1.0,
+            fragments: 600,
+            rarity: ItemRarity.EPIC
+        },
+        {
+            id: 'sf-ultra',
+            name: 'Ultra Pack',
+            description: 'Maximum value',
+            solPrice: 2.0,
+            fragments: 1300,
+            rarity: ItemRarity.LEGENDARY
+        },
+        {
+            id: 'sf-cosmic',
+            name: 'Cosmic Pack',
+            description: 'Ultimate package',
+            solPrice: 5.0,
+            fragments: 3500,
+            rarity: ItemRarity.MYTHIC
         }
-    }, [wallet, connection]);
+    ];
 
-    const ownedItems = useMemo(() => {
-        if (!marketplaceService || !userInventory || !userInventory.items) return [];
-        const allItems = marketplaceService.getAllItems();
-        return allItems
-            .filter(item => (userInventory.items[item.id] || 0) > 0)
-            .map(item => ({
-                ...item,
-                quantity: userInventory.items[item.id]
-            }));
-    }, [marketplaceService, userInventory]);
+    // Shop Items by Category
+    const shopItems: ShopItem[] = [
+        // Food Items
+        {
+            id: 'cosmic-apple',
+            name: 'Cosmic Apple',
+            description: 'A juicy apple infused with stellar energy',
+            price: 0.001,
+            starFragmentPrice: 15,
+            category: ItemCategory.FOOD,
+            rarity: ItemRarity.COMMON,
+            icon: '🍎'
+        },
+        {
+            id: 'star-cake',
+            name: 'Star Cake',
+            description: 'A magnificent cake that glows',
+            price: 0.008,
+            starFragmentPrice: 45,
+            category: ItemCategory.FOOD,
+            rarity: ItemRarity.RARE,
+            icon: '🎂'
+        },
+        {
+            id: 'nebula-berry',
+            name: 'Nebula Berry',
+            description: 'Sweet berries that sparkle',
+            price: 0.003,
+            starFragmentPrice: 25,
+            category: ItemCategory.FOOD,
+            rarity: ItemRarity.UNCOMMON,
+            icon: '🫐'
+        },
+        {
+            id: 'galaxy-feast',
+            name: 'Galaxy Feast',
+            description: 'Extravagant cosmic meal',
+            price: 0.02,
+            starFragmentPrice: 85,
+            category: ItemCategory.FOOD,
+            rarity: ItemRarity.EPIC,
+            icon: '🍽️'
+        },
 
-    const filteredItems = useMemo(() => {
-        return ownedItems.filter(item => item.category === selectedCategory);
-    }, [ownedItems, selectedCategory]);
+        // Powerups
+        {
+            id: 'energy-crystal',
+            name: 'Energy Crystal',
+            description: 'Restores pet energy instantly',
+            price: 0.005,
+            starFragmentPrice: 30,
+            category: ItemCategory.POWERUPS,
+            rarity: ItemRarity.COMMON,
+            icon: '⚡'
+        },
+        {
+            id: 'happiness-orb',
+            name: 'Happy Orb',
+            description: 'Boosts pet happiness',
+            price: 0.01,
+            starFragmentPrice: 55,
+            category: ItemCategory.POWERUPS,
+            rarity: ItemRarity.UNCOMMON,
+            icon: '😊'
+        },
+        {
+            id: 'strength-serum',
+            name: 'Power Serum',
+            description: 'Increases pet strength',
+            price: 0.015,
+            starFragmentPrice: 75,
+            category: ItemCategory.POWERUPS,
+            rarity: ItemRarity.RARE,
+            icon: '💪'
+        },
+        {
+            id: 'cosmic-elixir',
+            name: 'Cosmic Elixir',
+            description: 'Ultimate powerup potion',
+            price: 0.03,
+            starFragmentPrice: 120,
+            category: ItemCategory.POWERUPS,
+            rarity: ItemRarity.LEGENDARY,
+            icon: '🧪'
+        },
 
-    const handleUseItem = async (itemId: string) => {
-        if (!marketplaceService || !wallet.publicKey) {
-            onNotification?.('❌ Marketplace not initialized', 'error');
-            return;
+        // Cosmetics
+        {
+            id: 'star-hat',
+            name: 'Star Hat',
+            description: 'Fashionable hat with stars',
+            price: 0.012,
+            starFragmentPrice: 60,
+            category: ItemCategory.COSMETICS,
+            rarity: ItemRarity.UNCOMMON,
+            icon: '👒'
+        },
+        {
+            id: 'galaxy-wings',
+            name: 'Galaxy Wings',
+            description: 'Magnificent cosmic wings',
+            price: 0.05,
+            starFragmentPrice: 200,
+            category: ItemCategory.COSMETICS,
+            rarity: ItemRarity.EPIC,
+            icon: '🪶'
+        },
+
+        // Accessories  
+        {
+            id: 'nebula-collar',
+            name: 'Nebula Collar',
+            description: 'Elegant glowing collar',
+            price: 0.025,
+            starFragmentPrice: 95,
+            category: ItemCategory.ACCESSORIES,
+            rarity: ItemRarity.RARE,
+            icon: '📿'
+        },
+        {
+            id: 'cosmic-charm',
+            name: 'Cosmic Charm',
+            description: 'Lucky charm from space',
+            price: 0.008,
+            starFragmentPrice: 40,
+            category: ItemCategory.ACCESSORIES,
+            rarity: ItemRarity.UNCOMMON,
+            icon: '🔮'
         }
+    ];
 
+    // Get items for selected category
+    const categoryItems = useMemo(() => {
+        if (selectedCategory === ItemCategory.CURRENCY) {
+            return starFragmentPacks;
+        }
+        return shopItems.filter(item => item.category === selectedCategory);
+    }, [selectedCategory]);
+
+    const handlePurchase = async (item: ShopItem | StarFragmentPack) => {
         setIsLoading(true);
 
         try {
-            const result = await marketplaceService.useItem(itemId);
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            if (result.success) {
-                onNotification?.(`✨ Used ${result.itemName}! ${result.effect}`, 'success');
+            if (selectedCategory === ItemCategory.CURRENCY) {
+                const pack = item as StarFragmentPack;
+                if (solBalance < pack.solPrice) {
+                    onNotification?.('❌ Insufficient SOL balance', 'error');
+                    return;
+                }
 
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                const inventory = await marketplaceService.getUserInventory(publicKeyObj);
-                setUserInventory(inventory);
+                setSolBalance(prev => prev - pack.solPrice);
+                setStarFragmentBalance(prev => prev + pack.fragments);
+                onNotification?.(
+                    `✨ Purchased ${pack.fragments} Star Fragments for ${pack.solPrice.toFixed(4)} SOL!`,
+                    'success'
+                );
             } else {
-                onNotification?.(`❌ Failed to use item: ${result.error}`, 'error');
+                const shopItem = item as ShopItem;
+                if (starFragmentBalance < shopItem.starFragmentPrice) {
+                    onNotification?.('❌ Insufficient Star Fragments', 'error');
+                    return;
+                }
+
+                setStarFragmentBalance(prev => prev - shopItem.starFragmentPrice);
+                onNotification?.(
+                    `✅ Purchased ${shopItem.name} for ${shopItem.starFragmentPrice} ✨!`,
+                    'success'
+                );
             }
         } catch (error) {
-            onNotification?.(`❌ Use item error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+            onNotification?.('❌ Purchase failed', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -98,52 +295,31 @@ const Inventory: React.FC<InventoryProps> = ({ connection, onNotification, onClo
             case ItemRarity.RARE: return '#3b82f6';
             case ItemRarity.EPIC: return '#8b5cf6';
             case ItemRarity.LEGENDARY: return '#f59e0b';
+            case ItemRarity.MYTHIC: return '#ef4444';
             default: return '#6b7280';
         }
     };
 
-    const getCategoryEmoji = (category: ItemCategory): string => {
-        switch (category) {
-            case ItemCategory.FOOD: return '🍎';
-            case ItemCategory.POWERUPS: return '⚡';
-            case ItemCategory.COSMETICS: return '✨';
-            case ItemCategory.RARE_COLLECTIBLES: return '💎';
-            default: return '📦';
-        }
-    };
-
-    if (!wallet.connected) {
+    if (!walletConnected) {
         return (
             <InnerScreen
-                topStatusContent={
-                    <Text style={styles.walletStatusText}>Cosmic Inventory - [wallet disconnected]</Text>
-                }
-                showStatsBar={false}
                 onLeftButtonPress={onClose}
-                onCenterButtonPress={() => onNotification?.('🎒 Inventory Help: View and manage your cosmic items!', 'info')}
-                onRightButtonPress={() => onNotification?.('🎒 Inventory: Connect wallet to access your items!', 'info')}
+                onCenterButtonPress={() => onNotification?.('🏪 Connect wallet to access shop!', 'info')}
+                onRightButtonPress={() => onNotification?.('💰 Shop: Purchase items and currency!', 'info')}
                 leftButtonText="←"
-                centerButtonText="🎒"
+                centerButtonText="🏪"
                 rightButtonText="?"
             >
-                <View style={[styles.mainDisplayArea, styles.shopWelcome]}>
-                    <View style={styles.shopWelcomeContent}>
-                        <Text style={styles.shopWelcomeTitle}>💫 Cosmic Inventory</Text>
-                        <Text style={styles.shopWelcomeSubtitle}>Wallet connecting in background...</Text>
-                        <View style={styles.shopFeaturesGrid}>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>🍎 Food Items</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>⚡ Powerups</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>✨ Cosmetics</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>💎 Collectibles</Text>
-                            </View>
-                        </View>
+                <View style={styles.container}>
+                    {/* Header - matching inventory style */}
+                    <View style={styles.header}>
+                        <Text style={styles.headerIcon}>🏪</Text>
+                        <Text style={styles.headerTitle}>COSMIC MARKETPLACE</Text>
+                    </View>
+
+                    <View style={styles.welcomeMessage}>
+                        <Text style={styles.welcomeTitle}>Connect Wallet</Text>
+                        <Text style={styles.welcomeSubtitle}>to access marketplace</Text>
                     </View>
                 </View>
             </InnerScreen>
@@ -152,223 +328,420 @@ const Inventory: React.FC<InventoryProps> = ({ connection, onNotification, onClo
 
     return (
         <InnerScreen
-            topStatusContent={
-                <Text style={styles.walletStatusText}>
-                    {userInventory?.sol_balance.toFixed(4) || '0.0000'} SOL • {starFragmentBalance} ✨
-                </Text>
-            }
-            showStatsBar={true}
-            statsBarContent={
-                <>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>SOL</Text>
-                        <Text style={styles.statStars}>{userInventory?.sol_balance.toFixed(3) || '0'}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Star ✨</Text>
-                        <Text style={styles.statStars}>{starFragmentBalance}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Items</Text>
-                        <Text style={styles.statStars}>{filteredItems.length}</Text>
-                    </View>
-                </>
-            }
             onLeftButtonPress={onClose}
-            onCenterButtonPress={() => onNotification?.('🎒 Inventory Help: View and manage your cosmic items!', 'info')}
-            onRightButtonPress={() => onNotification?.('🎒 Inventory: Browse your collected cosmic items!', 'info')}
+            onCenterButtonPress={() => {
+                setSelectedItem(null);
+                setSelectedCategory(ItemCategory.CURRENCY);
+            }}
+            onRightButtonPress={() => onNotification?.('🏪 Shop Help: Buy Star Fragments with SOL, then use ✨ to purchase items!', 'info')}
             leftButtonText="←"
-            centerButtonText="🎒"
+            centerButtonText="✨"
             rightButtonText="?"
         >
-            <View style={[styles.mainDisplayArea, styles.shopDisplay]}>
-                <View style={styles.shopQuickCategories}>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.FOOD ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.FOOD)}
-                    >
-                        <Text style={styles.categoryButtonText}>🍎 Food</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.POWERUPS ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.POWERUPS)}
-                    >
-                        <Text style={styles.categoryButtonText}>⚡ Powerups</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.COSMETICS ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.COSMETICS)}
-                    >
-                        <Text style={styles.categoryButtonText}>✨ Cosmetics</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.RARE_COLLECTIBLES ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.RARE_COLLECTIBLES)}
-                    >
-                        <Text style={styles.categoryButtonText}>💎 Collectibles</Text>
-                    </TouchableOpacity>
+            <View style={styles.container}>
+                {/* Header - exactly like inventory */}
+                <View style={styles.header}>
+                    <Text style={styles.headerIcon}>🏪</Text>
+                    <Text style={styles.headerTitle}>COSMIC MARKETPLACE</Text>
                 </View>
-                <View style={styles.shopItemsGrid}>
-                    {filteredItems.length === 0 ? (
-                        Array.from({ length: 8 }).map((_, index) => (
-                            <View key={`empty-${index}`} style={styles.shopItemCard}>
-                                <Text style={styles.shopItemIcon}>❓</Text>
-                                <Text style={styles.shopItemName}>Empty Slot</Text>
-                            </View>
-                        ))
-                    ) : (
-                        filteredItems.map((item) => (
-                            <View key={item.id} style={styles.shopItemCard}>
-                                <Text style={styles.shopItemIcon}>{getCategoryEmoji(item.category)}</Text>
-                                <Text style={styles.shopItemName}>{item.name} x{item.quantity}</Text>
-                                <Text style={[styles.shopItemRarity, { color: getRarityColor(item.rarity) }]}>
-                                    {item.rarity}
+
+                {selectedItem ? (
+                    // Item Detail View
+                    <ScrollView style={styles.itemDetail}>
+                        <View style={styles.itemDetailHeader}>
+                            <Text style={styles.itemDetailIcon}>
+                                {selectedCategory === ItemCategory.CURRENCY ? '✨' : (selectedItem as ShopItem).icon}
+                            </Text>
+                            <Text style={styles.itemDetailName}>{selectedItem.name}</Text>
+                            <Text style={styles.itemDetailDescription}>{selectedItem.description}</Text>
+                        </View>
+
+                        <View style={styles.itemDetailInfo}>
+                            <Text style={styles.itemPrice}>
+                                {selectedCategory === ItemCategory.CURRENCY
+                                    ? `${(selectedItem as StarFragmentPack).solPrice.toFixed(4)} SOL → ${(selectedItem as StarFragmentPack).fragments} ✨`
+                                    : `${(selectedItem as ShopItem).starFragmentPrice} ✨`
+                                }
+                            </Text>
+                            <Text style={[styles.itemRarity, { color: getRarityColor(selectedItem.rarity) }]}>
+                                {selectedItem.rarity}
+                            </Text>
+                        </View>
+
+                        <View style={styles.itemActions}>
+                            <TouchableOpacity
+                                style={styles.backButton}
+                                onPress={() => setSelectedItem(null)}
+                            >
+                                <Text style={styles.backButtonText}>← BACK</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.purchaseButton, isLoading && styles.disabledButton]}
+                                onPress={() => handlePurchase(selectedItem)}
+                                disabled={isLoading}
+                            >
+                                <Text style={styles.purchaseButtonText}>
+                                    {isLoading ? 'BUYING...' : 'PURCHASE'}
                                 </Text>
-                                {item.category !== ItemCategory.RARE_COLLECTIBLES && (
-                                    <TouchableOpacity
-                                        onPress={() => handleUseItem(item.id)}
-                                        disabled={isLoading}
-                                        style={[styles.shopBuyBtn, isLoading && { opacity: 0.6 }]}
-                                    >
-                                        <Text>{isLoading ? '⏳' : '✨ Use'}</Text>
-                                    </TouchableOpacity>
-                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.balanceInfo}>
+                            <Text style={styles.balanceText}>Balance: {solBalance.toFixed(4)} SOL • {starFragmentBalance} ✨</Text>
+                        </View>
+                    </ScrollView>
+                ) : (
+                    // Main Shop View - matching inventory layout exactly
+                    <View style={styles.shopContent}>
+                        {/* Category Tabs - matching inventory style exactly */}
+                        <View style={styles.categoryGrid}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryButton,
+                                    selectedCategory === ItemCategory.CURRENCY && styles.activeCategoryButton
+                                ]}
+                                onPress={() => setSelectedCategory(ItemCategory.CURRENCY)}
+                            >
+                                <Text style={[
+                                    styles.categoryButtonText,
+                                    selectedCategory === ItemCategory.CURRENCY && styles.activeCategoryButtonText
+                                ]}>CURRENCY</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryButton,
+                                    selectedCategory === ItemCategory.FOOD && styles.activeCategoryButton
+                                ]}
+                                onPress={() => setSelectedCategory(ItemCategory.FOOD)}
+                            >
+                                <Text style={[
+                                    styles.categoryButtonText,
+                                    selectedCategory === ItemCategory.FOOD && styles.activeCategoryButtonText
+                                ]}>FOOD</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryButton,
+                                    selectedCategory === ItemCategory.POWERUPS && styles.activeCategoryButton
+                                ]}
+                                onPress={() => setSelectedCategory(ItemCategory.POWERUPS)}
+                            >
+                                <Text style={[
+                                    styles.categoryButtonText,
+                                    selectedCategory === ItemCategory.POWERUPS && styles.activeCategoryButtonText
+                                ]}>POWERUPS</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryButton,
+                                    selectedCategory === ItemCategory.COSMETICS && styles.activeCategoryButton
+                                ]}
+                                onPress={() => setSelectedCategory(ItemCategory.COSMETICS)}
+                            >
+                                <Text style={[
+                                    styles.categoryButtonText,
+                                    selectedCategory === ItemCategory.COSMETICS && styles.activeCategoryButtonText
+                                ]}>COSMETICS</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryButton,
+                                    selectedCategory === ItemCategory.ACCESSORIES && styles.activeCategoryButton
+                                ]}
+                                onPress={() => setSelectedCategory(ItemCategory.ACCESSORIES)}
+                            >
+                                <Text style={[
+                                    styles.categoryButtonText,
+                                    selectedCategory === ItemCategory.ACCESSORIES && styles.activeCategoryButtonText
+                                ]}>ACCESSORIES</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Items Grid - exactly like inventory 3x2 layout */}
+                        <View style={styles.itemsContainer}>
+                            <View style={styles.itemsGrid}>
+                                {Array.from({ length: 6 }, (_, index) => {
+                                    const item = categoryItems[index];
+
+                                    if (item) {
+                                        return (
+                                            <TouchableOpacity
+                                                key={item.id}
+                                                style={styles.itemSlot}
+                                                onPress={() => setSelectedItem(item)}
+                                            >
+                                                <Text style={styles.itemIcon}>
+                                                    {selectedCategory === ItemCategory.CURRENCY ? '✨' : (item as ShopItem).icon}
+                                                </Text>
+                                                <Text style={styles.itemName}>{item.name}</Text>
+                                                <Text style={styles.itemPrice}>
+                                                    {selectedCategory === ItemCategory.CURRENCY
+                                                        ? `${(item as StarFragmentPack).solPrice.toFixed(3)} SOL`
+                                                        : `${(item as ShopItem).starFragmentPrice} ✨`
+                                                    }
+                                                </Text>
+                                                <Text style={[styles.itemRarity, { color: getRarityColor(item.rarity) }]}>
+                                                    {item.rarity}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    }
+
+                                    // Empty slot with dashed border and + icon - exactly like inventory
+                                    return (
+                                        <View key={`empty-${index}`} style={styles.emptySlot}>
+                                            <Text style={styles.emptySlotIcon}>+</Text>
+                                        </View>
+                                    );
+                                })}
                             </View>
-                        ))
-                    )}
-                </View>
+                        </View>
+                    </View>
+                )}
             </View>
         </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    walletStatusText: {
-        fontSize: 14,
-        color: '#333',
-        textAlign: 'center',
-    },
-    statItem: {
-        alignItems: 'center',
+    container: {
         flex: 1,
-    },
-    statLabel: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    statStars: {
-        fontSize: 14,
-        color: '#ffd700',
-    },
-    mainDisplayArea: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    shopWelcome: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    shopWelcomeContent: {
-        alignItems: 'center',
-    },
-    shopWelcomeTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    shopWelcomeSubtitle: {
-        fontSize: 16,
-        marginBottom: 20,
-        textAlign: 'center',
-        color: '#666',
-    },
-    shopFeaturesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 10,
-    },
-    shopFeature: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: '#c8d5b9',
         padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        minWidth: 100,
     },
-    shopFeatureText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    shopDisplay: {
-        padding: 10,
-    },
-    shopQuickCategories: {
+    header: {
+        backgroundColor: '#8fbc8f',
+        borderWidth: 3,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 12,
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 15,
+    },
+    headerIcon: {
+        fontSize: 20,
+        marginRight: 8,
+    },
+    headerTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
+        letterSpacing: 1,
+    },
+    welcomeMessage: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    welcomeTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
+        marginBottom: 8,
+    },
+    welcomeSubtitle: {
+        fontSize: 14,
+        color: '#5a7a5a',
+    },
+    shopContent: {
+        flex: 1,
+    },
+    categoryGrid: {
+        flexDirection: 'row',
         flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+        gap: 8,
     },
     categoryButton: {
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: 15,
-        marginHorizontal: 2,
-        minWidth: 60,
+        backgroundColor: '#c8d5b9',
+        borderWidth: 3,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 12,
+        width: '48%',
         alignItems: 'center',
+        minHeight: 50,
+        justifyContent: 'center',
     },
-    categoryButtonActive: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+    activeCategoryButton: {
+        backgroundColor: '#2d5a2d',
     },
     categoryButtonText: {
         fontSize: 12,
         fontWeight: 'bold',
+        color: '#2d5a2d',
+        textAlign: 'center',
     },
-    shopItemsGrid: {
+    activeCategoryButtonText: {
+        color: '#c8d5b9',
+    },
+    itemsContainer: {
+        flex: 1,
+        backgroundColor: '#a8c8a8',
+        borderWidth: 3,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 15,
+    },
+    itemsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
         gap: 10,
     },
-    shopItemCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 15,
-        borderRadius: 10,
+    itemSlot: {
+        width: '31%',
+        aspectRatio: 1,
+        backgroundColor: '#e8f5e8',
+        borderWidth: 3,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 8,
         alignItems: 'center',
-        minWidth: 120,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
+        justifyContent: 'space-between',
     },
-    shopItemIcon: {
+    emptySlot: {
+        width: '31%',
+        aspectRatio: 1,
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        borderColor: '#5a7a5a',
+        borderStyle: 'dashed',
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptySlotIcon: {
         fontSize: 24,
-        marginBottom: 5,
+        color: '#5a7a5a',
+        fontWeight: 'bold',
     },
-    shopItemName: {
-        fontSize: 12,
+    itemIcon: {
+        fontSize: 20,
+        marginBottom: 4,
+    },
+    itemName: {
+        fontSize: 8,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 5,
-    },
-    shopItemPrice: {
-        fontSize: 10,
-        color: '#666',
+        color: '#2d5a2d',
         marginBottom: 2,
     },
-    shopItemRarity: {
-        fontSize: 10,
+    itemPrice: {
+        fontSize: 7,
+        color: '#4a6a4a',
+        textAlign: 'center',
+        marginBottom: 2,
+    },
+    itemRarity: {
+        fontSize: 6,
         fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    itemDetail: {
+        flex: 1,
+        backgroundColor: '#a8c8a8',
+        borderWidth: 3,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 20,
+    },
+    itemDetailHeader: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    itemDetailIcon: {
+        fontSize: 48,
+        marginBottom: 10,
+    },
+    itemDetailName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    itemDetailDescription: {
+        fontSize: 14,
+        color: '#4a6a4a',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    itemDetailInfo: {
+        backgroundColor: '#e8f5e8',
+        borderWidth: 2,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 15,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    itemPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
         marginBottom: 5,
     },
-    shopBuyBtn: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
-        padding: 8,
-        borderRadius: 15,
-        minWidth: 40,
+    itemRarity: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    itemActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 20,
+    },
+    backButton: {
+        flex: 1,
+        backgroundColor: '#8fbc8f',
+        borderWidth: 2,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 12,
         alignItems: 'center',
+    },
+    backButtonText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
+    },
+    purchaseButton: {
+        flex: 2,
+        backgroundColor: '#6a9a6a',
+        borderWidth: 2,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 12,
+        alignItems: 'center',
+    },
+    purchaseButtonText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#ffffff',
+    },
+    disabledButton: {
+        opacity: 0.5,
+    },
+    balanceInfo: {
+        backgroundColor: '#e8f5e8',
+        borderWidth: 2,
+        borderColor: '#2d5a2d',
+        borderRadius: 8,
+        padding: 10,
+        alignItems: 'center',
+    },
+    balanceText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#2d5a2d',
     },
 });
 
-export default Inventory;
+export default Shop;
