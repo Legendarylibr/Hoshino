@@ -1,73 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import InnerScreen from './InnerScreen';
 
 interface ShopProps {
+    onBack: () => void;
+    onPurchaseItem: (itemId: string, itemName: string) => void;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-    onClose: () => void;
-    walletConnected?: boolean;
-    userBalance?: number;
+    walletAddress?: string;
 }
 
 interface ShopItem {
     id: string;
     name: string;
     description: string;
-    price: number;
-    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
-    category: string;
-    icon: string;
-    starFragmentCost: number;
+    image: string;
+    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic';
+    cost: number;
+    owned: number;
 }
 
-interface StarFragmentPack {
+interface Bundle {
     id: string;
     name: string;
     description: string;
-    solPrice: number;
-    fragments: number;
-    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
+    items: { id: string; quantity: number }[];
+    result: { id: string; name: string; description: string };
+    difficulty: 'Easy' | 'Medium' | 'Hard';
 }
 
 const Shop: React.FC<ShopProps> = ({
+    onBack,
+    onPurchaseItem,
     onNotification,
-    onClose,
-    walletConnected = true,
-    userBalance = 1.5
+    walletAddress
 }) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
-    const [availableItems, setAvailableItems] = useState<ShopItem[]>([]);
-    const [currentTab, setCurrentTab] = useState<'currency' | 'items'>('currency');
-    const [starFragmentBalance, setStarFragmentBalance] = useState(125);
-    const [solBalance, setSolBalance] = useState(userBalance);
+    const [availableBundles, setAvailableBundles] = useState<Bundle[]>([]);
+    const [currentTab, setCurrentTab] = useState<'items' | 'bundles'>('items');
 
-    // Mock Star Fragment Packs (like ingredients)
-    const starFragmentPacks: StarFragmentPack[] = [
-        { id: 'sf-small', name: 'Small Pack', description: 'Perfect starter pack for cosmic beginners', solPrice: 0.1, fragments: 50, rarity: 'Common' },
-        { id: 'sf-medium', name: 'Medium Pack', description: 'Great value for regular cosmic adventurers', solPrice: 0.25, fragments: 125, rarity: 'Uncommon' },
-        { id: 'sf-large', name: 'Large Pack', description: 'Best value for serious cosmic collectors', solPrice: 0.5, fragments: 275, rarity: 'Rare' },
-        { id: 'sf-mega', name: 'Mega Pack', description: 'For dedicated cosmic entrepreneurs', solPrice: 1.0, fragments: 600, rarity: 'Epic' },
-        { id: 'sf-ultra', name: 'Ultra Pack', description: 'Maximum value for cosmic power users', solPrice: 2.0, fragments: 1300, rarity: 'Legendary' },
-        { id: 'sf-cosmic', name: 'Cosmic Pack', description: 'The ultimate cosmic currency package', solPrice: 5.0, fragments: 3500, rarity: 'Mythic' },
+    // Mock shop items data
+    const shopItems: ShopItem[] = [
+        { id: 'star-fragment', name: 'Star Fragment', description: 'Cosmic currency for purchases', image: 'star-fragment.png', rarity: 'Common', cost: 5, owned: 3 },
+        { id: 'cosmic-apple', name: 'Cosmic Apple', description: 'A fruit that glows with stellar energy', image: 'cosmic-apple.png', rarity: 'Uncommon', cost: 10, owned: 2 },
+        { id: 'nebula-cake', name: 'Nebula Cake', description: 'A cake made from cosmic essence', image: 'nebula-cake.png', rarity: 'Rare', cost: 15, owned: 1 },
+        { id: 'stellar-elixir', name: 'Stellar Elixir', description: 'A potion that grants cosmic powers', image: 'stellar-elixir.png', rarity: 'Epic', cost: 25, owned: 1 },
+        { id: 'moon-crystal', name: 'Moon Crystal', description: 'Crystallized moonlight energy', image: 'moon-crystal.png', rarity: 'Common', cost: 8, owned: 5 },
+        { id: 'cosmic-honey', name: 'Cosmic Honey', description: 'Honey collected from space bees', image: 'cosmic-honey.png', rarity: 'Uncommon', cost: 12, owned: 2 },
     ];
 
-    // Mock shop items data (like ingredients)
-    const shopItems: ShopItem[] = [
-        { id: 'cosmic-apple', name: 'Cosmic Apple', description: 'A juicy apple infused with stellar energy', price: 0.001, starFragmentCost: 15, category: 'Food', rarity: 'Common', icon: '🍎' },
-        { id: 'nebula-berry', name: 'Nebula Berry', description: 'Sweet berries that sparkle like distant nebulae', price: 0.003, starFragmentCost: 25, category: 'Food', rarity: 'Uncommon', icon: '🫐' },
-        { id: 'star-cake', name: 'Star Cake', description: 'A magnificent cake that glows with inner light', price: 0.008, starFragmentCost: 45, category: 'Food', rarity: 'Rare', icon: '🎂' },
-        { id: 'galaxy-feast', name: 'Galaxy Feast', description: 'An extravagant meal fit for cosmic royalty', price: 0.02, starFragmentCost: 85, category: 'Food', rarity: 'Epic', icon: '🍽️' },
-        { id: 'energy-crystal', name: 'Energy Crystal', description: 'Instantly restores pet energy', price: 0.005, starFragmentCost: 30, category: 'Powerup', rarity: 'Common', icon: '⚡' },
-        { id: 'happiness-orb', name: 'Happy Orb', description: 'Boosts pet happiness significantly', price: 0.01, starFragmentCost: 55, category: 'Powerup', rarity: 'Uncommon', icon: '😊' },
+    // Mock bundles data
+    const bundles: Bundle[] = [
+        {
+            id: 'starter-bundle',
+            name: 'Starter Bundle',
+            description: 'A bundle perfect for new cosmic explorers',
+            items: [
+                { id: 'star-fragment', quantity: 2 },
+                { id: 'moon-crystal', quantity: 1 }
+            ],
+            result: {
+                id: 'starter-bundle',
+                name: 'Starter Bundle',
+                description: 'A bundle that gets you started on your cosmic journey'
+            },
+            difficulty: 'Easy'
+        },
+        {
+            id: 'power-bundle',
+            name: 'Power Bundle',
+            description: 'A bundle that enhances your cosmic abilities',
+            items: [
+                { id: 'stellar-elixir', quantity: 1 },
+                { id: 'cosmic-honey', quantity: 1 }
+            ],
+            result: {
+                id: 'power-bundle',
+                name: 'Power Bundle',
+                description: 'A bundle that boosts your cosmic powers'
+            },
+            difficulty: 'Medium'
+        },
+        {
+            id: 'cosmic-feast',
+            name: 'Cosmic Feast',
+            description: 'A luxurious bundle for cosmic connoisseurs',
+            items: [
+                { id: 'nebula-cake', quantity: 1 },
+                { id: 'stellar-elixir', quantity: 1 },
+                { id: 'cosmic-honey', quantity: 2 }
+            ],
+            result: {
+                id: 'cosmic-feast',
+                name: 'Cosmic Feast',
+                description: 'An extravagant bundle that satisfies all cosmic needs'
+            },
+            difficulty: 'Hard'
+        }
     ];
 
     useEffect(() => {
-        // Calculate available items based on user balance (like available recipes)
-        const available = shopItems.filter(item => {
-            return starFragmentBalance >= item.starFragmentCost;
+        // Calculate available bundles based on owned items
+        const available = bundles.filter(bundle => {
+            return bundle.items.every(item => {
+                const ownedItem = shopItems.find(i => i.id === item.id);
+                return ownedItem && ownedItem.owned >= item.quantity;
+            });
         });
-        setAvailableItems(available);
-    }, [starFragmentBalance]);
+        setAvailableBundles(available);
+    }, [shopItems]);
 
     const toggleItem = (itemId: string) => {
         setSelectedItems(prev =>
@@ -77,29 +117,21 @@ const Shop: React.FC<ShopProps> = ({
         );
     };
 
-    const purchaseStarFragmentPack = (pack: StarFragmentPack) => {
-        // Check if we have enough SOL
-        if (solBalance < pack.solPrice) {
-            onNotification?.('❌ Not enough SOL to purchase this pack', 'error');
+    const purchaseBundle = (bundle: Bundle) => {
+        // Check if we have enough items
+        const canPurchase = bundle.items.every(item => {
+            const ownedItem = shopItems.find(i => i.id === item.id);
+            return ownedItem && ownedItem.owned >= item.quantity;
+        });
+
+        if (!canPurchase) {
+            onNotification?.('❌ Not enough items to purchase this bundle', 'error');
             return;
         }
 
-        // Purchase the pack
-        setSolBalance(prev => prev - pack.solPrice);
-        setStarFragmentBalance(prev => prev + pack.fragments);
-        onNotification?.(`✨ Successfully purchased ${pack.name}! Received ${pack.fragments} Star Fragments!`, 'success');
-    };
-
-    const purchaseItem = (item: ShopItem) => {
-        // Check if we have enough Star Fragments
-        if (starFragmentBalance < item.starFragmentCost) {
-            onNotification?.('❌ Not enough Star Fragments to purchase this item', 'error');
-            return;
-        }
-
-        // Purchase the item
-        setStarFragmentBalance(prev => prev - item.starFragmentCost);
-        onNotification?.(`🛒 Successfully purchased ${item.name}!`, 'success');
+        // Purchase the bundle
+        onPurchaseItem(bundle.result.id, bundle.result.name);
+        onNotification?.(`🛒 Successfully purchased ${bundle.result.name}!`, 'success');
     };
 
     const getRarityColor = (rarity: string): string => {
@@ -108,119 +140,100 @@ const Shop: React.FC<ShopProps> = ({
             case 'Uncommon': return '#10b981';
             case 'Rare': return '#3b82f6';
             case 'Epic': return '#8b5cf6';
-            case 'Legendary': return '#f59e0b';
-            case 'Mythic': return '#ef4444';
             default: return '#6b7280';
         }
     };
 
-    if (!walletConnected) {
-        return (
-            <InnerScreen
-                onLeftButtonPress={onClose}
-                onCenterButtonPress={() => onNotification?.('🏪 Marketplace Help: Connect wallet to purchase items and currency!', 'info')}
-                onRightButtonPress={() => onNotification?.('💰 Shop Tips: Buy Star Fragments with SOL, then use fragments to purchase items!', 'info')}
-                leftButtonText="←"
-                centerButtonText="🏪"
-                rightButtonText="?"
-            >
-                <ScrollView style={[styles.mainDisplayArea, styles.shopSelection]}>
-                    <View style={styles.welcomeSection}>
-                        <Text style={styles.sectionTitle}>Cosmic Marketplace</Text>
-                        <Text style={styles.welcomeText}>Connect wallet to access the marketplace</Text>
-                    </View>
-                </ScrollView>
-            </InnerScreen>
-        );
-    }
+    const getDifficultyColor = (difficulty: string): string => {
+        switch (difficulty) {
+            case 'Easy': return '#10b981';
+            case 'Medium': return '#f59e0b';
+            case 'Hard': return '#ef4444';
+            default: return '#6b7280';
+        }
+    };
 
     return (
         <InnerScreen
-            onLeftButtonPress={onClose}
-            onCenterButtonPress={() => onNotification?.('🏪 Marketplace Help: Buy Star Fragments with SOL and use them to purchase cosmic items!', 'info')}
-            onRightButtonPress={() => onNotification?.('💰 Shop Tips: Star Fragments are the main currency for purchasing items in the marketplace!', 'info')}
+            onLeftButtonPress={onBack}
+            onCenterButtonPress={() => onNotification?.('🛒 Shop Help: Select items and purchase bundles for your moonlings!', 'info')}
+            onRightButtonPress={() => onNotification?.('💰 Shop Tips: Combine items to create special bundles that enhance your moonling\'s abilities!', 'info')}
             leftButtonText="←"
-            centerButtonText="🏪"
+            centerButtonText="🛒"
             rightButtonText="?"
         >
             <ScrollView style={[styles.mainDisplayArea, styles.shopSelection]}>
-                {/* Tab Navigation - exactly like IngredientSelection */}
+                {/* Tab Navigation */}
                 <View style={styles.tabNavigation}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, currentTab === 'currency' ? styles.activeTab : null]}
-                        onPress={() => setCurrentTab('currency')}
-                    >
-                        <Text style={styles.tabButtonText}>Star Fragments</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tabButton, currentTab === 'items' ? styles.activeTab : null]}
                         onPress={() => setCurrentTab('items')}
                     >
-                        <Text style={styles.tabButtonText}>Shop Items</Text>
+                        <Text style={styles.tabButtonText}>Items</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, currentTab === 'bundles' ? styles.activeTab : null]}
+                        onPress={() => setCurrentTab('bundles')}
+                    >
+                        <Text style={styles.tabButtonText}>Bundles</Text>
                     </TouchableOpacity>
                 </View>
 
-                {currentTab === 'currency' && (
-                    <View style={styles.currencySection}>
-                        <Text style={styles.sectionTitle}>Star Fragment Packs</Text>
-                        <Text style={styles.balanceText}>SOL Balance: {solBalance.toFixed(4)} • Star Fragments: {starFragmentBalance}</Text>
-                        <View style={styles.packsGrid}>
-                            {starFragmentPacks.map((pack) => (
-                                <TouchableOpacity
-                                    key={pack.id}
-                                    style={[
-                                        styles.packCard,
-                                        solBalance >= pack.solPrice && styles.affordablePack
-                                    ]}
-                                    onPress={() => purchaseStarFragmentPack(pack)}
-                                >
-                                    <Text style={styles.packIcon}>✨</Text>
-                                    <Text style={styles.packName}>{pack.name}</Text>
-                                    <Text style={styles.packDescription}>{pack.description}</Text>
-                                    <Text style={[styles.packRarity, { color: getRarityColor(pack.rarity) }]}>
-                                        {pack.rarity}
-                                    </Text>
-                                    <Text style={styles.packPrice}>{pack.solPrice.toFixed(3)} SOL → {pack.fragments} ✨</Text>
-                                    <Text style={styles.packAffordable}>
-                                        {solBalance >= pack.solPrice ? '✅ Can Buy' : '❌ Need More SOL'}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                )}
-
                 {currentTab === 'items' && (
                     <View style={styles.itemsSection}>
-                        <Text style={styles.sectionTitle}>Available Shop Items</Text>
-                        <Text style={styles.balanceText}>Star Fragments: {starFragmentBalance} • Affordable Items: {availableItems.length}</Text>
+                        <Text style={styles.sectionTitle}>Available Items</Text>
                         <View style={styles.itemsGrid}>
                             {shopItems.map((item) => (
                                 <TouchableOpacity
                                     key={item.id}
                                     style={[
                                         styles.itemCard,
-                                        selectedItems.includes(item.id) && styles.selectedItem,
-                                        starFragmentBalance >= item.starFragmentCost && styles.affordableItem
+                                        selectedItems.includes(item.id) && styles.selectedItem
                                     ]}
-                                    onPress={() => {
-                                        if (starFragmentBalance >= item.starFragmentCost) {
-                                            purchaseItem(item);
-                                        } else {
-                                            toggleItem(item.id);
-                                        }
-                                    }}
+                                    onPress={() => toggleItem(item.id)}
                                 >
-                                    <Text style={styles.itemIcon}>{item.icon}</Text>
+                                    <Text style={styles.itemIcon}>💎</Text>
                                     <Text style={styles.itemName}>{item.name}</Text>
                                     <Text style={styles.itemDescription}>{item.description}</Text>
                                     <Text style={[styles.itemRarity, { color: getRarityColor(item.rarity) }]}>
                                         {item.rarity}
                                     </Text>
-                                    <Text style={styles.itemCost}>Cost: {item.starFragmentCost} ✨</Text>
-                                    <Text style={styles.itemAffordable}>
-                                        {starFragmentBalance >= item.starFragmentCost ? '🛒 Buy Now' : '❌ Need More ✨'}
-                                    </Text>
+                                    <Text style={styles.itemOwned}>Owned: {item.owned}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                {currentTab === 'bundles' && (
+                    <View style={styles.bundlesSection}>
+                        <Text style={styles.sectionTitle}>Available Bundles</Text>
+                        <View style={styles.bundlesList}>
+                            {availableBundles.map((bundle) => (
+                                <TouchableOpacity
+                                    key={bundle.id}
+                                    style={styles.bundleCard}
+                                    onPress={() => purchaseBundle(bundle)}
+                                >
+                                    <View style={styles.bundleHeader}>
+                                        <Text style={styles.bundleName}>{bundle.name}</Text>
+                                        <Text style={[styles.bundleDifficulty, { color: getDifficultyColor(bundle.difficulty) }]}>
+                                            {bundle.difficulty}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.bundleDescription}>{bundle.description}</Text>
+                                    <View style={styles.bundleItems}>
+                                        <Text style={styles.bundleItemsTitle}>Items:</Text>
+                                        {bundle.items.map((item) => {
+                                            const ownedItem = shopItems.find(i => i.id === item.id);
+                                            return (
+                                                <Text key={item.id} style={styles.bundleItem}>
+                                                    • {item.quantity}x {ownedItem?.name || item.id}
+                                                </Text>
+                                            );
+                                        })}
+                                    </View>
+                                    <Text style={styles.bundleResult}>Result: {bundle.result.name}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -261,88 +274,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
     },
-    currencySection: {
-        flex: 1,
-        width: '100%',
-    },
     itemsSection: {
         flex: 1,
         width: '100%',
     },
-    welcomeSection: {
+    bundlesSection: {
         flex: 1,
         width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 15,
         textAlign: 'center',
-    },
-    welcomeText: {
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-    },
-    balanceText: {
-        fontSize: 12,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 15,
-        fontWeight: 'bold',
-    },
-    packsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-around',
-        gap: 10,
-    },
-    packCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        minWidth: 120,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-    },
-    affordablePack: {
-        borderColor: 'rgba(0, 123, 255, 0.8)',
-        borderWidth: 2,
-        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-    },
-    packIcon: {
-        fontSize: 24,
-        marginBottom: 5,
-    },
-    packName: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 5,
-    },
-    packDescription: {
-        fontSize: 10,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 5,
-    },
-    packRarity: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    packPrice: {
-        fontSize: 10,
-        color: '#2563eb',
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    packAffordable: {
-        fontSize: 9,
-        color: '#666',
     },
     itemsGrid: {
         flexDirection: 'row',
@@ -363,11 +307,6 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(0, 123, 255, 0.8)',
         borderWidth: 2,
         backgroundColor: 'rgba(0, 123, 255, 0.1)',
-    },
-    affordableItem: {
-        borderColor: 'rgba(34, 197, 94, 0.8)',
-        borderWidth: 2,
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
     },
     itemIcon: {
         fontSize: 24,
@@ -390,15 +329,56 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 2,
     },
-    itemCost: {
+    itemOwned: {
         fontSize: 10,
-        color: '#8b5cf6',
-        fontWeight: 'bold',
-        marginBottom: 2,
+        color: '#999',
     },
-    itemAffordable: {
-        fontSize: 9,
+    bundlesList: {
+        gap: 10,
+    },
+    bundleCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 15,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    bundleHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    bundleName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    bundleDifficulty: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    bundleDescription: {
+        fontSize: 12,
         color: '#666',
+        marginBottom: 10,
+    },
+    bundleItems: {
+        marginBottom: 10,
+    },
+    bundleItemsTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginBottom: 5,
+    },
+    bundleItem: {
+        fontSize: 10,
+        color: '#666',
+        marginLeft: 10,
+    },
+    bundleResult: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#10b981',
     },
 });
 
