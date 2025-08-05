@@ -4,16 +4,12 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    Animated,
     Image,
-    Alert,
     Dimensions,
     ScrollView,
-    StatusBar,
     Modal
 } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Connection, PublicKey } from '@solana/web3.js';
+
 import InnerScreen from './InnerScreen';
 import WalletButton from './WalletButton';
 
@@ -47,19 +43,10 @@ interface Character {
     name: string;
     description: string;
     image: string;
-    nftMint?: string | null;
 }
 
 interface Props {
     onBack: () => void;
-    onSelectCharacter: (character: Character) => void;
-    onFeed?: () => void;
-    onChat?: () => void;
-    onGame?: () => void;
-    onViewCollection?: () => void;
-    ownedCharacters?: string[]; // Array of character IDs that the user owns
-    connection?: Connection;
-    playerName?: string;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     onGoToCongratulations?: (character?: Character) => void;
 }
@@ -69,59 +56,38 @@ const CHARACTERS: Character[] = [
         id: 'lyra',
         name: 'Lyra',
         description: 'Lyra lives for attention, anime, and being just a little unhinged. She\'ll flirt, cry, and roast you in the same breath. Don\'t leave her on read — ever.',
-        image: 'LYRA.gif',
-        nftMint: null
+        image: 'LYRA.gif'
     },
     {
         id: 'orion',
         name: 'Orion',
         description: 'A dramatic starboy with too many feelings and a quiet grudge. Sometimes you\'ll catch him in a corner, blasting Lil Peep like it\'s a coping mechanism. Don\'t ask, he won\'t tell.',
-        image: 'ORION.gif',
-        nftMint: null
+        image: 'ORION.gif'
     },
     {
         id: 'aro',
         name: 'Aro',
         description: 'A chaotic little menace. Loud, unhinged, and always ready to play. Share a secret and he\'ll turn it into his favorite joke for weeks.',
-        image: 'ARO.gif',
-        nftMint: null
+        image: 'ARO.gif'
     },
     {
         id: 'sirius',
         name: 'Sirius',
         description: 'A robot cat who thinks he\'s hilarious. Loves making dad jokes about AI and insists you call him "Hey Sirius". But don\'t worry, he\'s still learning emotions… kind of.',
-        image: 'SIRIUS.gif',
-        nftMint: null
+        image: 'SIRIUS.gif'
     },
     {
         id: 'zaniah',
         name: 'Zaniah',
         description: 'If she\'s moody, don\'t ask — it\'s either Mercury retrograde or you\'re a Scorpio. Or both. Let her vibe it out, she\'s in her healing era.',
-        image: 'ZANIAH.gif',
-        nftMint: null
+        image: 'ZANIAH.gif'
     }
 ];
-
-const MINT_PRICE_SOL = 0.01; // 0.01 SOL per character
-
-const APP_IDENTITY = {
-    name: 'Moonling Selection App',
-    uri: 'https://example.com',
-    icon: '/icon.png',
-};
 
 const CARD_WIDTH = 220; // 200 card width + 20 total margin (10 on each side)
 
 const MoonlingSelection: React.FC<Props> = ({
     onBack,
-    onSelectCharacter,
-    onFeed,
-    onChat,
-    onGame,
-    onViewCollection,
-    ownedCharacters = [],
-    connection,
-    playerName,
     onNotification,
     onGoToCongratulations
 }) => {
@@ -133,46 +99,24 @@ const MoonlingSelection: React.FC<Props> = ({
         disconnect,
         mintCharacterNFT
     } = useProgrammableNFT();
-    const [isConnecting, setIsConnecting] = useState(false);
-
-    const [currentCharacterIndex, setCurrentCharacterIndex] = useState<number>(2); // Start with Aro (index 2)
+    const [currentCharacterIndex, setCurrentCharacterIndex] = useState<number>(0); // Start with first character
     const [isMinting, setIsMinting] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
     const [showCharacterModal, setShowCharacterModal] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
     const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
     const [congratulationsCharacter, setCongratulationsCharacter] = useState<Character | null>(null);
-    const scrollerRef = useRef<any>(null);
+    const scrollerRef = useRef<ScrollView | null>(null);
 
     const currentCharacter = CHARACTERS[currentCharacterIndex];
 
-    // Create extended array with duplicates for infinite scroll
-    const extendedCharacters = [
-        ...CHARACTERS.slice(-2), // Last 2 characters at the beginning
-        ...CHARACTERS,
-        ...CHARACTERS.slice(0, 2) // First 2 characters at the end
-    ];
 
-    // Create a much longer array for mint animation (no looping needed)
-    const mintCharacters = [
-        ...CHARACTERS, // Original 5
-        ...CHARACTERS, // Copy 1
-        ...CHARACTERS, // Copy 2
-        ...CHARACTERS, // Copy 3
-        ...CHARACTERS, // Copy 4
-        ...CHARACTERS, // Copy 5
-        ...CHARACTERS, // Copy 6
-        ...CHARACTERS, // Copy 7
-        ...CHARACTERS, // Copy 8
-        ...CHARACTERS, // Copy 9
-        ...CHARACTERS, // Copy 10
-    ]; // Total: 55 cards (11 copies of 5 characters)
 
-    // Scroll to initial position on mount (offset by 2 for the duplicates)
+    // Scroll to initial position on mount
     useEffect(() => {
         setTimeout(() => {
             if (scrollerRef.current) {
-                const initialScrollX = (currentCharacterIndex + 2) * CARD_WIDTH;
+                const initialScrollX = currentCharacterIndex * CARD_WIDTH;
                 scrollerRef.current.scrollTo({
                     x: initialScrollX,
                     animated: false
@@ -181,27 +125,73 @@ const MoonlingSelection: React.FC<Props> = ({
         }, 100);
     }, []);
 
-    const isCharacterOwned = (characterId: string) => {
-        return ownedCharacters.includes(characterId);
-    };
 
-    const hasAnyCharacters = () => {
-        return ownedCharacters.length > 0;
-    };
 
-    const handleConnect = async () => {
-        if (connected) return;
+    // Animation Configuration - Easy to adjust!
+    const ANIMATION_CONFIG = {
+        // Speed & Duration
+        spinDuration: 5000,        // Total spin time in milliseconds
+        spinInterval: 35,          // Time between animation frames (lower = smoother)
         
-        setIsConnecting(true);
-        try {
-            await connectWallet();
-            onNotification?.('✅ Wallet connected successfully!', 'success');
-        } catch (error) {
-            console.error('Connection error:', error);
-            onNotification?.('❌ Failed to connect wallet', 'error');
-        } finally {
-            setIsConnecting(false);
+        // Easing Configuration
+        easeInPower: 2,            // How aggressive the ease-in is (higher = more dramatic start)
+        easeOutPower: 1,           // How aggressive the ease-out is (higher = sharper stop)
+        
+        // Spin Intensity
+        totalLoops: 18,             // How many times to loop through all characters
+    };
+
+    const calculateSpinPosition = (elapsed: number, spinDuration: number) => {
+        const progress = elapsed / spinDuration;
+        
+        // Configurable easing function
+        const easeInOut = progress < 0.5 ? 
+            Math.pow(progress, ANIMATION_CONFIG.easeInPower) * 2 : 
+            1 - Math.pow(-2 * progress + 2, ANIMATION_CONFIG.easeOutPower) / 2;
+        
+        // Calculate scroll position within the CHARACTERS array bounds
+        const totalCards = CHARACTERS.length; // 5 cards total
+        const totalScrollDistance = CARD_WIDTH * totalCards * ANIMATION_CONFIG.totalLoops;
+        const scrollDistance = totalScrollDistance * easeInOut;
+        
+        // Ensure we stay within the CHARACTERS array bounds
+        return scrollDistance % (totalCards * CARD_WIDTH);
+    };
+
+
+
+    const landOnRandomCharacter = () => {
+        const finalIndex = Math.floor(Math.random() * CHARACTERS.length);
+        const finalScrollX = finalIndex * CARD_WIDTH;
+        
+        setCurrentCharacterIndex(finalIndex);
+        
+        // Smooth scroll to final position
+        if (scrollerRef.current) {
+            scrollerRef.current.scrollTo({
+                x: finalScrollX,
+                animated: true
+            });
         }
+        
+        return CHARACTERS[finalIndex];
+    };
+
+    const performSpinStep = (elapsed: number, spinDuration: number) => {
+        const scrollPosition = calculateSpinPosition(elapsed, spinDuration);
+        
+        // Update scroll position - this should visibly move the boxes
+        if (scrollerRef.current) {
+            scrollerRef.current.scrollTo({
+                x: scrollPosition,
+                animated: false // We're manually controlling the animation
+            });
+        }
+        
+        // Update current character index based on scroll position
+        const scrollIndex = Math.floor(scrollPosition / CARD_WIDTH);
+        const actualIndex = scrollIndex % CHARACTERS.length;
+        setCurrentCharacterIndex(actualIndex);
     };
 
     const spinSlotMachine = async () => {
@@ -210,77 +200,40 @@ const MoonlingSelection: React.FC<Props> = ({
         // Check wallet connection first
         if (!connected) {
             onNotification?.('❌ Please connect your wallet first', 'error');
-            handleConnect();
+            try {
+                await connectWallet();
+                onNotification?.('✅ Wallet connected successfully!', 'success');
+            } catch (error) {
+                console.error('Connection error:', error);
+                onNotification?.('❌ Failed to connect wallet', 'error');
+            }
             return;
         }
 
         setIsSpinning(true);
         setIsMinting(true);
-        const spinDuration = 4000; // 4 seconds for smoother animation
-        const spinInterval = 80; // 80ms intervals for less stuttering
+        const spinDuration = ANIMATION_CONFIG.spinDuration;
+        const spinInterval = ANIMATION_CONFIG.spinInterval;
         let elapsed = 0;
 
         const spin = () => {
             elapsed += spinInterval;
-            const progress = elapsed / spinDuration;
-            
-            // Easing function for smoother deceleration with gradual start
-            const easeInOut = progress < 0.5 ? 
-                2 * progress * progress : 
-                1 - Math.pow(-2 * progress + 2, 4) / 2;
-            
-            // Calculate scroll position within the extended array bounds
-            const totalExtendedCards = extendedCharacters.length; // 9 cards total
-            const totalScrollDistance = CARD_WIDTH * totalExtendedCards * 8; // 8 full loops through extended array
-            const scrollDistance = totalScrollDistance * easeInOut;
-            
-            // Ensure we stay within the extended array bounds
-            let extendedPosition = scrollDistance % (totalExtendedCards * CARD_WIDTH);
-            
-            // Update scroll position - this should visibly move the boxes
-            if (scrollerRef.current) {
-                scrollerRef.current.scrollTo({
-                    x: extendedPosition,
-                    animated: false // We're manually controlling the animation
-                });
-            }
-            
-            // Update current character index based on scroll position
-            const extendedIndex = Math.floor(extendedPosition / CARD_WIDTH);
-            const actualIndex = extendedIndex < 2 ? 
-                CHARACTERS.length - 2 + extendedIndex : 
-                extendedIndex >= 2 + CHARACTERS.length ? 
-                    extendedIndex - 2 - CHARACTERS.length : 
-                    extendedIndex - 2;
-            
-            setCurrentCharacterIndex(actualIndex);
+            performSpinStep(elapsed, spinDuration);
             
             if (elapsed < spinDuration) {
                 setTimeout(spin, spinInterval);
             } else {
-                // Final position - land on a random character
-                const finalIndex = Math.floor(Math.random() * CHARACTERS.length);
-                const finalScrollX = (finalIndex + 2) * CARD_WIDTH; // +2 for the extended array offset
-                
-                setCurrentCharacterIndex(finalIndex);
-                
-                // Smooth scroll to final position
-                if (scrollerRef.current) {
-                    scrollerRef.current.scrollTo({
-                        x: finalScrollX,
-                        animated: true,
-                        duration: 800 // Longer duration for smoother landing
-                    });
-                }
-                
+                // Stop the spin animation first
                 setIsSpinning(false);
                 
-                // After spin completes, mint the character
-                const selectedCharacter = CHARACTERS[finalIndex];
-                if (selectedCharacter) {
-                    // Start minting process
-                    handleMintAfterSpin(selectedCharacter);
-                }
+                // Small delay to ensure spin animation is completely stopped
+                setTimeout(() => {
+                    const selectedCharacter = landOnRandomCharacter();
+                    if (selectedCharacter) {
+                        // Start minting process
+                        handleMintAfterSpin(selectedCharacter);
+                    }
+                }, 100);
             }
         };
 
@@ -303,9 +256,7 @@ const MoonlingSelection: React.FC<Props> = ({
             
             // Map local Character to GameCharacter format for pNFT minting
             const gameCharacter = {
-                ...character,
-                element: 'Celestial', // Default element - could be determined by character.id
-                rarity: 'Common' as const // Default rarity - could be determined by character.id
+                ...character
             };
             
             const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);
@@ -330,99 +281,13 @@ const MoonlingSelection: React.FC<Props> = ({
         }
     };
 
-    const goToPreviousCharacter = () => {
-        if (isSpinning || isMinting) return;
-        const newIndex = (currentCharacterIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
-        setCurrentCharacterIndex(newIndex);
-        scrollToCharacter(newIndex);
-    };
 
-    const goToNextCharacter = () => {
-        if (isSpinning || isMinting) return;
-        const newIndex = (currentCharacterIndex + 1) % CHARACTERS.length;
-        setCurrentCharacterIndex(newIndex);
-        scrollToCharacter(newIndex);
-    };
-
-    const scrollToCharacter = (index: number) => {
-        if (scrollerRef.current) {
-            const scrollToX = (index + 2) * CARD_WIDTH; // +2 for the extended array offset
-            
-            scrollerRef.current.scrollTo({
-                x: scrollToX,
-                animated: true
-            });
-        }
-    };
 
     // Using the consolidated hook from above
 
-    const handleCharacterPayment = async (character: Character): Promise<boolean> => {
-        if (!connected) {
-            onNotification?.('❌ Please connect your wallet first', 'error');
-            return false;
-        }
 
-        try {
-            // Get character asset from registry
-            const asset = getAsset(character.id);
-            if (!asset) {
-                throw new Error(`Character ${character.id} not found in asset registry`);
-            }
 
-            if (asset.category !== 'character') {
-                throw new Error(`Asset ${character.id} is not a character`);
-            }
 
-            onNotification?.(`🎨 Minting ${character.name} pNFT with existing IPFS CID...`, 'info');
-            
-            // Map local Character to GameCharacter format for pNFT minting
-            const gameCharacter = {
-                ...character,
-                element: 'Celestial', // Default element - could be determined by character.id
-                rarity: 'Common' as const // Default rarity - could be determined by character.id
-            };
-            
-            const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);
-            
-            if (result.success) {
-                onNotification?.(
-                    `🎉 ${character.name} pNFT minted! Update authority enabled for evolution!`, 
-                    'success'
-                );
-                return true;
-            } else {
-                throw new Error(result.error || 'Minting failed');
-            }
-        } catch (error) {
-            console.error('NFT minting error:', error);
-            onNotification?.(`❌ NFT minting failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-            return false;
-        }
-    };
-
-    const handleCharacterSelect = async () => {
-        if (!currentCharacter) return;
-
-        if (isCharacterOwned(currentCharacter.id)) {
-            // Character is already owned, select it
-            onSelectCharacter(currentCharacter);
-        } else if (connected) {
-            // Character needs to be purchased
-            setIsMinting(true);
-            try {
-                const paymentSuccess = await handleCharacterPayment(currentCharacter);
-                if (paymentSuccess) {
-                    onSelectCharacter(currentCharacter);
-                }
-            } finally {
-                setIsMinting(false);
-            }
-        } else {
-            // Need to connect wallet first
-            handleConnect();
-        }
-    };
 
     const handleCharacterPress = (character: Character) => {
         setSelectedCharacter(character);
@@ -441,12 +306,7 @@ const MoonlingSelection: React.FC<Props> = ({
 
     const handleMintCharacter = () => {
         if (congratulationsCharacter) {
-            // Character has been minted, add it to owned characters
-            if (!ownedCharacters.includes(congratulationsCharacter.id)) {
-                // This would typically update the parent component's state
-                // For now, we'll just navigate back
-                console.log('🎉 Character minted successfully:', congratulationsCharacter.name);
-            }
+            console.log('🎉 Character minted successfully:', congratulationsCharacter.name);
             
             closeCongratulationsModal();
             
@@ -460,11 +320,11 @@ const MoonlingSelection: React.FC<Props> = ({
     };
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <>
             <WalletButton
                 connected={connected}
                 publicKey={publicKey?.toString() || null}
-                onConnect={handleConnect}
+                onConnect={connectWallet}
                 onDisconnect={disconnect}
             />
             <InnerScreen
@@ -497,38 +357,15 @@ const MoonlingSelection: React.FC<Props> = ({
                         showsHorizontalScrollIndicator={false}
                         onScroll={(e) => {
                             const offsetX = e.nativeEvent.contentOffset.x;
-                            const extendedIndex = Math.round(offsetX / CARD_WIDTH);
-                            
-                            // Convert extended index to actual character index
-                            let actualIndex = extendedIndex - 2;
-                            
-                            // Handle wrapping immediately during scroll
-                            if (actualIndex < 0) {
-                                actualIndex = CHARACTERS.length + actualIndex;
-                                // Scroll to the equivalent position in the middle
-                                const newScrollX = (actualIndex + 2) * CARD_WIDTH;
-                                scrollerRef.current?.scrollTo({ x: newScrollX, animated: false });
-                            } else if (actualIndex >= CHARACTERS.length) {
-                                actualIndex = actualIndex - CHARACTERS.length;
-                                // Scroll to the equivalent position in the middle
-                                const newScrollX = (actualIndex + 2) * CARD_WIDTH;
-                                scrollerRef.current?.scrollTo({ x: newScrollX, animated: false });
-                            }
-                            
+                            const scrollIndex = Math.round(offsetX / CARD_WIDTH);
+                            const actualIndex = Math.max(0, Math.min(scrollIndex, CHARACTERS.length - 1));
                             setCurrentCharacterIndex(actualIndex);
                         }}
                     >
-                        {extendedCharacters.map((character, extIndex) => {
-                            // Get the actual character index
-                            const actualIndex = extIndex < 2 ? 
-                                CHARACTERS.length - 2 + extIndex : 
-                                extIndex >= 2 + CHARACTERS.length ? 
-                                    extIndex - 2 - CHARACTERS.length : 
-                                    extIndex - 2;
-                            
+                        {CHARACTERS.map((character, index) => {
                             return (
                             <TouchableOpacity
-                                key={`${character.id}-${extIndex}`}
+                                key={`${character.id}-${index}`}
                                 style={[
                                     styles.slotMachineCard,
                                     { 
@@ -539,14 +376,7 @@ const MoonlingSelection: React.FC<Props> = ({
                                     handleCharacterPress(character);
                                 }}
                             >
-                                {/* Ownership/Price badges */}
-                                {actualIndex === currentCharacterIndex && (
-                                    <>
-                                        {isCharacterOwned(character.id) && (
-                                            <Text style={styles.ownershipBadge}>👑</Text>
-                                        )}
-                                    </>
-                                )}
+
 
                                 {/* Character Info */}
                                 <View style={styles.characterInfo}>
@@ -657,7 +487,7 @@ const MoonlingSelection: React.FC<Props> = ({
                 </View>
             </Modal>
         </InnerScreen>
-        </GestureHandlerRootView>
+        </>
     );
 };
 
@@ -713,43 +543,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
         transform: [{ scale: 0.95 }],
     } as const,
-    selected: {
-        borderColor: '#ff8c42',
-    },
-    mintingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-    },
-    mintingSpinner: {
-        fontSize: 30,
-    },
-    mintingText: {
-        color: 'white',
-        fontSize: 16,
-    },
-    ownershipBadge: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        fontSize: 20,
-    },
-    priceBadge: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        backgroundColor: 'gold',
-        padding: 5,
-        borderRadius: 5,
-        color: 'black',
-        fontSize: 12,
-    },
+
     characterImage: {
         width: 150,
         height: 150,
@@ -786,59 +580,14 @@ const styles = StyleSheet.create({
         fontFamily: 'PressStart2P',
         transform: [{ translateX: 1 }, { translateY: 4 }],
     },
-    selectedCharacterDetails: {
-        marginTop: 20,
-        alignItems: 'center',
-    },
-    hidden: {
-        display: 'none',
-    },
-    characterNameLarge: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    characterDescription: {
-        textAlign: 'center',
-        marginHorizontal: 20,
-        fontSize: 14,
-    },
-    characterStatsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        marginTop: 10,
-    },
-    characterAbility: {
-        marginTop: 10,
-        textAlign: 'center',
-        fontSize: 14,
-    },
-    carouselContainer: {
-        width: '100%',
-        height: 200, // Adjust height as needed
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    carouselCard: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        backgroundColor: 'white',
-        borderRadius: 10,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-    },
+
     // Modal styles
     modalOverlay: {
-        flex: 1,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         justifyContent: 'center',
         alignItems: 'center',

@@ -10,8 +10,6 @@ export interface GameCharacter {
   id: string;
   name: string;
   description?: string;
-  element: string;
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   image: string;
   level?: number;
   experience?: number;
