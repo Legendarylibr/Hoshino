@@ -13,7 +13,8 @@ import MoonlingSelection from './src/components/MoonlingSelection';
 import MoonlingInteraction from './src/components/MoonlingInteraction';
 import MoonlingCollection from './src/components/MoonlingCollection';
 import Shop from './src/components/Shop';
-import FeedingInterface from './src/components/MoonGallery';
+import FeedingPage from './src/components/FeedingPage';
+import Gallery from './src/components/Gallery';
 import WelcomeScreen from './src/components/WelcomeScreen';
 import CharacterChat from './src/components/CharacterChat';
 import GlobalLeaderboard from './src/components/GlobalLeaderboard';
@@ -690,8 +691,8 @@ function App() {
                 );
             case 'feeding':
                 return (
-                    <FeedingInterface
-                        onBack={() => setCurrentView('selection')}
+                    <FeedingPage
+                        onBack={() => setCurrentView('interaction')}
                         onFeed={handleFeed}
                         currentHunger={characterStats.hunger}
                     />
@@ -729,6 +730,12 @@ function App() {
                         connection={connection}
                         onNotification={addNotification}
                         onClose={() => setCurrentView('interaction')}
+                    />
+                );
+            case 'gallery':
+                return (
+                    <Gallery
+                        onBack={() => setCurrentView('interaction')}
                     />
                 );
             case 'inventory':

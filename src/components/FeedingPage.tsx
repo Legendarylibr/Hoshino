@@ -71,7 +71,7 @@ const getRarityColor = (rarity: string) => {
     }
 };
 
-const FeedingInterface = ({ onBack, onFeed, currentHunger }: Props) => {
+const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
     const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
     const [feedingAnimation, setFeedingAnimation] = useState(false);
     const bounceAnim = React.useRef(new Animated.Value(0)).current;
@@ -457,4 +457,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default FeedingInterface;
+export default FeedingPage;
