@@ -1,8 +1,9 @@
 import {
   transact,
-} from "@solana-mobile/mobile-wallet-adapter-protocol";
+} from "@solana-mobile/mobile-wallet-adapter-protocol-web3js";
 import bs58 from 'bs58';
 import { Buffer } from 'buffer';
+import { Transaction, PublicKey} from '@solana/web3.js';
 
 // App identity for wallet authorization
 const APP_IDENTITY = {
@@ -11,18 +12,7 @@ const APP_IDENTITY = {
   icon: '/icon.png',
 };
 
-// Simple PublicKey class for React Native
-class PublicKey {
-    constructor(public readonly address: string) {}
-    
-    toString(): string {
-        return this.address;
-    }
-    
-    toBase58(): string {
-        return this.address;
-    }
-}
+
 
 // React Native compatible event emitter
 class EventEmitter {
@@ -51,7 +41,6 @@ export class MobileWalletService {
     private publicKey: PublicKey | null = null;
     private eventEmitter: EventEmitter;
     private authToken: string | null = null;
-    private accounts: any[] = [];
 
     constructor() {
         this.eventEmitter = new EventEmitter();
@@ -61,16 +50,6 @@ export class MobileWalletService {
         try {
             console.log('📱 Initializing React Native compatible wallet service...');
             
-            // Check if we have a stored auth token
-            // In a real implementation, you'd use AsyncStorage
-            const storedAuthToken = null; // await AsyncStorage.getItem('wallet_auth_token');
-            
-            if (storedAuthToken) {
-                this.authToken = storedAuthToken;
-                // Try to reconnect with stored token
-                await this.reconnectWithToken(storedAuthToken);
-            }
-
             return {
                 connected: this.connected,
                 publicKey: this.publicKey,
@@ -87,59 +66,28 @@ export class MobileWalletService {
         }
     }
 
-    private async reconnectWithToken(token: string): Promise<void> {
-        try {
-            // In a real implementation, you'd validate the token
-            // For now, we'll simulate a successful reconnection
-            console.log('📱 Attempting to reconnect with stored token...');
-            // This would involve validating the token with the wallet
-        } catch (error) {
-            console.error('📱 Failed to reconnect with token:', error);
-            this.authToken = null;
-        }
-    }
-
     async connect(): Promise<PublicKey | null> {
         try {
             console.log('📱 Attempting to connect mobile wallet...');
             
-            // Follow the official example for wallet authorization
             const authorizationResult = await transact(async (wallet) => {
                 const authorizationResult = await wallet.authorize({
-                    cluster: 'devnet',
+                    chain: 'solana:devnet',
                     identity: APP_IDENTITY,
                 });
 
-                // Store the authorization result
                 this.authToken = authorizationResult.auth_token;
-                this.accounts = authorizationResult.accounts;
-                
-                // Get the first account's public key
                 const account = authorizationResult.accounts[0];
                 
-                // Convert base64 address to base58 for proper Solana address format
-                let base58Address;
-                try {
-                    console.log('📱 Raw account address:', account.address);
-                    
-                    // Decode base64 and convert to base58
-                    const decoded = Buffer.from(account.address, 'base64');
-                    console.log('📱 Decoded bytes length:', decoded.length);
-                    base58Address = bs58.encode(decoded);
-                    console.log('📱 Converted to base58:', base58Address);
-                } catch (error) {
-                    console.error('📱 Error converting address to base58:', error);
-                    base58Address = account.address;
-                }
+                // Convert base64 address to base58
+                const decoded = Buffer.from(account.address, 'base64');
+                const base58Address = bs58.encode(decoded);
                 
                 this.publicKey = new PublicKey(base58Address);
                 this.connected = true;
 
-                // Emit connect event
                 this.eventEmitter.emit('connect', this.publicKey);
-
                 console.log('📱 Wallet connected:', this.publicKey.toString());
-                console.log('📱 Connected to:', base58Address);
                 
                 return this.publicKey;
             });
@@ -156,54 +104,85 @@ export class MobileWalletService {
         try {
             console.log('📱 Disconnecting mobile wallet...');
             
-            // Just clear the local state - no need to prompt the wallet
+            if (this.authToken) {
+                await transact(async (wallet) => {
+                    await wallet.deauthorize({ auth_token: this.authToken! });
+                });
+            }
+            
             this.connected = false;
             this.publicKey = null;
             this.authToken = null;
-            this.accounts = [];
             
-            // Emit disconnect event
             this.eventEmitter.emit('disconnect');
         } catch (error) {
             console.error('📱 Failed to disconnect mobile wallet:', error);
-            throw error;
+            this.connected = false;
+            this.publicKey = null;
+            this.authToken = null;
+            this.eventEmitter.emit('disconnect');
         }
     }
 
-    async signTransaction(transaction: any): Promise<any> {
-        try {
-            console.log('📱 Signing transaction...');
-            
-            if (!this.authToken) {
-                throw new Error('Not connected to wallet');
-            }
-
-            // For now, return the transaction as-is
-            // In a real implementation, you would use the mobile wallet adapter
-            // to sign the transaction with the connected wallet
-            console.log('📱 Transaction signing not yet implemented');
-            return transaction;
-        } catch (error) {
-            console.error('📱 Failed to sign transaction:', error);
-            throw error;
+    /**
+     * Sign and send a Solana transaction using the mobile wallet adapter
+     */
+    async signAndSendSolanaTransaction(transaction: Transaction): Promise<{ signature: string }> {
+        console.log('📱 Signing and sending Solana transaction with mobile wallet...');
+        
+        if (!this.connected || !this.publicKey) {
+            throw new Error('Wallet not connected');
         }
-    }
 
-    async signAllTransactions(transactions: any[]): Promise<any[]> {
         try {
-            console.log('📱 Signing all transactions...');
+            const result = await transact(async (wallet) => {
+                // Re-authorize the wallet for this transaction session
+                const authorizationResult = await wallet.authorize({
+                    chain: 'solana:devnet',
+                    identity: APP_IDENTITY,
+                    auth_token: this.authToken || undefined,
+                });
+                
+                // Update our state with the fresh authorization
+                this.authToken = authorizationResult.auth_token;
+                this.connected = true;
+                
+                // Update public key from the fresh authorization
+                const account = authorizationResult.accounts[0];
+                const decoded = Buffer.from(account.address, 'base64');
+                const base58Address = bs58.encode(decoded);
+                this.publicKey = new PublicKey(base58Address);
+                
+                console.log('📱 Updated wallet public key:', this.publicKey.toString());
+                
+                // Set the fee payer if not already set
+                if (!transaction.feePayer) {
+                    transaction.feePayer = this.publicKey!;
+                }
+                
+                console.log('📱 Transaction prepared for signing:', {
+                    hasBlockhash: !!transaction.recentBlockhash,
+                    feePayer: transaction.feePayer.toString(),
+                    instructionsCount: transaction.instructions.length
+                });
+                
+                // Use the Mobile Wallet Adapter to sign and send
+                const signatures = await wallet.signAndSendTransactions({
+                    transactions: [transaction],
+                    skipPreflight: true,
+                    commitment: 'processed'
+                });
+                
+                console.log('📱 Transaction signed and sent successfully with signature:', signatures[0]);
+                
+                return { signature: signatures[0] };
+            });
             
-            if (!this.authToken) {
-                throw new Error('Not connected to wallet');
-            }
-
-            // For now, return the transactions as-is
-            // In a real implementation, you would use the mobile wallet adapter
-            // to sign all transactions with the connected wallet
-            console.log('📱 Transaction signing not yet implemented');
-            return transactions;
+            console.log('✅ Solana transaction signed and sent successfully');
+            return result;
+            
         } catch (error) {
-            console.error('📱 Failed to sign transactions:', error);
+            console.error('❌ Failed to sign and send Solana transaction:', error);
             throw error;
         }
     }
@@ -216,19 +195,7 @@ export class MobileWalletService {
         return this.publicKey;
     }
 
-    getAdapter(): any {
-        return {
-            connected: this.connected,
-            publicKey: this.publicKey,
-            on: (event: string, callback: Function) => {
-                this.eventEmitter.on(event, callback);
-            },
-            removeAllListeners: () => {
-                this.eventEmitter.removeAllListeners();
-            }
-        };
+    getAuthToken(): string | null {
+        return this.authToken;
     }
-}
-
-// Export a singleton instance
-export const mobileWalletService = new MobileWalletService(); 
+} 

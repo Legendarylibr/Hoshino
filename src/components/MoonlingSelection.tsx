@@ -14,11 +14,10 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
 import WalletButton from './WalletButton';
 
-// NEW: Import Programmable NFT Integration
+// NEW: Programmable NFT Integration
 import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
 
 
@@ -126,7 +125,13 @@ const MoonlingSelection: React.FC<Props> = ({
     onGoToCongratulations
 }) => {
 
-    const { connected, publicKey, connect, disconnect } = useWallet();
+    const { 
+        connected, 
+        publicKey, 
+        connectWallet, 
+        disconnect,
+        quickMintCharacter
+    } = useProgrammableNFT();
     const [isConnecting, setIsConnecting] = useState(false);
 
     const [currentCharacterIndex, setCurrentCharacterIndex] = useState<number>(2); // Start with Aro (index 2)
@@ -188,7 +193,7 @@ const MoonlingSelection: React.FC<Props> = ({
         
         setIsConnecting(true);
         try {
-            await connect();
+            await connectWallet();
             onNotification?.('✅ Wallet connected successfully!', 'success');
         } catch (error) {
             console.error('Connection error:', error);
@@ -198,10 +203,18 @@ const MoonlingSelection: React.FC<Props> = ({
         }
     };
 
-    const spinSlotMachine = () => {
+    const spinSlotMachine = async () => {
         if (isSpinning || isMinting) return;
 
+        // Check wallet connection first
+        if (!connected) {
+            onNotification?.('❌ Please connect your wallet first', 'error');
+            handleConnect();
+            return;
+        }
+
         setIsSpinning(true);
+        setIsMinting(true);
         const spinDuration = 4000; // 4 seconds for smoother animation
         const spinInterval = 80; // 80ms intervals for less stuttering
         let elapsed = 0;
@@ -239,8 +252,6 @@ const MoonlingSelection: React.FC<Props> = ({
                     extendedIndex - 2 - CHARACTERS.length : 
                     extendedIndex - 2;
             
-
-            
             setCurrentCharacterIndex(actualIndex);
             
             if (elapsed < spinDuration) {
@@ -263,17 +274,49 @@ const MoonlingSelection: React.FC<Props> = ({
                 
                 setIsSpinning(false);
                 
-                // After spin completes, show congratulations modal
+                // After spin completes, mint the character
                 const selectedCharacter = CHARACTERS[finalIndex];
                 if (selectedCharacter) {
-                    // Show congratulations modal immediately
-                    setCongratulationsCharacter(selectedCharacter);
-                    setShowCongratulationsModal(true);
+                    // Start minting process
+                    handleMintAfterSpin(selectedCharacter);
                 }
             }
         };
 
         spin();
+    };
+
+    const handleMintAfterSpin = async (character: Character) => {
+        try {
+            onNotification?.(`🎨 Minting ${character.name} pNFT...`, 'info');
+            
+            // Map local Character to GameCharacter format for pNFT minting
+            const gameCharacter = {
+                ...character,
+                element: 'Celestial', // Default element - could be determined by character.id
+                rarity: 'Common' as const // Default rarity - could be determined by character.id
+            };
+            
+            const result = await quickMintCharacter(gameCharacter);
+            
+            if (result.success) {
+                onNotification?.(
+                    `🎉 ${character.name} pNFT minted successfully!`, 
+                    'success'
+                );
+                
+                // Show congratulations modal with minted character
+                setCongratulationsCharacter(character);
+                setShowCongratulationsModal(true);
+            } else {
+                throw new Error(result.error || 'Minting failed');
+            }
+        } catch (error) {
+            console.error('NFT minting error:', error);
+            onNotification?.(`❌ NFT minting failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        } finally {
+            setIsMinting(false);
+        }
     };
 
     const goToPreviousCharacter = () => {
@@ -301,14 +344,10 @@ const MoonlingSelection: React.FC<Props> = ({
         }
     };
 
-    // NEW: Programmable NFT Integration
-    const {
-        quickMintCharacter,
-        connected: nftConnected
-    } = useProgrammableNFT();
+    // Using the consolidated hook from above
 
     const handleCharacterPayment = async (character: Character): Promise<boolean> => {
-        if (!nftConnected) {
+        if (!connected) {
             onNotification?.('❌ Please connect your wallet first', 'error');
             return false;
         }
@@ -382,9 +421,16 @@ const MoonlingSelection: React.FC<Props> = ({
 
     const handleMintCharacter = () => {
         if (congratulationsCharacter) {
-            // Mock mint function - navigate to congratulations phase
+            // Character has been minted, add it to owned characters
+            if (!ownedCharacters.includes(congratulationsCharacter.id)) {
+                // This would typically update the parent component's state
+                // For now, we'll just navigate back
+                console.log('🎉 Character minted successfully:', congratulationsCharacter.name);
+            }
+            
             closeCongratulationsModal();
-            // Call a new prop to go to congratulations instead of back
+            
+            // Navigate to congratulations screen or back to welcome
             if (onGoToCongratulations) {
                 onGoToCongratulations(congratulationsCharacter);
             } else {
@@ -397,7 +443,7 @@ const MoonlingSelection: React.FC<Props> = ({
         <GestureHandlerRootView style={{ flex: 1 }}>
             <WalletButton
                 connected={connected}
-                publicKey={publicKey}
+                publicKey={publicKey?.toString() || null}
                 onConnect={handleConnect}
                 onDisconnect={disconnect}
             />
@@ -473,14 +519,6 @@ const MoonlingSelection: React.FC<Props> = ({
                                     handleCharacterPress(character);
                                 }}
                             >
-                                {/* Loading indicator for minting */}
-                                {isMinting && actualIndex === currentCharacterIndex && (
-                                    <View style={styles.mintingOverlay}>
-                                        <Text style={styles.mintingSpinner}>⏳</Text>
-                                        <Text style={styles.mintingText}>Minting...</Text>
-                                    </View>
-                                )}
-
                                 {/* Ownership/Price badges */}
                                 {actualIndex === currentCharacterIndex && (
                                     <>

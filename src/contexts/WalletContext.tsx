@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { MobileWalletService } from '../services/MobileWalletService';
 
 // Create a singleton instance
-const mobileWalletService = new MobileWalletService();
+export const mobileWalletService = new MobileWalletService();
 
 interface WalletContextType {
     connected: boolean;
