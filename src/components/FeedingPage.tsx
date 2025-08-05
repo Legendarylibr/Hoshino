@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import InnerScreen from './InnerScreen';
 
 interface FoodItem {
     id: string;
@@ -7,7 +8,7 @@ interface FoodItem {
     emoji: string;
     hungerBoost: number;
     moodBoost: number;
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
     description: string;
 }
 
@@ -19,55 +20,44 @@ interface Props {
 
 const FOOD_ITEMS: FoodItem[] = [
     {
-        id: 'dream-bean',
-        name: 'Dream Bean',
-        emoji: '☁️',
+        id: 'sugar',
+        name: 'Pink Sugar',
+        emoji: '🍬',
         hungerBoost: 1,
-        moodBoost: 0,
+        moodBoost: 1,
         rarity: 'Common',
-        description: 'Magical bean that restores 1 hunger point'
+        description: 'Sweet crystalline sugar with a pink hue'
     },
     {
-        id: 'nebula-plum',
-        name: 'Nebula Plum',
-        emoji: '🌌',
+        id: 'nova',
+        name: 'Nova Egg',
+        emoji: '🥚',
         hungerBoost: 2,
-        moodBoost: 0,
-        rarity: 'Rare',
-        description: 'Cosmic plum that restores 2 hunger points'
+        moodBoost: 2,
+        rarity: 'Uncommon',
+        description: 'A mysterious egg that glows with stellar energy'
     },
     {
-        id: 'cloud-cake',
-        name: 'Cloud Cake',
-        emoji: '☁️',
+        id: 'mira',
+        name: 'Mira Berry',
+        emoji: '🫐',
         hungerBoost: 3,
-        moodBoost: 0,
-        rarity: 'Epic',
-        description: 'Fluffy cake that restores 3 hunger points'
-    },
-    {
-        id: 'starberry',
-        name: 'Starberry',
-        emoji: '⭐',
-        hungerBoost: 5,
-        moodBoost: 0,
-        rarity: 'Legendary',
-        description: 'Legendary berry that completely fills hunger'
+        moodBoost: 3,
+        rarity: 'Rare',
+        description: 'A rare berry with stellar properties'
     }
 ];
 
 const getRarityColor = (rarity: string) => {
     switch (rarity) {
         case 'Common':
-            return '#9CA3AF';
+            return '#8B8B8B';
+        case 'Uncommon':
+            return '#4CAF50';
         case 'Rare':
-            return '#3B82F6';
-        case 'Epic':
-            return '#8B5CF6';
-        case 'Legendary':
-            return '#F59E0B';
+            return '#2196F3';
         default:
-            return '#9CA3AF';
+            return '#8B8B8B';
     }
 };
 
@@ -115,16 +105,10 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.topStatus}>
-                <View style={styles.gearIcon}>
-                    <Image source={require('../../assets/images/settings.png')} style={styles.gearImage} />
-                </View>
-                <Text style={styles.walletStatusText}>[connected wallet]</Text>
-            </View>
-
-            <View style={styles.mainScreen}>
-                <View style={styles.statsBar}>
+        <InnerScreen
+            showStatsBar={true}
+            statsBarContent={
+                <>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Feeding Time</Text>
                         <Text style={styles.statStars}>🍎</Text>
@@ -140,166 +124,78 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
                         <Text style={styles.statLabel}>Status</Text>
                         <Text style={styles.statStars}>{currentHunger >= 5 ? '😋' : '🍽️'}</Text>
                     </View>
-                </View>
+                </>
+            }
+            onLeftButtonPress={onBack}
+            onCenterButtonPress={() => {
+                if (currentHunger < 5) {
+                    onFeed('generic', 1, 1);
+                }
+            }}
+            onRightButtonPress={() => {
+                // Help button - could show feeding tips
+            }}
+            leftButtonText="←"
+            centerButtonText="🍽️"
+            rightButtonText="?"
+        >
+            {/* Main Display Area */}
+            <View style={styles.mainDisplayArea}>
 
-                <View style={styles.mainDisplayArea}>
-                    <View style={styles.starryBackground}>
-                        <Text style={styles.star}>✦</Text>
-                        <Text style={styles.star}>✦</Text>
-                        <Text style={styles.star}>✦</Text>
-                        <Text style={styles.star}>✦</Text>
-                        <Text style={styles.star}>✦</Text>
-                        <Text style={styles.star}>✦</Text>
-                    </View>
+                <View style={styles.characterSelectionGrid}>
+                    {FOOD_ITEMS.map((food) => {
+                        const isDisabled = currentHunger >= 5;
 
-                    <View style={[styles.cloud, styles.cloud1]} />
-                    <View style={[styles.cloud, styles.cloud2]} />
-
-                    <View style={styles.groundArea}>
-                        <View style={styles.groundPattern} />
-                    </View>
-
-                    <View style={styles.characterSelectionGrid}>
-                        {FOOD_ITEMS.map((food) => {
-                            const isDisabled = currentHunger >= 5;
-
-                            return (
-                                <TouchableOpacity
-                                    key={food.id}
-                                    style={[
-                                        styles.characterCard,
-                                        {
-                                            borderColor: getRarityColor(food.rarity),
-                                            opacity: isDisabled ? 0.5 : 1,
-                                            backgroundColor: isDisabled ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.95)',
-                                        },
-                                    ]}
-                                    onPress={() => !isDisabled && handleFeed(food)}
-                                    activeOpacity={isDisabled ? 1 : 0.7}
-                                >
-                                    <Text style={styles.foodEmoji}>{food.emoji}</Text>
-                                    <Text style={styles.characterName}>{food.name}</Text>
-                                    <Text
-                                        style={[
-                                            styles.characterRarity,
-                                            { color: getRarityColor(food.rarity) },
-                                        ]}
-                                    >
-                                        {food.rarity}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
-                    {feedingAnimation && selectedFood && (
-                        <View style={styles.feedingOverlay}>
-                            <Animated.Text
+                        return (
+                            <TouchableOpacity
+                                key={food.id}
                                 style={[
-                                    styles.feedingEmoji,
-                                    { transform: [{ translateY: bounceAnim }] },
+                                    styles.characterCard,
+                                    {
+                                        borderColor: getRarityColor(food.rarity),
+                                        opacity: isDisabled ? 0.5 : 1,
+                                        backgroundColor: isDisabled ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.95)',
+                                    },
                                 ]}
+                                onPress={() => !isDisabled && handleFeed(food)}
+                                activeOpacity={isDisabled ? 1 : 0.7}
                             >
-                                {selectedFood.emoji}
-                            </Animated.Text>
-                            <Text style={styles.feedingText}>
-                                Feeding {selectedFood.name}...
-                            </Text>
-                        </View>
-                    )}
+                                <Text style={styles.foodEmoji}>{food.emoji}</Text>
+                                <Text style={styles.characterName}>{food.name}</Text>
+                                <Text
+                                    style={[
+                                        styles.characterRarity,
+                                        { color: getRarityColor(food.rarity) },
+                                    ]}
+                                >
+                                    {food.rarity}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
-                <View style={styles.bottomMenuBar}>
-                    <Text style={styles.menuIcon}>🍎</Text>
-                    <Text style={styles.menuIcon}>🌙</Text>
-                    <Text style={styles.menuIcon}>🫐</Text>
-                    <Text style={styles.menuIcon}>🍯</Text>
-                    <Text style={styles.menuIcon}>💧</Text>
-                    <Text style={styles.menuIcon}>⭐</Text>
-                </View>
+                {feedingAnimation && selectedFood && (
+                    <View style={styles.feedingOverlay}>
+                        <Animated.Text
+                            style={[
+                                styles.feedingEmoji,
+                                { transform: [{ translateY: bounceAnim }] },
+                            ]}
+                        >
+                            {selectedFood.emoji}
+                        </Animated.Text>
+                        <Text style={styles.feedingText}>
+                            Feeding {selectedFood.name}...
+                        </Text>
+                    </View>
+                )}
             </View>
-
-            <TouchableOpacity
-                style={styles.bottomButtonLeft}
-                onPress={onBack}
-                accessibilityLabel="Go Back"
-            >
-                <Text>←</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[
-                    styles.bottomButtonCenter,
-                    {
-                        backgroundColor: currentHunger >= 5 ? '#6B7280' : '#10B981',
-                        opacity: currentHunger >= 5 ? 0.5 : 1,
-                    },
-                ]}
-                accessibilityLabel="Feed Selected"
-            >
-                <Text>🍽️</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.bottomButtonRight}
-                accessibilityLabel="Help"
-            >
-                <Text>?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.deviceButtonLeft}
-                onPress={onBack}
-                accessibilityLabel="Left physical button - Go Back"
-            />
-
-            <TouchableOpacity
-                style={styles.deviceButtonCenter}
-                onPress={() => {
-                    if (currentHunger < 5) {
-                        onFeed('generic', 1, 1);
-                    }
-                }}
-                accessibilityLabel="Center physical button - Feed Selected"
-            />
-
-            <TouchableOpacity
-                style={styles.deviceButtonRight}
-                accessibilityLabel="Right physical button - Help"
-            />
-        </View>
+        </InnerScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    topStatus: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 10,
-    },
-    gearIcon: {},
-    gearImage: {
-        width: 16,
-        height: 16,
-    },
-    walletStatusText: {
-        fontSize: 12,
-    },
-    mainScreen: {
-        flex: 1,
-        margin: 10,
-        borderWidth: 1,
-        borderColor: '#000',
-    },
-    statsBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 5,
-    },
     statItem: {
         alignItems: 'center',
     },
@@ -312,49 +208,6 @@ const styles = StyleSheet.create({
     mainDisplayArea: {
         flex: 1,
         position: 'relative',
-    },
-    starryBackground: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-around',
-        alignContent: 'space-around',
-    },
-    star: {
-        fontSize: 10,
-    },
-    cloud: {
-        position: 'absolute',
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        opacity: 0.8,
-    },
-    cloud1: {
-        width: 100,
-        height: 50,
-        top: 50,
-        left: 20,
-    },
-    cloud2: {
-        width: 80,
-        height: 40,
-        top: 80,
-        right: 20,
-    },
-    groundArea: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 50,
-    },
-    groundPattern: {
-        flex: 1,
-        backgroundColor: '#8B4513',
     },
     characterSelectionGrid: {
         flex: 1,
@@ -403,58 +256,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         textAlign: 'center',
     },
-    bottomMenuBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 10,
-    },
-    menuIcon: {
-        fontSize: 20,
-    },
-    bottomButtonLeft: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        backgroundColor: '#ccc',
-        padding: 10,
-        borderRadius: 5,
-    },
-    bottomButtonCenter: {
-        position: 'absolute',
-        bottom: 20,
-        alignSelf: 'center',
-        padding: 10,
-        borderRadius: 5,
-    },
-    bottomButtonRight: {
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        backgroundColor: '#ccc',
-        padding: 10,
-        borderRadius: 5,
-    },
-    deviceButtonLeft: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: 100,
-        height: 50,
-    },
-    deviceButtonCenter: {
-        position: 'absolute',
-        bottom: 0,
-        alignSelf: 'center',
-        width: 100,
-        height: 50,
-    },
-    deviceButtonRight: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 100,
-        height: 50,
-    },
+
 });
 
 export default FeedingPage;

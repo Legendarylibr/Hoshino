@@ -339,6 +339,8 @@ const MoonlingSelection: React.FC<Props> = ({
                 leftButtonDisabled={true}
                 isSelectionPage={true}
                 overlayMode={true}
+                showCloseButton={true}
+                onCloseButtonPress={onBack}
             >
             {/* Main Display Area */}
             <View style={styles.mainDisplayArea}>

@@ -24,6 +24,8 @@ interface InnerScreenProps {
     isSelectionPage?: boolean; // New prop for selection page styling
     overlayMode?: boolean; // New prop for modal-like overlay effect
     keyboardVisible?: boolean; // New prop for keyboard state
+    showCloseButton?: boolean; // New prop for close button
+    onCloseButtonPress?: () => void; // New prop for close button action
 }
 
 const InnerScreen: React.FC<InnerScreenProps> = ({
@@ -44,7 +46,9 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     backgroundImageSource,
     isSelectionPage = false,
     overlayMode = false,
-    keyboardVisible = false
+    keyboardVisible = false,
+    showCloseButton = false,
+    onCloseButtonPress
 }) => {
     return (
         <View style={styles.tamagotchiScreenContainer}>
@@ -141,6 +145,16 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                 <View style={styles.mainDisplayArea}>
                     {children}
                 </View>
+
+                {/* Close Button */}
+                {showCloseButton && onCloseButtonPress && (
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={onCloseButtonPress}
+                    >
+                        <Text style={styles.closeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Bottom Navigation Buttons */}
@@ -599,6 +613,26 @@ const styles = StyleSheet.create({
     },
     noButtonText: {
         color: '#F44336', // Softer red
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 10,
+        right: 15,
+        zIndex: 10,
+        width: 30,
+        height: 30,
+        borderRadius: 4,
+        backgroundColor: '#2E5A3E',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#2E5A3E',
+    },
+    closeButtonText: {
+        fontSize: 18,
+        color: '#E8F5E8',
+        fontFamily: 'PressStart2P',
+        transform: [{ translateY: -1 }],
     },
 });
 

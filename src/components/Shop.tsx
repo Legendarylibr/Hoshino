@@ -40,7 +40,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
     const addToCart = (item: MarketplaceItem) => {
         const totalCostAfterAdd = getTotalPrice() + item.priceStarFragments;
         if (totalCostAfterAdd > dust) {
-            onNotification?.(`Not enough Cosmic Dust! You need ${totalCostAfterAdd} but only have ${dust}.`, 'error');
+            onNotification?.(`Not enough Star Dust! You need ${totalCostAfterAdd} but only have ${dust}.`, 'error');
             return;
         }
 
@@ -62,7 +62,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         setFlashingItem(item.id);
         setTimeout(() => setFlashingItem(null), 300);
 
-        onNotification?.(`Added ${item.name} to cart! ${item.priceStarFragments} Cosmic Dust deducted.`, 'success');
+        onNotification?.(`Added ${item.name} to cart! ${item.priceStarFragments} Star Dust deducted.`, 'success');
     };
 
     const removeFromCart = (itemId: string) => {
@@ -70,7 +70,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         if (itemToRemove) {
             const refundAmount = itemToRemove.item.priceStarFragments * itemToRemove.quantity;
             setDust(prevDust => prevDust + refundAmount);
-            onNotification?.(`Removed ${itemToRemove.item.name} from cart. ${refundAmount} Cosmic Dust refunded.`, 'info');
+            onNotification?.(`Removed ${itemToRemove.item.name} from cart. ${refundAmount} Star Dust refunded.`, 'info');
         }
         setCart(prevCart => prevCart.filter(cartItem => cartItem.item.id !== itemId));
     };
@@ -81,7 +81,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         const totalRefund = getTotalPrice();
         setDust(prevDust => prevDust + totalRefund);
         setCart([]);
-        onNotification?.(`Cart cleared! ${totalRefund} Cosmic Dust refunded.`, 'info');
+        onNotification?.(`Cart cleared! ${totalRefund} Star Dust refunded.`, 'info');
     };
 
     const handleCheckout = () => {
@@ -128,7 +128,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
             {
                 id: 'mira',
                 name: 'Mira Berry',
-                description: 'A rare berry with cosmic properties',
+                description: 'A rare berry with stellar properties',
                 imageUrl: MiraBerry,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.RARE,
@@ -150,7 +150,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
             {
                 id: 'star-shield',
                 name: 'Star Shield',
-                description: 'Provides cosmic protection',
+                description: 'Provides stellar protection',
                 imageUrl: 'https://via.placeholder.com/48/4169E1/000000?text=🛡️',
                 category: ItemCategory.POWERUP,
                 rarity: ItemRarity.RARE,
@@ -180,7 +180,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
     return (
         <View style={styles.outerContainer}>
             <View style={styles.headerBox}>
-                <Text style={styles.headerText}>COSMIC SHOP</Text>
+                <Text style={styles.headerText}>SHOP</Text>
             </View>
 
             <View style={styles.balanceRow}>
@@ -193,7 +193,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 </View>
                 <View style={styles.dustTextContainer}>
                     <Text style={styles.walletLabel}>WALLET</Text>
-                    <Text style={styles.dustAmount}>{dust} Cosmic Dust</Text>
+                    <Text style={styles.dustAmount}>{dust} Star Dust</Text>
                 </View>
             </View>
 

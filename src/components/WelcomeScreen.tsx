@@ -10,17 +10,18 @@ const isTablet = screenWidth > 768; // Common tablet breakpoint
 interface Props {
     onContinue: (playerName?: string) => void;
     onGoToInteraction?: (playerName?: string) => void;
-    onGoToSelection?: () => void;
+    onGoToSelection?: (fromPhase?: string) => void;
     connected: boolean;
     onConnectWallet?: () => void;
     playerName?: string;
     goToCongratulations?: boolean;
+    initialPhase?: string;
 }
 
-const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations }) => {
+const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations, initialPhase }) => {
     const { publicKey } = useWallet();
     
-    const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'nameInput' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'congratulations' | 'mintMore' | 'final' | 'complete'>('intro');
+    const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'nameInput' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'congratulations' | 'mintMore' | 'final' | 'complete'>(initialPhase as any || 'intro');
     const [playerName, setPlayerName] = useState(storedPlayerName || '');
     const [dialogIndex, setDialogIndex] = useState(0);
     const [selectedChoice, setSelectedChoice] = useState<'yes' | 'no'>('yes');
@@ -35,6 +36,13 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     // Use refs to track current state in intervals
     const segmentIndexRef = useRef(0);
     const charIndexRef = useRef(0);
+
+    // Update phase when initialPhase prop changes
+    useEffect(() => {
+        if (initialPhase && initialPhase !== currentPhase) {
+            setCurrentPhase(initialPhase as any);
+        }
+    }, [initialPhase]);
 
     // Function to split text into chunks that fit within 3 lines
     const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 19) => {
@@ -273,7 +281,11 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                     break;
                 case 'chooseMoonling':
                     // Go to moonling selection screen
-                    onContinue(playerName);
+                    if (onGoToSelection) {
+                        onGoToSelection(currentPhase);
+                    } else {
+                        onContinue(playerName); // Fallback
+                    }
                     break;
                 case 'congratulations':
                     setCurrentPhase('mintMore');
@@ -310,7 +322,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
         } else if (currentPhase === 'mintMore') {
             // Go back to selection screen
             if (onGoToSelection) {
-                onGoToSelection();
+                onGoToSelection(currentPhase);
             }
         }
     };

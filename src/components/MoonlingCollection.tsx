@@ -71,23 +71,23 @@ const MoonlingCollection: React.FC<Props> = ({
         'Ingredients': [
             { id: 'star_dust', name: 'Star Dust', description: 'Magical dust from distant stars. Boosts mood when used in food.', type: 'ingredient', rarity: 'Common', quantity: 5, icon: '/glitter.png' },
             { id: 'moon_berries', name: 'Moon Berries', description: 'Sweet berries that glow in the dark. Increases energy significantly.', type: 'ingredient', rarity: 'Rare', quantity: 3, icon: '/apple_collour_.webp' },
-            { id: 'cosmic_honey', name: 'Cosmic Honey', description: 'Golden honey infused with cosmic energy. Restores all stats.', type: 'ingredient', rarity: 'Epic', quantity: 1, icon: '/chunky_bubbly_2.webp' },
+            { id: 'stellar_honey', name: 'Stellar Honey', description: 'Golden honey infused with stellar energy. Restores all stats.', type: 'ingredient', rarity: 'Epic', quantity: 1, icon: '/chunky_bubbly_2.webp' },
             { id: 'nebula_spice', name: 'Nebula Spice', description: 'Exotic spice that adds flavor and magic to any dish.', type: 'ingredient', rarity: 'Legendary', quantity: 1, icon: '/miau.webp' }
         ],
         'Accessories': [
             { id: 'star_crown', name: 'Star Crown', description: 'A beautiful crown that makes your moonling sparkle in the moonlight.', type: 'accessory', rarity: 'Rare', quantity: 1, icon: '/hoshino star.png' },
-            { id: 'cosmic_scarf', name: 'Cosmic Scarf', description: 'A warm scarf woven from stardust threads.', type: 'accessory', rarity: 'Common', quantity: 2, icon: '/backpack_.webp' },
+            { id: 'stellar_scarf', name: 'Stellar Scarf', description: 'A warm scarf woven from stardust threads.', type: 'accessory', rarity: 'Common', quantity: 2, icon: '/backpack_.webp' },
             { id: 'galaxy_collar', name: 'Galaxy Collar', description: 'A collar that shows swirling galaxies within.', type: 'accessory', rarity: 'Epic', quantity: 1, icon: '/io.webp' }
         ],
         'Special Items': [
             { id: 'moon_crystal', name: 'Moon Crystal', description: 'A rare crystal that can reset your moonling\'s evolution path.', type: 'special', rarity: 'Legendary', quantity: 1, icon: '/null-11.webp' },
             { id: 'star_fragment', name: 'Star Fragment', description: 'A piece of a fallen star. Can be used for special rituals.', type: 'special', rarity: 'Epic', quantity: 2, icon: '/games.webp' },
-            { id: 'cosmic_potion', name: 'Cosmic Potion', description: 'A mysterious potion with unknown effects.', type: 'special', rarity: 'Rare', quantity: 1, icon: '/sleepzzzz.webp' }
+            { id: 'stellar_potion', name: 'Stellar Potion', description: 'A mysterious potion with unknown effects.', type: 'special', rarity: 'Rare', quantity: 1, icon: '/sleepzzzz.webp' }
         ],
         'Casing': [
             { id: 'galaxy_shell', name: 'Galaxy Shell', description: 'A beautiful shell that changes your device\'s appearance to show galaxies.', type: 'casing', rarity: 'Epic', quantity: 1, icon: '/shop.webp' },
             { id: 'star_frame', name: 'Star Frame', description: 'A golden frame decorated with tiny stars.', type: 'casing', rarity: 'Rare', quantity: 1, icon: '/gallery_.png' },
-            { id: 'cosmic_border', name: 'Cosmic Border', description: 'A shimmering border that pulses with cosmic energy.', type: 'casing', rarity: 'Common', quantity: 3, icon: '/chat.webp' }
+            { id: 'stellar_border', name: 'Stellar Border', description: 'A shimmering border that pulses with stellar energy.', type: 'casing', rarity: 'Common', quantity: 3, icon: '/chat.webp' }
         ]
     };
 
@@ -123,8 +123,8 @@ const MoonlingCollection: React.FC<Props> = ({
                 <View style={styles.statusDither1} />
                 <View style={styles.statusDither2} />
 
-                <Text style={styles.gearIcon}>📦</Text>
-                <Text style={styles.walletStatusText}>COSMIC INVENTORY</Text>
+                <Image source={require('../../assets/images/backpack.png')} style={styles.gearImage} />
+                <Text style={styles.walletStatusText}>INVENTORY</Text>
             </View>
 
             {/* Main LCD Screen - Game Boy Style */}
@@ -432,6 +432,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#e8fbe4', // Minty Game Boy background
         padding: 12,
+        paddingTop: 75, // Space below connect button
+        paddingBottom: 100, // Space above Android navigation
         position: 'relative',
     },
     topStatus: {
@@ -452,6 +454,11 @@ const styles = StyleSheet.create({
     gearIcon: {
         fontSize: 16,
         color: '#21342b',
+    },
+    gearImage: {
+        width: 16,
+        height: 16,
+        resizeMode: 'contain',
     },
     walletStatusText: {
         fontSize: 14,
@@ -765,7 +772,7 @@ const styles = StyleSheet.create({
     },
     bottomButton: {
         position: 'absolute',
-        bottom: 15,
+        bottom: 55, // Increased from 15 to avoid Android navigation
         width: 80,
         height: 40,
         alignItems: 'center',

@@ -37,7 +37,7 @@ interface Character {
     name: string;
     description: string;
     image: string;
-    element?: string;
+
     rarity?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
     nftMint?: string | null;
     baseStats?: {
@@ -113,7 +113,22 @@ function App() {
 
     const { connected, publicKey, connect, disconnect } = useWallet();
     const [currentView, setCurrentView] = useState('welcome');
+    const [previousView, setPreviousView] = useState('welcome');
+    const [welcomePhase, setWelcomePhase] = useState<string>('intro');
     const [shouldGoToCongratulations, setShouldGoToCongratulations] = useState(false);
+
+    const navigateToView = (view: string) => {
+        setPreviousView(currentView);
+        setCurrentView(view);
+    };
+
+    const navigateToSelection = (fromPhase?: string) => {
+        if (fromPhase) {
+            setWelcomePhase(fromPhase);
+        }
+        setPreviousView(currentView);
+        setCurrentView('selection');
+    };
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
         null
     );
@@ -473,7 +488,7 @@ function App() {
         if (name && publicKey) {
             setPlayerName(name);
             savePlayerName(name, publicKey.toString());
-            addNotification(`✨ Welcome, ${name}! Ready to start your cosmic adventure!`, 'success');
+            addNotification(`✨ Welcome, ${name}! Ready to start your stellar adventure!`, 'success');
         }
         setCurrentView('selection');
     };
@@ -544,17 +559,27 @@ function App() {
                     <WelcomeScreen
                         onContinue={handleContinueFromWelcome}
                         onGoToInteraction={handleGoToInteraction}
-                        onGoToSelection={() => setCurrentView('selection')}
+                        onGoToSelection={(fromPhase) => navigateToSelection(fromPhase)}
                         connected={connected}
                         onConnectWallet={connectWallet}
                         playerName={playerName}
                         goToCongratulations={shouldGoToCongratulations}
+                        initialPhase={welcomePhase}
                     />
                 );
             case 'selection':
                 return (
                     <MoonlingSelection
-                        onBack={() => setCurrentView('welcome')}
+                        onBack={() => {
+                            if (previousView === 'welcome') {
+                                // Go back to the specific welcome phase
+                                setCurrentView('welcome');
+                                // The welcome screen will handle the phase based on welcomePhase
+                            } else {
+                                // Go back to the previous view (like interaction)
+                                navigateToView(previousView);
+                            }
+                        }}
                         onSelectCharacter={handleCharacterSelect}
                         onFeed={() => setCurrentView('feeding')}
                         onChat={() => setCurrentView('chat')}
@@ -576,7 +601,6 @@ function App() {
                                 name: 'Lyra',
                                 description: 'Anime-obsessed celestial maiden who knows every existing anime.',
                                 image: 'LYRA.png',
-                                element: 'Love',
                                 baseStats: { mood: 4, hunger: 3, energy: 3 },
                                 rarity: 'Common',
                                 specialAbility: 'Healing Aura - Recovers faster when resting',
@@ -587,7 +611,6 @@ function App() {
                                 name: 'Orion',
                                 description: 'Mystical guardian with moon and stars',
                                 image: 'ORION.png',
-                                element: 'Moon',
                                 baseStats: { mood: 3, hunger: 4, energy: 3 },
                                 rarity: 'Rare',
                                 specialAbility: 'Night Vision - Gains energy during nighttime',
@@ -598,7 +621,6 @@ function App() {
                                 name: 'Aro',
                                 description: 'Bright guardian full of celestial energy',
                                 image: 'ARO.png',
-                                element: 'Star',
                                 baseStats: { mood: 5, hunger: 2, energy: 3 },
                                 rarity: 'Epic',
                                 specialAbility: 'Star Power - Mood boosts last longer',
@@ -609,7 +631,6 @@ function App() {
                                 name: 'Sirius',
                                 description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
                                 image: 'SIRIUS.png',
-                                element: 'Stellar',
                                 baseStats: { mood: 5, hunger: 3, energy: 4 },
                                 rarity: 'Legendary',
                                 specialAbility: 'Stellar Radiance - Boosts all stats when mood is at maximum',
@@ -618,12 +639,11 @@ function App() {
                             {
                                 id: 'zaniah',
                                 name: 'Zaniah',
-                                description: 'Mysterious cosmic entity with ethereal presence. Zaniah embodies the essence of distant stars and ancient wisdom. Quiet and contemplative, but harbors immense power within.',
+                                description: 'Mysterious entity with ethereal presence. Zaniah embodies the essence of distant stars and ancient wisdom. Quiet and contemplative, but harbors immense power within.',
                                 image: 'ZANIAH.png',
-                                element: 'Cosmic',
                                 baseStats: { mood: 4, hunger: 3, energy: 5 },
                                 rarity: 'Legendary',
-                                specialAbility: 'Cosmic Resonance - Amplifies all abilities during cosmic events',
+                                specialAbility: 'Stellar Resonance - Amplifies all abilities during stellar events',
                                 nftMint: ownedCharacters.includes('zaniah') ? 'mint_address_zaniah' : null
                             }
                         ]}
@@ -639,7 +659,7 @@ function App() {
                 return (
                     <MoonlingInteraction
                         selectedCharacter={selectedCharacter}
-                        onSelectCharacter={() => setCurrentView('selection')}
+                        onSelectCharacter={() => navigateToView('selection')}
                         onFeed={() => setCurrentView('feeding')}
                         connected={connected}
                         walletAddress={publicKey?.toString()}
@@ -747,7 +767,6 @@ function App() {
                                 name: 'Lyra',
                                 description: 'Anime-obsessed celestial maiden who knows every existing anime. Has a secret soft spot for Orion but would NEVER admit it. Very comprehensive when chatting, but turns into an exaggerated crying mess (Misa from Death Note style) if ignored. Lowkey jealous of you sentimentally but in a funny way. When angry, becomes irritable like someone with hormonal imbalance and will roast you. When sad, has existential crises.',
                                 image: 'LYRA.png',
-                                element: 'Love',
                                 baseStats: { mood: 4, hunger: 3, energy: 3 },
                                 rarity: 'Common',
                                 specialAbility: 'Healing Aura - Recovers faster when resting',
@@ -758,7 +777,6 @@ function App() {
                                 name: 'Orion',
                                 description: 'Mystical guardian with moon and stars',
                                 image: 'ORION.png',
-                                element: 'Moon',
                                 baseStats: { mood: 3, hunger: 4, energy: 3 },
                                 rarity: 'Rare',
                                 specialAbility: 'Night Vision - Gains energy during nighttime',
@@ -769,7 +787,6 @@ function App() {
                                 name: 'Aro',
                                 description: 'Bright guardian full of celestial energy',
                                 image: 'ARO.png',
-                                element: 'Star',
                                 baseStats: { mood: 5, hunger: 2, energy: 3 },
                                 rarity: 'Epic',
                                 specialAbility: 'Star Power - Mood boosts last longer',
@@ -780,7 +797,6 @@ function App() {
                                 name: 'Sirius',
                                 description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
                                 image: 'SIRIUS.png',
-                                element: 'Stellar',
                                 baseStats: { mood: 5, hunger: 3, energy: 4 },
                                 rarity: 'Legendary',
                                 specialAbility: 'Stellar Radiance - Boosts all stats when mood is at maximum',
