@@ -139,54 +139,7 @@ export class ProgrammableNFTService {
     }
   }
 
-  /**
-   * Create metadata for IPFS upload
-   */
-  private createMetadata(
-    name: string,
-    description: string,
-    imageCid: string,
-    attributes: Array<{ trait_type: string; value: string | number }> = []
-  ): NFTMetadata {
-    return {
-      name,
-      description,
-      image: `https://ipfs.io/ipfs/${imageCid}`,
-      external_url: 'https://hoshino.game',
-      attributes,
-      properties: {
-        category: 'image',
-        creators: [
-          {
-            address: this.updateAuthority?.publicKey ? 
-              this.umi.identity.publicKey.toString() : 
-              '11111111111111111111111111111111',
-            share: 100
-          }
-        ]
-      }
-    };
-  }
 
-  /**
-   * Upload metadata to IPFS and return CID
-   * Note: In production, implement actual IPFS upload here
-   */
-  private async uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string> {
-    // For production, replace with actual IPFS upload
-    // This is a placeholder that returns a data URI for testing
-    const metadataJson = JSON.stringify(metadata, null, 2);
-    const base64Metadata = btoa(metadataJson);
-    
-    console.log('📤 Metadata prepared for IPFS upload:', {
-      name: metadata.name,
-      attributes: metadata.attributes.length,
-      size: metadataJson.length
-    });
-
-    // Return a mock CID for testing - replace with real IPFS upload
-    return `QmTEST${Math.random().toString(36).substring(7)}`;
-  }
 
   /**
    * Mint a Character as a Programmable NFT
@@ -206,33 +159,10 @@ export class ProgrammableNFTService {
     try {
       console.log(`🎮 Minting character pNFT: ${character.name}`);
 
-      // Create character attributes
-      const attributes = [
-        { trait_type: 'Element', value: character.element },
-        { trait_type: 'Rarity', value: character.rarity },
-        { trait_type: 'Level', value: character.level || 1 },
-        { trait_type: 'Experience', value: character.experience || 0 },
-        { trait_type: 'Category', value: 'Character' }
-      ];
 
-      if (character.baseStats) {
-        attributes.push(
-          { trait_type: 'Mood', value: character.baseStats.mood },
-          { trait_type: 'Hunger', value: character.baseStats.hunger },
-          { trait_type: 'Energy', value: character.baseStats.energy }
-        );
-      }
 
-      // Create and upload metadata
-      const metadata = this.createMetadata(
-        character.name,
-        character.description || `A ${character.rarity} ${character.element} character in Hoshino.`,
-        imageCid,
-        attributes
-      );
-
-      const metadataCid = await this.uploadMetadataToIPFS(metadata);
-      const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
+      // Use existing IPFS CID directly as metadata URI
+      const metadataUri = `https://ipfs.io/ipfs/${imageCid}`;
 
       // Generate mint keypair
       const mintSigner = generateSigner(this.umi);
@@ -305,23 +235,10 @@ export class ProgrammableNFTService {
     try {
       console.log(`🏆 Minting achievement pNFT: ${achievement.name}`);
 
-      // Create achievement attributes
-      const attributes = [
-        { trait_type: 'Category', value: 'Achievement' },
-        { trait_type: 'Rarity', value: achievement.rarity || 'Common' },
-        { trait_type: 'Unlocked At', value: achievement.unlockedAt?.toISOString() || new Date().toISOString() }
-      ];
 
-      // Create and upload metadata
-      const metadata = this.createMetadata(
-        achievement.name,
-        achievement.description,
-        imageCid,
-        attributes
-      );
 
-      const metadataCid = await this.uploadMetadataToIPFS(metadata);
-      const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
+      // Use existing IPFS CID directly as metadata URI
+      const metadataUri = `https://ipfs.io/ipfs/${imageCid}`;
 
       // Generate mint keypair
       const mintSigner = generateSigner(this.umi);
@@ -380,8 +297,7 @@ export class ProgrammableNFTService {
    */
   async updateNFTUri(
     mintAddress: string,
-    newImageCid: string,
-    updatedMetadata?: Partial<NFTMetadata>
+    newImageCid: string
   ): Promise<UpdateResult> {
     if (!this.updateAuthority) {
       return {
