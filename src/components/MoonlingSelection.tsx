@@ -19,6 +19,7 @@ import WalletButton from './WalletButton';
 
 // NEW: Programmable NFT Integration
 import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
+import { getAsset } from '../config/AssetRegistry';
 
 
 // Helper function to get image source based on character image name
@@ -67,35 +68,35 @@ const CHARACTERS: Character[] = [
     {
         id: 'lyra',
         name: 'Lyra',
-        description: 'Lyra lives for attention, anime, and being just a little unhinged. She’ll flirt, cry, and roast you in the same breath. Don’t leave her on read — ever.',
+        description: 'Lyra lives for attention, anime, and being just a little unhinged. She\'ll flirt, cry, and roast you in the same breath. Don\'t leave her on read — ever.',
         image: 'LYRA.gif',
         nftMint: null
     },
     {
         id: 'orion',
         name: 'Orion',
-        description: 'A dramatic starboy with too many feelings and a quiet grudge. Sometimes you’ll catch him in a corner, blasting Lil Peep like it’s a coping mechanism. Don’t ask, he won’t tell.',
+        description: 'A dramatic starboy with too many feelings and a quiet grudge. Sometimes you\'ll catch him in a corner, blasting Lil Peep like it\'s a coping mechanism. Don\'t ask, he won\'t tell.',
         image: 'ORION.gif',
         nftMint: null
     },
     {
         id: 'aro',
         name: 'Aro',
-        description: 'A chaotic little menace. Loud, unhinged, and always ready to play. Share a secret and he’ll turn it into his favorite joke for weeks.',
+        description: 'A chaotic little menace. Loud, unhinged, and always ready to play. Share a secret and he\'ll turn it into his favorite joke for weeks.',
         image: 'ARO.gif',
         nftMint: null
     },
     {
         id: 'sirius',
         name: 'Sirius',
-        description: 'A robot cat who thinks he’s hilarious. Loves making dad jokes about AI and insists you call him “Hey Sirius". But don’t worry, he’s still learning emotions… kind of.',
+        description: 'A robot cat who thinks he\'s hilarious. Loves making dad jokes about AI and insists you call him "Hey Sirius". But don\'t worry, he\'s still learning emotions… kind of.',
         image: 'SIRIUS.gif',
         nftMint: null
     },
     {
         id: 'zaniah',
         name: 'Zaniah',
-        description: 'If she’s moody, don’t ask — it’s either Mercury retrograde or you’re a Scorpio. Or both. Let her vibe it out, she’s in her healing era.',
+        description: 'If she\'s moody, don\'t ask — it\'s either Mercury retrograde or you\'re a Scorpio. Or both. Let her vibe it out, she\'s in her healing era.',
         image: 'ZANIAH.gif',
         nftMint: null
     }
@@ -353,8 +354,17 @@ const MoonlingSelection: React.FC<Props> = ({
         }
 
         try {
-            // NEW: Mint character pNFT with update authority enabled!
-            onNotification?.(`🎨 Minting ${character.name} pNFT with update authority...`, 'info');
+            // Get character asset from registry
+            const asset = getAsset(character.id);
+            if (!asset) {
+                throw new Error(`Character ${character.id} not found in asset registry`);
+            }
+
+            if (asset.category !== 'character') {
+                throw new Error(`Asset ${character.id} is not a character`);
+            }
+
+            onNotification?.(`🎨 Minting ${character.name} pNFT with existing IPFS CID...`, 'info');
             
             // Map local Character to GameCharacter format for pNFT minting
             const gameCharacter = {
@@ -363,7 +373,7 @@ const MoonlingSelection: React.FC<Props> = ({
                 rarity: 'Common' as const // Default rarity - could be determined by character.id
             };
             
-            const result = await quickMintCharacter(gameCharacter);
+            const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);
             
             if (result.success) {
                 onNotification?.(

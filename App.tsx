@@ -284,9 +284,14 @@ function App() {
                 throw new Error(`Asset ${selectedCharacter.id} is not a character`);
             }
 
-            // TODO: Implement actual NFT minting with Metaplex
-            // For now, simulate successful minting
-            console.log('✅ Minting successful! (Mock implementation)');
+            // Mint NFT using existing IPFS CID from AssetRegistry
+            const result = await mintCharacterNFT(selectedCharacter, asset.ipfsHash);
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Minting failed');
+            }
+
+            console.log('✅ Character NFT minted successfully!', result.mintAddress);
             setStatusMessage(
                 '🎉 Character NFT minted successfully! Check your wallet.'
             );

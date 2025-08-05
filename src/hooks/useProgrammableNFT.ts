@@ -156,23 +156,7 @@ export const useProgrammableNFT = () => {
     };
   }, [state.service, connected, publicKey]);
 
-  /**
-   * Quick mint function for game integration - uses mock CIDs for testing
-   */
-  const quickMintCharacter = useCallback(async (character: GameCharacter): Promise<MintResult> => {
-    // Use a mock IPFS CID for testing - in production, upload actual image first
-    const mockImageCid = `QmMock${character.id}${Math.random().toString(36).substring(7)}`;
-    return mintCharacterNFT(character, mockImageCid);
-  }, [mintCharacterNFT]);
 
-  /**
-   * Quick mint function for achievements - uses mock CIDs for testing
-   */
-  const quickMintAchievement = useCallback(async (achievement: GameAchievement): Promise<MintResult> => {
-    // Use a mock IPFS CID for testing - in production, upload actual image first
-    const mockImageCid = `QmMock${achievement.id}${Math.random().toString(36).substring(7)}`;
-    return mintAchievementNFT(achievement, mockImageCid);
-  }, [mintAchievementNFT]);
 
   return {
     // Connection state (from WalletContext)
@@ -187,10 +171,6 @@ export const useProgrammableNFT = () => {
     // Minting functions (with CID)
     mintCharacterNFT,
     mintAchievementNFT,
-    
-    // Quick minting functions (for game integration)
-    quickMintCharacter,
-    quickMintAchievement,
     
     // Utility functions
     getServiceStatus,

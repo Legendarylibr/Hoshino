@@ -95,13 +95,13 @@ export class AchievementService {
         rarity: achievement.rarity
       }
 
-      // Use mock IPFS CID for testing
-      const mockImageCid = `QmMockAchievement${achievement.id}${Math.random().toString(36).substring(7)}`
+      // Use existing achievement IPFS CID (should be provided by caller)
+      const achievementCid = achievement.imageUrl || `QmDefaultAchievement${achievement.id}`
 
       // Mint as programmable NFT
       const result = await this.nftService.mintAchievementPNFT(
         gameAchievement,
-        mockImageCid,
+        achievementCid,
         this.wallet.publicKey
       )
 
@@ -175,13 +175,13 @@ export class AchievementService {
         rarity: achievementData.rarity
       }
 
-      // Use mock IPFS CID
-      const mockImageCid = `QmMockAchievement${Date.now()}${Math.random().toString(36).substring(7)}`
+      // Use existing achievement IPFS CID from imageUrl
+      const achievementCid = achievementData.imageUrl || `QmDefaultAchievement${Date.now()}`
 
       // Mint as programmable NFT
       const result = await this.nftService.mintAchievementPNFT(
         gameAchievement,
-        mockImageCid,
+        achievementCid,
         this.wallet.publicKey
       )
 
@@ -264,13 +264,13 @@ export class AchievementService {
         rarity: 'Legendary'
       }
 
-      // Use mock IPFS CID
-      const mockImageCid = `QmMockEvent${eventMetadata.eventId}${Math.random().toString(36).substring(7)}`
+      // Use existing event IPFS CID
+      const eventCid = eventMetadata.imageUrl || `QmDefaultEvent${eventMetadata.eventId}`
 
       // Mint as programmable NFT
       const result = await this.nftService.mintAchievementPNFT(
         gameAchievement,
-        mockImageCid,
+        eventCid,
         this.wallet.publicKey
       )
 

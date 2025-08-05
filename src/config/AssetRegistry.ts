@@ -13,7 +13,7 @@ export const ASSET_REGISTRY: Record<string, NFTAsset> = {
     id: 'hoshino',
     name: 'Hoshino',
     description: 'A celestial companion who brings joy and wonder to your daily life.',
-    ipfsHash: 'QmYourIPFSHash1234567890abcdef', // Replace with your actual IPFS hash
+    ipfsHash: 'QmVAi1YKNi7Mkzsmz98hAKbRLw88c4AKmLR7qjchoNau1x',
     category: 'character'
   },
   
@@ -29,7 +29,7 @@ export const ASSET_REGISTRY: Record<string, NFTAsset> = {
     id: 'sirius',
     name: 'Sirius',
     description: 'A bright star companion with boundless energy and loyalty.',
-    ipfsHash: 'QmYourIPFSHash3456789012cdefgh', // Replace with your actual IPFS hash
+    ipfsHash: 'Qmej4fcPuknHEHJSxg4wquvEU66e7Svkn4MZTFiM6px5jA',
     category: 'character'
   },
   
@@ -37,7 +37,31 @@ export const ASSET_REGISTRY: Record<string, NFTAsset> = {
     id: 'lyra',
     name: 'Lyra',
     description: 'A musical soul who harmonizes with the cosmic frequencies.',
-    ipfsHash: 'QmYourIPFSHash4567890123defghi', // Replace with your actual IPFS hash
+    ipfsHash: 'QmeCu9XBsSmHDMFic6Q8SGKn5Viwup6DqvkLCCgP3V157y',
+    category: 'character'
+  },
+  
+  'aro': {
+    id: 'aro',
+    name: 'Aro',
+    description: 'A mysterious stellar companion with ancient wisdom and power.',
+    ipfsHash: 'Qma1nEv6uXyYfTn1YFaBV9K5gsUcCrFfdPkqDRsjjbKQej',
+    category: 'character'
+  },
+  
+  'orion': {
+    id: 'orion',
+    name: 'Orion',
+    description: 'A powerful hunter constellation with unwavering strength and courage.',
+    ipfsHash: 'QmPrYF7m2yMv2jUw7Aa5UboTnae6Kp2Pguf1yGBTjVk1kp',
+    category: 'character'
+  },
+  
+  'zaniah': {
+    id: 'zaniah',
+    name: 'Zaniah',
+    description: 'A gentle star maiden with healing powers and celestial grace.',
+    ipfsHash: 'QmdSNuF1NCkuNcZzuRYKSeeumYUHi63snddhGY1cG9tSZD',
     category: 'character'
   },
   

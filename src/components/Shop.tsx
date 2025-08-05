@@ -1,476 +1,825 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import MarketplaceService, {
-    MarketplaceItem,
-    ItemCategory,
-    ItemRarity,
-    UserInventory
-} from '../services/MarketplaceService';
+﻿import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '../services/MarketplaceService';
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
-import { Connection, PublicKey } from '@solana/web3.js';
-import InnerScreen from './InnerScreen';
+import { Connection } from '@solana/web3.js';
+import PinkSugar from '../../assets/images/Pink Sugar.png';
+import NovaEgg from '../../assets/images/nova-egg.png';
+import MiraBerry from '../../assets/images/mira-berry.png';
 
 interface ShopProps {
     connection: Connection;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     onClose: () => void;
+    onItemsPurchased?: (items: MarketplaceItem[]) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
-    const wallet = useWallet();
-    const [selectedCategory, setSelectedCategory] = useState<ItemCategory | 'all' | 'currency'>('all');
-    const [selectedRarity, setSelectedRarity] = useState<ItemRarity | 'all'>('all');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [userInventory, setUserInventory] = useState<UserInventory | null>(null);
-    const [marketplaceService, setMarketplaceService] = useState<MarketplaceService | null>(null);
-    const [globalPointSystem, setGlobalPointSystem] = useState<GlobalPointSystem | null>(null);
-    const [starFragmentBalance, setStarFragmentBalance] = useState(0);
-    const [isLoading, setIsLoading] = useState(false);
+const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItemsPurchased }) => {
+    const [selectedCategory, setSelectedCategory] = useState<string>('food');
+    const [items, setItems] = useState<MarketplaceItem[]>([]);
+    const [dust, setDust] = useState<number>(100);
+    const [cart, setCart] = useState<{ item: MarketplaceItem, quantity: number }[]>([]);
+    const [flashingItem, setFlashingItem] = useState<string | null>(null);
+
+    const getTotalPrice = () => {
+        return cart.reduce((total, cartItem) => total + (cartItem.item.priceStarFragments * cartItem.quantity), 0);
+    };
+
+    const getRarityBorderColor = (rarity: ItemRarity): string => {
+        switch (rarity) {
+            case ItemRarity.COMMON: return '#8B8B8B';
+            case ItemRarity.UNCOMMON: return '#4CAF50';
+            case ItemRarity.RARE: return '#2196F3';
+            case ItemRarity.EPIC: return '#9C27B0';
+            case ItemRarity.LEGENDARY: return '#FF9800';
+            default: return '#003300';
+        }
+    };
+
+    const addToCart = (item: MarketplaceItem) => {
+        const totalCostAfterAdd = getTotalPrice() + item.priceStarFragments;
+        if (totalCostAfterAdd > dust) {
+            onNotification?.(`Not enough Cosmic Dust! You need ${totalCostAfterAdd} but only have ${dust}.`, 'error');
+            return;
+        }
+
+        setCart(prevCart => {
+            const existingItem = prevCart.find(cartItem => cartItem.item.id === item.id);
+            if (existingItem) {
+                return prevCart.map(cartItem =>
+                    cartItem.item.id === item.id
+                        ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                        : cartItem
+                );
+            } else {
+                return [...prevCart, { item, quantity: 1 }];
+            }
+        });
+
+        setDust(prevDust => prevDust - item.priceStarFragments);
+
+        setFlashingItem(item.id);
+        setTimeout(() => setFlashingItem(null), 300);
+
+        onNotification?.(`Added ${item.name} to cart! ${item.priceStarFragments} Cosmic Dust deducted.`, 'success');
+    };
+
+    const removeFromCart = (itemId: string) => {
+        const itemToRemove = cart.find(cartItem => cartItem.item.id === itemId);
+        if (itemToRemove) {
+            const refundAmount = itemToRemove.item.priceStarFragments * itemToRemove.quantity;
+            setDust(prevDust => prevDust + refundAmount);
+            onNotification?.(`Removed ${itemToRemove.item.name} from cart. ${refundAmount} Cosmic Dust refunded.`, 'info');
+        }
+        setCart(prevCart => prevCart.filter(cartItem => cartItem.item.id !== itemId));
+    };
+
+    const clearCart = () => {
+        if (cart.length === 0) return;
+
+        const totalRefund = getTotalPrice();
+        setDust(prevDust => prevDust + totalRefund);
+        setCart([]);
+        onNotification?.(`Cart cleared! ${totalRefund} Cosmic Dust refunded.`, 'info');
+    };
+
+    const handleCheckout = () => {
+        if (cart.length === 0) {
+            onNotification?.('Your cart is empty!', 'warning');
+            return;
+        }
+
+        const purchasedItems = cart.map(cartItem => cartItem.item);
+
+        if (onItemsPurchased) {
+            onItemsPurchased(purchasedItems);
+        }
+
+        setCart([]);
+
+        onNotification?.(`Purchase complete! ${purchasedItems.length} items added to your ingredient inventory.`, 'success');
+    };
 
     useEffect(() => {
-        if (wallet.connected && connection) {
-            const service = new MarketplaceService(connection, wallet as any);
-            setMarketplaceService(service);
+        const itemsData = [
+            {
+                id: 'sugar',
+                name: 'Pink Sugar',
+                description: 'Sweet crystalline sugar with a pink hue',
+                imageUrl: PinkSugar,
+                category: ItemCategory.FOOD,
+                rarity: ItemRarity.COMMON,
+                priceSOL: 0,
+                priceStarFragments: 15,
+                inStock: true,
+            },
+            {
+                id: 'nova',
+                name: 'Nova Egg',
+                description: 'A mysterious egg that glows with stellar energy',
+                imageUrl: NovaEgg,
+                category: ItemCategory.FOOD,
+                rarity: ItemRarity.UNCOMMON,
+                priceSOL: 0,
+                priceStarFragments: 25,
+                inStock: true,
+            },
+            {
+                id: 'mira',
+                name: 'Mira Berry',
+                description: 'A rare berry with cosmic properties',
+                imageUrl: MiraBerry,
+                category: ItemCategory.FOOD,
+                rarity: ItemRarity.RARE,
+                priceSOL: 0,
+                priceStarFragments: 20,
+                inStock: true,
+            },
+            {
+                id: 'speed-boost',
+                name: 'Speed Boost',
+                description: 'Increases movement speed temporarily',
+                imageUrl: 'https://via.placeholder.com/48/00FF00/000000?text=⚡',
+                category: ItemCategory.POWERUP,
+                rarity: ItemRarity.COMMON,
+                priceSOL: 0,
+                priceStarFragments: 12,
+                inStock: true,
+            },
+            {
+                id: 'star-shield',
+                name: 'Star Shield',
+                description: 'Provides cosmic protection',
+                imageUrl: 'https://via.placeholder.com/48/4169E1/000000?text=🛡️',
+                category: ItemCategory.POWERUP,
+                rarity: ItemRarity.RARE,
+                priceSOL: 0,
+                priceStarFragments: 45,
+                inStock: true,
+            },
+        ];
 
-            if (wallet.publicKey) {
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                service.getUserInventory(publicKeyObj).then(inventory => {
-                    setUserInventory(inventory);
-                });
-
-                const pointSystem = new GlobalPointSystem(wallet.publicKey);
-                setGlobalPointSystem(pointSystem);
-
-                let pointsData = pointSystem.getCurrentPoints();
-                if (!pointsData) {
-                    pointsData = pointSystem.initializeUser(wallet.publicKey);
-                }
-                setStarFragmentBalance(pointsData.starFragments);
-            }
-        }
-    }, [wallet, connection]);
+        console.log('Loading shop catalog (no wallet needed)');
+        setItems(itemsData);
+    }, []);
 
     const filteredItems = useMemo(() => {
-        if (!marketplaceService) return [];
-
-        let items = marketplaceService.getAllItems();
-
-        if (selectedCategory !== 'all') {
-            items = items.filter(item => item.category === selectedCategory);
-        }
-
-        if (selectedRarity !== 'all') {
-            items = items.filter(item => item.rarity === selectedRarity);
-        }
-
-        if (searchQuery) {
-            items = marketplaceService.searchItems(searchQuery);
-        }
-
-        return items;
-    }, [marketplaceService, selectedCategory, selectedRarity, searchQuery]);
-
-    const featuredItems = useMemo(() => {
-        if (!marketplaceService) return [];
-        return marketplaceService.getFeaturedItems();
-    }, [marketplaceService]);
-
-    const handleStarFragmentPurchase = async (solAmount: number) => {
-        if (!globalPointSystem) {
-            onNotification?.('❌ Point system not initialized', 'error');
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const result = globalPointSystem.purchaseStarFragments(solAmount);
-
-            if (result.success) {
-                onNotification?.(
-                    `✨ Successfully purchased ${result.fragments} Star Fragments! Cost: ${solAmount.toFixed(4)} SOL`,
-                    'success'
-                );
-                setStarFragmentBalance(globalPointSystem.getStarFragmentBalance());
-            } else {
-                onNotification?.(`❌ Purchase failed: ${result.error}`, 'error');
-            }
-        } catch (error) {
-            onNotification?.(`❌ Purchase error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handlePurchase = async (item: MarketplaceItem, quantity: number = 1) => {
-        if (!marketplaceService || !wallet.publicKey) {
-            onNotification?.('❌ Marketplace not initialized', 'error');
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const result = await marketplaceService.purchaseItem(item.id, quantity);
-
-            if (result.success) {
-                onNotification?.(
-                    `✅ Successfully purchased ${quantity}x ${item.name}! Cost: ${result.cost.toFixed(4)} SOL`,
-                    'success'
-                );
-
-                // Refresh inventory
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                const inventory = await marketplaceService.getUserInventory(publicKeyObj);
-                setUserInventory(inventory);
-            } else {
-                onNotification?.(`❌ Purchase failed: ${result.error}`, 'error');
-            }
-        } catch (error) {
-            onNotification?.(`❌ Purchase error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleUseItem = async (itemId: string) => {
-        if (!marketplaceService || !wallet.publicKey) {
-            onNotification?.('❌ Marketplace not initialized', 'error');
-            return;
-        }
-
-        try {
-            const result = await marketplaceService.useItem(itemId);
-
-            if (result.success) {
-                onNotification?.(`✨ Used ${result.itemName}! ${result.effect}`, 'success');
-
-                // Refresh inventory
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                const inventory = await marketplaceService.getUserInventory(publicKeyObj);
-                setUserInventory(inventory);
-            } else {
-                onNotification?.(`❌ Failed to use item: ${result.error}`, 'error');
-            }
-        } catch (error) {
-            onNotification?.(`❌ Use item error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        }
-    };
-
-    const handleCraftItem = async (itemId: string) => {
-        if (!marketplaceService || !wallet.publicKey) {
-            onNotification?.('❌ Marketplace not initialized', 'error');
-            return;
-        }
-
-        try {
-            const result = await marketplaceService.craftItem(itemId);
-
-            if (result.success) {
-                onNotification?.(`🔨 Successfully crafted ${result.itemName}!`, 'success');
-
-                // Refresh inventory
-                const publicKeyObj = new PublicKey(wallet.publicKey);
-                const inventory = await marketplaceService.getUserInventory(publicKeyObj);
-                setUserInventory(inventory);
-            } else {
-                onNotification?.(`❌ Crafting failed: ${result.error}`, 'error');
-            }
-        } catch (error) {
-            onNotification?.(`❌ Crafting error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        }
-    };
-
-    const getRarityColor = (rarity: ItemRarity): string => {
-        switch (rarity) {
-            case ItemRarity.COMMON: return '#6b7280';
-            case ItemRarity.UNCOMMON: return '#10b981';
-            case ItemRarity.RARE: return '#3b82f6';
-            case ItemRarity.EPIC: return '#8b5cf6';
-            case ItemRarity.LEGENDARY: return '#f59e0b';
-            default: return '#6b7280';
-        }
-    };
-
-    const getCategoryEmoji = (category: ItemCategory): string => {
-        switch (category) {
-            case ItemCategory.FOOD: return '🍎';
-            case ItemCategory.POWERUPS: return '⚡';
-            case ItemCategory.COSMETICS: return '✨';
-            case ItemCategory.RARE_COLLECTIBLES: return '💎';
-            default: return '📦';
-        }
-    };
-
-    if (!wallet.connected) {
-        return (
-            <InnerScreen
-                topStatusContent={
-                    <Text style={styles.walletStatusText}>Cosmic Marketplace - [wallet disconnected]</Text>
-                }
-                showStatsBar={false}
-                onLeftButtonPress={onClose}
-                onCenterButtonPress={() => onNotification?.('💰 Shop Help: Purchase items, currency, and powerups for your moonlings!', 'info')}
-                onRightButtonPress={() => onNotification?.('🏪 Marketplace: Connect wallet to access the cosmic marketplace!', 'info')}
-                leftButtonText="←"
-                centerButtonText="💰"
-                rightButtonText="?"
-            >
-                <View style={[styles.mainDisplayArea, styles.shopWelcome]}>
-                    <View style={styles.shopWelcomeContent}>
-                        <Text style={styles.shopWelcomeTitle}>💫 Cosmic Marketplace</Text>
-                        <Text style={styles.shopWelcomeSubtitle}>Wallet connecting in background...</Text>
-                        <View style={styles.shopFeaturesGrid}>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>🍎 Food Items</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>⚡ Powerups</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>✨ Cosmetics</Text>
-                            </View>
-                            <View style={styles.shopFeature}>
-                                <Text style={styles.shopFeatureText}>💎 Collectibles</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-            </InnerScreen>
-        );
-    }
+        if (!items.length) return [];
+        if (selectedCategory === 'all') return items;
+        if (selectedCategory === 'currency') return [];
+        return items.filter(item => {
+            if (selectedCategory === 'food') return item.category === ItemCategory.FOOD;
+            if (selectedCategory === 'powerups') return item.category === ItemCategory.POWERUP;
+            if (selectedCategory === 'cosmetics') return item.category === ItemCategory.COSMETIC;
+            if (selectedCategory === 'collectibles') return item.category === ItemCategory.UTILITY;
+            return false;
+        });
+    }, [items, selectedCategory]);
 
     return (
-        <InnerScreen
-            topStatusContent={
-                <Text style={styles.walletStatusText}>
-                    {userInventory?.sol_balance.toFixed(4) || '0.0000'} SOL • {starFragmentBalance} ✨
-                </Text>
-            }
-            showStatsBar={true}
-            statsBarContent={
-                <>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>SOL</Text>
-                        <Text style={styles.statStars}>{userInventory?.sol_balance.toFixed(3) || '0'}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Star ✨</Text>
-                        <Text style={styles.statStars}>{starFragmentBalance}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Items</Text>
-                        <Text style={styles.statStars}>{selectedCategory === 'currency' ? '3' : filteredItems.length}</Text>
-                    </View>
-                </>
-            }
-            onLeftButtonPress={onClose}
-            onCenterButtonPress={() => onNotification?.('💰 Shop Help: Purchase items, currency, and powerups for your moonlings!', 'info')}
-            onRightButtonPress={() => onNotification?.('🏪 Marketplace: Browse and purchase cosmic items!', 'info')}
-            leftButtonText="←"
-            centerButtonText="💰"
-            rightButtonText="?"
-        >
-            <View style={[styles.mainDisplayArea, styles.shopDisplay]}>
-                <View style={styles.shopQuickCategories}>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === 'currency' ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory('currency')}
-                    >
-                        <Text style={styles.categoryButtonText}>✨ Currency</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === 'all' ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory('all')}
-                    >
-                        <Text style={styles.categoryButtonText}>📦 All</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.FOOD ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.FOOD)}
-                    >
-                        <Text style={styles.categoryButtonText}>🍎 Food</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.categoryButton, selectedCategory === ItemCategory.POWERUPS ? styles.categoryButtonActive : null]}
-                        onPress={() => setSelectedCategory(ItemCategory.POWERUPS)}
-                    >
-                        <Text style={styles.categoryButtonText}>⚡ Power</Text>
-                    </TouchableOpacity>
+        <View style={styles.outerContainer}>
+            <View style={styles.headerBox}>
+                <Text style={styles.headerText}>COSMIC SHOP</Text>
+            </View>
+
+            <View style={styles.balanceRow}>
+                <View style={styles.dustIconContainer}>
+                    <Image
+                        source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                        style={styles.dustIcon}
+                        resizeMode="contain"
+                    />
                 </View>
-                <View style={styles.shopItemsGrid}>
-                    {selectedCategory === 'currency' ? (
-                        [
-                            { sol: 0.1, fragments: 10, name: 'Small Pack' },
-                            { sol: 0.5, fragments: 50, name: 'Medium Pack' },
-                            { sol: 1.0, fragments: 100, name: 'Large Pack' }
-                        ].map((pack, index) => (
-                            <View key={`currency-${index}`} style={styles.shopItemCard}>
-                                <Text style={styles.shopItemIcon}>✨</Text>
-                                <Text style={styles.shopItemName}>{pack.name}</Text>
-                                <Text style={styles.shopItemPrice}>{pack.sol.toFixed(3)} SOL</Text>
-                                <Text style={[styles.shopItemRarity, { color: '#f59e0b' }]}>{pack.fragments} ✨</Text>
-                                <TouchableOpacity
-                                    onPress={() => handleStarFragmentPurchase(pack.sol)}
-                                    disabled={isLoading}
-                                    style={[styles.shopBuyBtn, isLoading && { opacity: 0.6 }]}
-                                >
-                                    <Text>{isLoading ? '⏳' : '💰'}</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))
-                    ) : (
-                        filteredItems.map((item) => (
-                            <View key={item.id} style={styles.shopItemCard}>
-                                <Text style={styles.shopItemIcon}>{getCategoryEmoji(item.category)}</Text>
-                                <Text style={styles.shopItemName}>{item.name}</Text>
-                                <Text style={styles.shopItemPrice}>{item.price.toFixed(4)} SOL</Text>
-                                <Text style={[styles.shopItemRarity, { color: getRarityColor(item.rarity) }]}>
-                                    {item.rarity}
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => handlePurchase(item)}
-                                    disabled={isLoading}
-                                    style={[styles.shopBuyBtn, isLoading && { opacity: 0.6 }]}
-                                >
-                                    <Text>{isLoading ? '⏳' : '💰'}</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))
-                    )}
+                <View style={styles.dustTextContainer}>
+                    <Text style={styles.walletLabel}>WALLET</Text>
+                    <Text style={styles.dustAmount}>{dust} Cosmic Dust</Text>
                 </View>
             </View>
-        </InnerScreen>
+
+            <View style={styles.tabNavigation}>
+                {[
+                    { id: 'currency', label: 'Currency' },
+                    { id: 'all', label: 'All' },
+                    { id: 'food', label: 'Food' },
+                    { id: 'powerups', label: 'Powerups' },
+                    { id: 'cosmetics', label: 'Cosmetics' },
+                    { id: 'collectibles', label: 'Collectibles' },
+                ].map(tab => (
+                    <TouchableOpacity
+                        key={tab.id}
+                        style={[styles.tabButton, selectedCategory === tab.id && styles.activeTab]}
+                        onPress={() => setSelectedCategory(tab.id)}
+                    >
+                        <Text style={styles.tabButtonText}>{tab.label}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            <View style={styles.itemsContainer}>
+                {Array.from({ length: 6 }).map((_, index) => {
+                    const item = filteredItems[index];
+                    return (
+                        <View key={index} style={[
+                            styles.itemCard,
+                            item && { borderColor: getRarityBorderColor(item.rarity) },
+                            item && flashingItem === item.id && styles.flashingCard
+                        ]}>
+                            {item ? (
+                                <>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.itemClickArea,
+                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
+                                        ]}
+                                        onPress={() => addToCart(item)}
+                                        disabled={getTotalPrice() + item.priceStarFragments > dust}
+                                    >
+                                        <Image
+                                            source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
+                                            style={styles.itemImage}
+                                            resizeMode="contain"
+                                            onError={(error) => console.log('Image failed to load:', item.name, error)}
+                                            onLoad={() => console.log('Image loaded successfully:', item.name)}
+                                        />
+                                        <Text style={[
+                                            styles.itemName,
+                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                        ]}>
+                                            {item.name}
+                                        </Text>
+                                        <View style={styles.priceContainer}>
+                                            <Image
+                                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                                style={styles.priceIcon}
+                                                resizeMode="contain"
+                                            />
+                                            <Text style={[
+                                                styles.itemPrice,
+                                                (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                            ]}>
+                                                {item.priceStarFragments}
+                                            </Text>
+                                        </View>
+                                        {getTotalPrice() + item.priceStarFragments > dust && (
+                                            <Text style={styles.insufficientText}>INSUFFICIENT</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <View style={styles.placeholderBox}>
+                                    <Text style={styles.placeholderText}>+</Text>
+                                </View>
+                            )}
+                        </View>
+                    );
+                })}
+            </View>
+
+            <View style={styles.cartContainer}>
+                <View style={styles.cartHeader}>
+                    <Text style={styles.cartTitle}>CART ({cart.length})</Text>
+                    <View style={styles.cartHeaderRight}>
+                        <View style={styles.cartTotal}>
+                            <Image
+                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                style={styles.cartTotalIcon}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.cartTotalText}>{getTotalPrice()}</Text>
+                        </View>
+                        {cart.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.clearCartButton}
+                                onPress={clearCart}
+                            >
+                                <Text style={styles.clearCartText}>CLEAR</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {cart.length > 0 ? (
+                    <View style={styles.cartItems}>
+                        <View style={styles.cartItemsRow}>
+                            {cart.map(cartItem => (
+                                <View key={cartItem.item.id} style={styles.cartItem}>
+                                    <TouchableOpacity
+                                        style={styles.removeButton}
+                                        onPress={() => removeFromCart(cartItem.item.id)}
+                                    >
+                                        <Text style={styles.removeButtonText}>×</Text>
+                                    </TouchableOpacity>
+                                    <Image
+                                        source={typeof cartItem.item.imageUrl === 'string' ? { uri: cartItem.item.imageUrl } : cartItem.item.imageUrl}
+                                        style={styles.cartItemImage}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={styles.cartItemQuantity}>x{cartItem.quantity}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.checkoutButton}
+                            onPress={handleCheckout}
+                        >
+                            <Text style={styles.checkoutButtonText}>CHECKOUT</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.emptyCart}>
+                        <Text style={styles.emptyCartText}>Cart is empty</Text>
+                    </View>
+                )}
+            </View>
+
+            <View style={styles.bottomButtonRow}>
+                <TouchableOpacity style={styles.footerButton} onPress={onClose}>
+                    <Text style={styles.footerButtonText}>BACK</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.footerButton}>
+                    <Text style={styles.footerButtonText}>VIEW</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.footerButton}>
+                    <Text style={styles.footerButtonText}>HELP</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    walletStatusText: {
-        fontSize: 14,
-        color: '#333',
-        textAlign: 'center',
-    },
-    statItem: {
-        alignItems: 'center',
+    outerContainer: {
         flex: 1,
+        backgroundColor: '#e9f5e9',
+        padding: 8,
+        borderColor: '#003300',
+        borderWidth: 3,
+        margin: 4,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
     },
-    statLabel: {
-        fontSize: 12,
+    headerBox: {
+        borderWidth: 3,
+        borderColor: '#003300',
+        padding: 6,
+        marginBottom: 8,
+        alignItems: 'center',
+        backgroundColor: '#f0fff0',
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    headerText: {
+        fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 2,
+        color: '#003300',
     },
-    statStars: {
-        fontSize: 14,
-        color: '#ffd700',
-    },
-    mainDisplayArea: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    shopWelcome: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    shopWelcomeContent: {
-        alignItems: 'center',
-    },
-    shopWelcomeTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    shopWelcomeSubtitle: {
-        fontSize: 16,
-        marginBottom: 20,
-        textAlign: 'center',
-        color: '#666',
-    },
-    shopFeaturesGrid: {
+    balanceRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 10,
-    },
-    shopFeature: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 15,
-        borderRadius: 10,
         alignItems: 'center',
-        minWidth: 100,
-    },
-    shopFeatureText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    shopDisplay: {
+        justifyContent: 'space-between',
+        marginBottom: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderWidth: 2,
+        borderColor: '#003300',
+        borderRadius: 0,
         padding: 10,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
     },
-    shopQuickCategories: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 15,
-        flexWrap: 'wrap',
+    dustIconContainer: {
+        justifyContent: 'flex-start',
     },
-    categoryButton: {
-        padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: 15,
-        marginHorizontal: 2,
-        minWidth: 60,
-        alignItems: 'center',
+    dustTextContainer: {
+        justifyContent: 'flex-end',
+        alignItems: 'flex-end',
     },
-    categoryButtonActive: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+    dustIcon: {
+        width: 48,
+        height: 48,
     },
-    categoryButtonText: {
-        fontSize: 12,
+    dustAmount: {
+        fontSize: 16,
         fontWeight: 'bold',
+        color: '#003300',
+        textAlign: 'right',
     },
-    shopItemsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-around',
-        gap: 10,
-    },
-    shopItemCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        minWidth: 120,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-    },
-    shopItemIcon: {
-        fontSize: 24,
-        marginBottom: 5,
-    },
-    shopItemName: {
+    walletLabel: {
         fontSize: 12,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 5,
-    },
-    shopItemPrice: {
-        fontSize: 10,
         color: '#666',
+        textAlign: 'right',
         marginBottom: 2,
     },
-    shopItemRarity: {
+    tabNavigation: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    tabButton: {
+        width: '30%',
+        backgroundColor: '#dbf3db',
+        borderColor: '#003300',
+        borderWidth: 2,
+        paddingVertical: 8,
+        marginVertical: 2,
+        alignItems: 'center',
+        borderRadius: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    activeTab: {
+        backgroundColor: '#b8e6b8',
+        borderTopColor: '#001100',
+        borderLeftColor: '#001100',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+        shadowColor: '#003300',
+        shadowOffset: { width: -1, height: -1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    tabButtonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
+    },
+    itemsContainer: {
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#f6fff6',
+        padding: 6,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-evenly',
+        paddingBottom: 12,
+        borderRadius: 0,
+        borderTopColor: '#001100',
+        borderLeftColor: '#001100',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    itemCard: {
+        width: '30%',
+        height: 120,
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#f0fff0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 6,
+        marginBottom: 8,
+        borderRadius: 0,
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    itemClickArea: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    itemImage: {
+        width: 50,
+        height: 50,
+        marginBottom: 6,
+    },
+    itemName: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginBottom: 4,
+        textAlign: 'center',
+        color: '#003300',
+    },
+    disabledItem: {
+        opacity: 0.5,
+    },
+    disabledText: {
+        color: '#999999',
+    },
+    insufficientText: {
+        fontSize: 7,
+        fontWeight: 'bold',
+        color: '#ff6b6b',
+        marginTop: 2,
+        textAlign: 'center',
+    },
+    priceContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 51, 0, 0.1)',
+        borderWidth: 1,
+        borderColor: '#003300',
+        borderRadius: 0,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    priceIcon: {
+        width: 12,
+        height: 12,
+        marginRight: 4,
+    },
+    itemPrice: {
         fontSize: 10,
         fontWeight: 'bold',
-        marginBottom: 5,
+        color: '#003300',
     },
-    shopBuyBtn: {
-        backgroundColor: 'rgba(0, 123, 255, 0.8)',
-        padding: 8,
-        borderRadius: 15,
-        minWidth: 40,
+    placeholderBox: {
+        flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#999',
+        backgroundColor: 'transparent',
+        borderStyle: 'dashed',
+        borderRadius: 0,
+        margin: 2,
+        opacity: 0.7,
+    },
+    placeholderText: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#bbb',
+        opacity: 0.6,
+    },
+    buyButton: {
+        borderWidth: 2,
+        borderColor: '#003300',
+        paddingVertical: 3,
+        paddingHorizontal: 6,
+        backgroundColor: '#dbf3db',
+        borderRadius: 0,
+        borderTopColor: '#f0fff0',
+        borderLeftColor: '#f0fff0',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.4,
+        shadowRadius: 0,
+        elevation: 2,
+    },
+    buyButtonText: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: '#003300',
+        textShadowColor: 'rgba(255, 255, 255, 0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
+    },
+    disabledButton: {
+        backgroundColor: '#cccccc',
+        borderTopColor: '#e0e0e0',
+        borderLeftColor: '#e0e0e0',
+        borderRightColor: '#999999',
+        borderBottomColor: '#999999',
+        shadowOpacity: 0.2,
+    },
+    disabledButtonText: {
+        color: '#666666',
+        fontSize: 7,
+        textShadowColor: 'transparent',
+    },
+    flashingCard: {
+        backgroundColor: '#e6ffe6',
+        shadowColor: '#00ff00',
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+        elevation: 8,
+    },
+    cartContainer: {
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#f6fff6',
+        marginBottom: 8,
+        borderRadius: 0,
+        borderTopColor: '#001100',
+        borderLeftColor: '#001100',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    cartHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 8,
+        borderBottomWidth: 2,
+        borderBottomColor: '#003300',
+        backgroundColor: '#e9f5e9',
+    },
+    cartHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    cartTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
+    },
+    cartTotal: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    cartTotalIcon: {
+        width: 14,
+        height: 14,
+        marginRight: 4,
+    },
+    cartTotalText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
+    },
+    clearCartButton: {
+        backgroundColor: '#ff6b6b',
+        borderWidth: 2,
+        borderColor: '#cc0000',
+        borderRadius: 0,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderTopColor: '#ff9999',
+        borderLeftColor: '#ff9999',
+        borderRightColor: '#cc0000',
+        borderBottomColor: '#990000',
+        shadowColor: '#660000',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.4,
+        shadowRadius: 0,
+        elevation: 2,
+    },
+    clearCartText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: 'white',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
+    },
+    cartItems: {
+        padding: 8,
+    },
+    cartItemsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    cartItem: {
+        alignItems: 'center',
+        marginRight: 12,
+        marginBottom: 8,
+        position: 'relative',
+    },
+    cartItemImage: {
+        width: 40,
+        height: 40,
+        borderWidth: 2,
+        borderColor: '#003300',
+        borderRadius: 0,
+        backgroundColor: '#f0fff0',
+    },
+    cartItemQuantity: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#003300',
+        marginTop: 2,
+        textAlign: 'center',
+    },
+    removeButton: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: '#ff6b6b',
+        borderRadius: 10,
+        width: 16,
+        height: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#cc0000',
+        zIndex: 1,
+    },
+    removeButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 10,
+        lineHeight: 10,
+    },
+    removeButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    emptyCart: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    emptyCartText: {
+        fontSize: 12,
+        color: '#666',
+    },
+    checkoutButton: {
+        marginTop: 8,
+        backgroundColor: '#006600',
+        padding: 10,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#003300',
+        borderRadius: 0,
+        borderTopColor: '#00aa00',
+        borderLeftColor: '#00aa00',
+        borderRightColor: '#004400',
+        borderBottomColor: '#002200',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 0,
+        elevation: 3,
+    },
+    checkoutButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+        textShadowColor: 'rgba(0, 0, 0, 0.6)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
+    },
+    bottomButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 8,
+    },
+    footerButton: {
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#ffffffaa',
+        padding: 10,
+        flex: 1,
+        marginHorizontal: 2,
+        alignItems: 'center',
+        borderRadius: 0,
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    footerButtonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
     },
 });
 
