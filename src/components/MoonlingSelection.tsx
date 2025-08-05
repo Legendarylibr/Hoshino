@@ -131,7 +131,7 @@ const MoonlingSelection: React.FC<Props> = ({
         publicKey, 
         connectWallet, 
         disconnect,
-        quickMintCharacter
+        mintCharacterNFT
     } = useProgrammableNFT();
     const [isConnecting, setIsConnecting] = useState(false);
 
@@ -291,6 +291,16 @@ const MoonlingSelection: React.FC<Props> = ({
         try {
             onNotification?.(`🎨 Minting ${character.name} pNFT...`, 'info');
             
+            // Get character asset from registry
+            const asset = getAsset(character.id);
+            if (!asset) {
+                throw new Error(`Character ${character.id} not found in asset registry`);
+            }
+
+            if (asset.category !== 'character') {
+                throw new Error(`Asset ${character.id} is not a character`);
+            }
+            
             // Map local Character to GameCharacter format for pNFT minting
             const gameCharacter = {
                 ...character,
@@ -298,7 +308,7 @@ const MoonlingSelection: React.FC<Props> = ({
                 rarity: 'Common' as const // Default rarity - could be determined by character.id
             };
             
-            const result = await quickMintCharacter(gameCharacter);
+            const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);
             
             if (result.success) {
                 onNotification?.(
@@ -472,7 +482,7 @@ const MoonlingSelection: React.FC<Props> = ({
             >
             {/* Main Display Area */}
             <View style={styles.mainDisplayArea}>
-                <Image source={require('../../assets/images/screen bg.png')} style={styles.backgroundImage} resizeMode="cover" />
+                <Image source={require('../../assets/images/screen bg.png')} style={styles.backgroundImage as any} resizeMode="cover" />
                 {/* Character Selection Scroller */}
                 <View style={styles.slotMachineContainer}>
                     <ScrollView
@@ -549,7 +559,7 @@ const MoonlingSelection: React.FC<Props> = ({
                                     style={[
                                         styles.characterImage,
                                         isSpinning && styles.spinningImage
-                                    ]}
+                                    ] as any}
                                     onError={(error) => console.log('Image load error for', character.name, ':', error)}
                                     resizeMode="contain"
                                 />
@@ -592,7 +602,7 @@ const MoonlingSelection: React.FC<Props> = ({
                                 
                                 <Image
                                     source={getImageSource(selectedCharacter.image)}
-                                    style={styles.modalCharacterImage}
+                                    style={styles.modalCharacterImage as any}
                                     resizeMode="contain"
                                 />
                                 
@@ -627,7 +637,7 @@ const MoonlingSelection: React.FC<Props> = ({
                                 
                                 <Image
                                     source={getImageSource(congratulationsCharacter.image)}
-                                    style={styles.modalCharacterImage}
+                                    style={styles.modalCharacterImage as any}
                                     resizeMode="contain"
                                 />
                                 
@@ -658,7 +668,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     backgroundImage: {
-        position: 'absolute',
+        position: 'absolute' as const,
         width: '100%',
         height: '100%',
     },
@@ -702,7 +712,7 @@ const styles = StyleSheet.create({
     spinningImage: {
         opacity: 0.7,
         transform: [{ scale: 0.95 }],
-    },
+    } as const,
     selected: {
         borderColor: '#ff8c42',
     },
@@ -743,9 +753,8 @@ const styles = StyleSheet.create({
     characterImage: {
         width: 150,
         height: 150,
-        flex: 1,
         marginTop: 20,
-    },
+    } as any,
     characterInfo: {
         marginBottom: -20,
         alignItems: 'center',
@@ -872,7 +881,7 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         marginBottom: 15,
-    },
+    } as const,
     modalCharacterName: {
         fontSize: 22,
 
