@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useFonts } from 'expo-font';
+import { StatusBar } from 'expo-status-bar';
 import {
     PressStart2P_400Regular,
 } from '@expo-google-fonts/press-start-2p';
 import {
     SpaceMono_400Regular,
 } from '@expo-google-fonts/space-mono';
+
 import MoonlingSelection from './src/components/MoonlingSelection';
 import MoonlingInteraction from './src/components/MoonlingInteraction';
 import MoonlingCollection from './src/components/MoonlingCollection';
@@ -95,6 +97,8 @@ function App() {
         'PressStart2P': PressStart2P_400Regular,
         'SpaceMono': SpaceMono_400Regular,
     });
+
+
 
     // NEW: Programmable NFT Integration
     const {
@@ -809,6 +813,7 @@ function App() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar style="light" hidden={true} />
             {renderContent()}
             
             <WalletButton

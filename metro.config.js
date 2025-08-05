@@ -2,7 +2,7 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Add Node.js polyfills for blockchain libraries
+// Add Node.js polyfills for Solana Web3.js
 config.resolver.alias = {
   ...config.resolver.alias,
   'assert': 'assert',
@@ -12,6 +12,7 @@ config.resolver.alias = {
   'util': 'util',
   'process': 'process/browser',
   'path': 'path-browserify',
+  // Disable Node.js modules not needed in React Native
   'fs': false,
   'os': false,
   'http': false,
@@ -30,10 +31,6 @@ config.resolver.alias = {
   'tls': false,
   'vm': false,
   'worker_threads': false,
-  // Exclude problematic packages
-  '@irys/sdk': false,
-  '@irys/arweave': false,
-  '@irys/query': false,
 };
 
 // Add polyfills to the resolver
