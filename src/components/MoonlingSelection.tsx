@@ -20,6 +20,7 @@ import WalletButton from './WalletButton';
 
 // NEW: Import Programmable NFT Integration
 import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
+import { getAsset } from '../config/AssetRegistry';
 
 
 // Helper function to get image source based on character image name
@@ -303,7 +304,7 @@ const MoonlingSelection: React.FC<Props> = ({
 
     // NEW: Programmable NFT Integration
     const {
-        quickMintCharacter,
+        mintCharacterNFT,
         connected: nftConnected
     } = useProgrammableNFT();
 
@@ -314,8 +315,17 @@ const MoonlingSelection: React.FC<Props> = ({
         }
 
         try {
-            // NEW: Mint character pNFT with update authority enabled!
-            onNotification?.(`🎨 Minting ${character.name} pNFT with update authority...`, 'info');
+            // Get character asset from registry
+            const asset = getAsset(character.id);
+            if (!asset) {
+                throw new Error(`Character ${character.id} not found in asset registry`);
+            }
+
+            if (asset.category !== 'character') {
+                throw new Error(`Asset ${character.id} is not a character`);
+            }
+
+            onNotification?.(`🎨 Minting ${character.name} pNFT with existing IPFS CID...`, 'info');
             
             // Map local Character to GameCharacter format for pNFT minting
             const gameCharacter = {
@@ -324,7 +334,7 @@ const MoonlingSelection: React.FC<Props> = ({
                 rarity: 'Common' as const // Default rarity - could be determined by character.id
             };
             
-            const result = await quickMintCharacter(gameCharacter);
+            const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);
             
             if (result.success) {
                 onNotification?.(
