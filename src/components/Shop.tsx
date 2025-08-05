@@ -7,64 +7,107 @@ import { Connection } from '@solana/web3.js';
 import PinkSugar from '../../assets/images/pink-sugar.png';
 import NovaEgg from '../../assets/images/nova-egg.png';
 import MiraBerry from '../../assets/images/mira-berry.png';
-import CloudCake from '../../assets/images/cloud-cake.png';
 
 interface ShopProps {
     connection: Connection;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     onClose: () => void;
+    onItemsPurchased?: (items: MarketplaceItem[]) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
-    // Remove wallet dependency entirely for catalog view
+const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItemsPurchased }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('food');
-    // Remove marketplaceService state since we don't need it for catalog
     const [items, setItems] = useState<MarketplaceItem[]>([]);
     const [dust, setDust] = useState<number>(100);
+    const [cart, setCart] = useState<{ item: MarketplaceItem, quantity: number }[]>([]);
+    const [flashingItem, setFlashingItem] = useState<string | null>(null);
 
-    // RuneScape-style helper functions
-    const getRarityColor = (rarity: ItemRarity): string => {
+    const getTotalPrice = () => {
+        return cart.reduce((total, cartItem) => total + (cartItem.item.priceStarFragments * cartItem.quantity), 0);
+    };
+
+    const getRarityBorderColor = (rarity: ItemRarity): string => {
         switch (rarity) {
-            case ItemRarity.COMMON: return '#666666'; // Gray
-            case ItemRarity.UNCOMMON: return '#228B22'; // Green
-            case ItemRarity.RARE: return '#4169E1'; // Blue
-            case ItemRarity.EPIC: return '#8A2BE2'; // Purple
-            case ItemRarity.LEGENDARY: return '#FFD700'; // Gold
-            default: return '#666666';
+            case ItemRarity.COMMON: return '#8B8B8B';
+            case ItemRarity.UNCOMMON: return '#4CAF50';
+            case ItemRarity.RARE: return '#2196F3';
+            case ItemRarity.EPIC: return '#9C27B0';
+            case ItemRarity.LEGENDARY: return '#FF9800';
+            default: return '#003300';
         }
     };
 
-    const getItemPower = (rarity: ItemRarity): number => {
-        switch (rarity) {
-            case ItemRarity.COMMON: return Math.floor(Math.random() * 10) + 1; // 1-10
-            case ItemRarity.UNCOMMON: return Math.floor(Math.random() * 15) + 8; // 8-22
-            case ItemRarity.RARE: return Math.floor(Math.random() * 20) + 15; // 15-34
-            case ItemRarity.EPIC: return Math.floor(Math.random() * 25) + 25; // 25-49
-            case ItemRarity.LEGENDARY: return Math.floor(Math.random() * 30) + 40; // 40-69
-            default: return 1;
+    const addToCart = (item: MarketplaceItem) => {
+        const totalCostAfterAdd = getTotalPrice() + item.priceStarFragments;
+        if (totalCostAfterAdd > dust) {
+            onNotification?.(`Not enough Cosmic Dust! You need ${totalCostAfterAdd} but only have ${dust}.`, 'error');
+            return;
         }
+
+        setCart(prevCart => {
+            const existingItem = prevCart.find(cartItem => cartItem.item.id === item.id);
+            if (existingItem) {
+                return prevCart.map(cartItem =>
+                    cartItem.item.id === item.id
+                        ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                        : cartItem
+                );
+            } else {
+                return [...prevCart, { item, quantity: 1 }];
+            }
+        });
+
+        setDust(prevDust => prevDust - item.priceStarFragments);
+
+        setFlashingItem(item.id);
+        setTimeout(() => setFlashingItem(null), 300);
+
+        onNotification?.(`Added ${item.name} to cart! ${item.priceStarFragments} Cosmic Dust deducted.`, 'success');
     };
 
-    const getItemDurability = (rarity: ItemRarity): number => {
-        switch (rarity) {
-            case ItemRarity.COMMON: return Math.floor(Math.random() * 20) + 10; // 10-29
-            case ItemRarity.UNCOMMON: return Math.floor(Math.random() * 25) + 20; // 20-44
-            case ItemRarity.RARE: return Math.floor(Math.random() * 30) + 30; // 30-59
-            case ItemRarity.EPIC: return Math.floor(Math.random() * 35) + 40; // 40-74
-            case ItemRarity.LEGENDARY: return Math.floor(Math.random() * 40) + 60; // 60-99
-            default: return 10;
+    const removeFromCart = (itemId: string) => {
+        const itemToRemove = cart.find(cartItem => cartItem.item.id === itemId);
+        if (itemToRemove) {
+            const refundAmount = itemToRemove.item.priceStarFragments * itemToRemove.quantity;
+            setDust(prevDust => prevDust + refundAmount);
+            onNotification?.(`Removed ${itemToRemove.item.name} from cart. ${refundAmount} Cosmic Dust refunded.`, 'info');
         }
+        setCart(prevCart => prevCart.filter(cartItem => cartItem.item.id !== itemId));
+    };
+
+    const clearCart = () => {
+        if (cart.length === 0) return;
+
+        const totalRefund = getTotalPrice();
+        setDust(prevDust => prevDust + totalRefund);
+        setCart([]);
+        onNotification?.(`Cart cleared! ${totalRefund} Cosmic Dust refunded.`, 'info');
+    };
+
+    const handleCheckout = () => {
+        if (cart.length === 0) {
+            onNotification?.('Your cart is empty!', 'warning');
+            return;
+        }
+
+        const purchasedItems = cart.map(cartItem => cartItem.item);
+
+        if (onItemsPurchased) {
+            onItemsPurchased(purchasedItems);
+        }
+
+        setCart([]);
+
+        onNotification?.(`Purchase complete! ${purchasedItems.length} items added to your ingredient inventory.`, 'success');
     };
 
     useEffect(() => {
-        // No wallet or connection needed - just show the shop catalog
         const itemsData = [
-            // Food items
             {
                 id: 'sugar',
                 name: 'Pink Sugar',
                 description: 'Sweet crystalline sugar with a pink hue',
-                imageUrl: 'https://via.placeholder.com/48/FFB6C1/000000?text=🍯',
+                imageUrl: PinkSugar,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.COMMON,
                 priceSOL: 0,
@@ -75,7 +118,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
                 id: 'nova',
                 name: 'Nova Egg',
                 description: 'A mysterious egg that glows with stellar energy',
-                imageUrl: 'https://via.placeholder.com/48/FFD700/000000?text=🥚',
+                imageUrl: NovaEgg,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.UNCOMMON,
                 priceSOL: 0,
@@ -86,25 +129,13 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
                 id: 'mira',
                 name: 'Mira Berry',
                 description: 'A rare berry with cosmic properties',
-                imageUrl: 'https://via.placeholder.com/48/9370DB/000000?text=🫐',
+                imageUrl: MiraBerry,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.RARE,
                 priceSOL: 0,
                 priceStarFragments: 20,
                 inStock: true,
             },
-            {
-                id: 'cloud',
-                name: 'Cloud Cake',
-                description: 'A fluffy cake that floats like a cloud',
-                imageUrl: 'https://via.placeholder.com/48/87CEEB/000000?text=🍰',
-                category: ItemCategory.FOOD,
-                rarity: ItemRarity.EPIC,
-                priceSOL: 0,
-                priceStarFragments: 30,
-                inStock: true,
-            },
-            // Powerup items
             {
                 id: 'speed-boost',
                 name: 'Speed Boost',
@@ -131,8 +162,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
 
         console.log('Loading shop catalog (no wallet needed)');
         setItems(itemsData);
-        // Don't initialize MarketplaceService at all for catalog view
-    }, []); // Empty dependency array - just load once
+    }, []);
 
     const filteredItems = useMemo(() => {
         if (!items.length) return [];
@@ -190,40 +220,50 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
                 {Array.from({ length: 6 }).map((_, index) => {
                     const item = filteredItems[index];
                     return (
-                        <View key={index} style={styles.itemCard}>
+                        <View key={index} style={[
+                            styles.itemCard,
+                            item && { borderColor: getRarityBorderColor(item.rarity) },
+                            item && flashingItem === item.id && styles.flashingCard
+                        ]}>
                             {item ? (
                                 <>
-                                    <Image
-                                        source={{ uri: item.imageUrl }}
-                                        style={{ width: 40, height: 40, marginBottom: 2 }}
-                                        resizeMode="contain"
-                                        onError={(error) => console.log('Image failed to load:', item.name, error)}
-                                        onLoad={() => console.log('Image loaded successfully:', item.name)}
-                                    />
-                                    <Text style={styles.itemName}>{item.name}</Text>
-                                    <View style={styles.itemStatsContainer}>
-                                        <View style={styles.rarityContainer}>
-                                            <Text style={[styles.rarityText, { color: getRarityColor(item.rarity) }]}>
-                                                {item.rarity.toUpperCase()}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.itemClickArea,
+                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
+                                        ]}
+                                        onPress={() => addToCart(item)}
+                                        disabled={getTotalPrice() + item.priceStarFragments > dust}
+                                    >
+                                        <Image
+                                            source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
+                                            style={styles.itemImage}
+                                            resizeMode="contain"
+                                            onError={(error) => console.log('Image failed to load:', item.name, error)}
+                                            onLoad={() => console.log('Image loaded successfully:', item.name)}
+                                        />
+                                        <Text style={[
+                                            styles.itemName,
+                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                        ]}>
+                                            {item.name}
+                                        </Text>
+                                        <View style={styles.priceContainer}>
+                                            <Image
+                                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                                style={styles.priceIcon}
+                                                resizeMode="contain"
+                                            />
+                                            <Text style={[
+                                                styles.itemPrice,
+                                                (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                            ]}>
+                                                {item.priceStarFragments}
                                             </Text>
                                         </View>
-                                        <View style={styles.statRow}>
-                                            <Text style={styles.statLabel}>PWR:</Text>
-                                            <Text style={styles.statValue}>{getItemPower(item.rarity)}</Text>
-                                        </View>
-                                        <View style={styles.statRow}>
-                                            <Text style={styles.statLabel}>DUR:</Text>
-                                            <Text style={styles.statValue}>{getItemDurability(item.rarity)}</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.priceContainer}>
-                                        <Text style={styles.itemPrice}>{item.priceStarFragments} 💫</Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.buyButton}
-                                        onPress={() => onNotification?.(`Added ${item.name} to cart! (Demo mode - no actual purchase)`, 'info')}
-                                    >
-                                        <Text style={styles.buyButtonText}>BUY</Text>
+                                        {getTotalPrice() + item.priceStarFragments > dust && (
+                                            <Text style={styles.insufficientText}>INSUFFICIENT</Text>
+                                        )}
                                     </TouchableOpacity>
                                 </>
                             ) : (
@@ -234,6 +274,63 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose }) => {
                         </View>
                     );
                 })}
+            </View>
+
+            <View style={styles.cartContainer}>
+                <View style={styles.cartHeader}>
+                    <Text style={styles.cartTitle}>CART ({cart.length})</Text>
+                    <View style={styles.cartHeaderRight}>
+                        <View style={styles.cartTotal}>
+                            <Image
+                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                style={styles.cartTotalIcon}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.cartTotalText}>{getTotalPrice()}</Text>
+                        </View>
+                        {cart.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.clearCartButton}
+                                onPress={clearCart}
+                            >
+                                <Text style={styles.clearCartText}>CLEAR</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {cart.length > 0 ? (
+                    <View style={styles.cartItems}>
+                        <View style={styles.cartItemsRow}>
+                            {cart.map(cartItem => (
+                                <View key={cartItem.item.id} style={styles.cartItem}>
+                                    <TouchableOpacity
+                                        style={styles.removeButton}
+                                        onPress={() => removeFromCart(cartItem.item.id)}
+                                    >
+                                        <Text style={styles.removeButtonText}>×</Text>
+                                    </TouchableOpacity>
+                                    <Image
+                                        source={typeof cartItem.item.imageUrl === 'string' ? { uri: cartItem.item.imageUrl } : cartItem.item.imageUrl}
+                                        style={styles.cartItemImage}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={styles.cartItemQuantity}>x{cartItem.quantity}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.checkoutButton}
+                            onPress={handleCheckout}
+                        >
+                            <Text style={styles.checkoutButtonText}>CHECKOUT</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.emptyCart}>
+                        <Text style={styles.emptyCartText}>Cart is empty</Text>
+                    </View>
+                )}
             </View>
 
             <View style={styles.bottomButtonRow}>
@@ -257,13 +354,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#e9f5e9',
         padding: 8,
         borderColor: '#003300',
-        borderWidth: 3, // Reduced from 4px
+        borderWidth: 3,
         margin: 4,
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        // Add inner border effect for Game Boy flourish
         borderTopColor: '#006600',
         borderLeftColor: '#006600',
         borderRightColor: '#001100',
@@ -275,7 +371,7 @@ const styles = StyleSheet.create({
         elevation: 0,
     },
     headerBox: {
-        borderWidth: 3, // Reduced thickness
+        borderWidth: 3,
         borderColor: '#003300',
         padding: 6,
         marginBottom: 8,
@@ -285,7 +381,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 0,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        // Game Boy beveled effect
         borderTopColor: '#006600',
         borderLeftColor: '#006600',
         borderRightColor: '#001100',
@@ -307,11 +402,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 8,
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderWidth: 2, // Reduced thickness
+        borderWidth: 2,
         borderColor: '#003300',
         borderRadius: 0,
         padding: 10,
-        // Game Boy beveled wallet effect
         borderTopColor: '#006600',
         borderLeftColor: '#006600',
         borderRightColor: '#001100',
@@ -355,12 +449,11 @@ const styles = StyleSheet.create({
         width: '30%',
         backgroundColor: '#dbf3db',
         borderColor: '#003300',
-        borderWidth: 2, // Reduced thickness
+        borderWidth: 2,
         paddingVertical: 8,
         marginVertical: 2,
         alignItems: 'center',
         borderRadius: 0,
-        // Game Boy button beveled effect
         borderTopColor: '#006600',
         borderLeftColor: '#006600',
         borderRightColor: '#001100',
@@ -373,7 +466,6 @@ const styles = StyleSheet.create({
     },
     activeTab: {
         backgroundColor: '#b8e6b8',
-        // Pressed button effect with inverted colors
         borderTopColor: '#001100',
         borderLeftColor: '#001100',
         borderRightColor: '#006600',
@@ -390,7 +482,7 @@ const styles = StyleSheet.create({
         color: '#003300',
     },
     itemsContainer: {
-        borderWidth: 3, // Keep thicker for main container
+        borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#f6fff6',
         padding: 6,
@@ -399,7 +491,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-evenly',
         paddingBottom: 12,
         borderRadius: 0,
-        // Game Boy container beveled effect
         borderTopColor: '#001100',
         borderLeftColor: '#001100',
         borderRightColor: '#006600',
@@ -412,95 +503,82 @@ const styles = StyleSheet.create({
     },
     itemCard: {
         width: '30%',
-        height: 140, // Increased height for stats
-        borderWidth: 2,
+        height: 120,
+        borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#f0fff0',
         alignItems: 'center',
-        justifyContent: 'flex-start', // Changed to flex-start for better layout
-        padding: 4,
+        justifyContent: 'center',
+        padding: 6,
         marginBottom: 8,
         borderRadius: 0,
-        // Game Boy card beveled effect
-        borderTopColor: '#006600',
-        borderLeftColor: '#006600',
-        borderRightColor: '#001100',
-        borderBottomColor: '#001100',
         shadowColor: '#001100',
         shadowOffset: { width: 1, height: 1 },
         shadowOpacity: 0.3,
         shadowRadius: 0,
         elevation: 0,
     },
+    itemClickArea: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    itemImage: {
+        width: 50,
+        height: 50,
+        marginBottom: 6,
+    },
     itemName: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 'bold',
-        marginBottom: 2,
+        marginBottom: 4,
         textAlign: 'center',
         color: '#003300',
     },
-    itemStatsContainer: {
-        width: '100%',
-        marginBottom: 2,
+    disabledItem: {
+        opacity: 0.5,
     },
-    rarityContainer: {
-        backgroundColor: 'rgba(0, 51, 0, 0.1)',
-        borderWidth: 1,
-        borderColor: '#003300',
-        borderRadius: 0,
-        paddingHorizontal: 2,
-        paddingVertical: 1,
-        marginBottom: 2,
-        alignItems: 'center',
+    disabledText: {
+        color: '#999999',
     },
-    rarityText: {
+    insufficientText: {
         fontSize: 7,
         fontWeight: 'bold',
+        color: '#ff6b6b',
+        marginTop: 2,
         textAlign: 'center',
     },
-    statRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 2,
-        marginBottom: 1,
-    },
-    statLabel: {
-        fontSize: 8,
-        fontWeight: 'bold',
-        color: '#003300',
-    },
-    statValue: {
-        fontSize: 8,
-        fontWeight: 'bold',
-        color: '#006600',
-    },
     priceContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: 'rgba(0, 51, 0, 0.1)',
         borderWidth: 1,
         borderColor: '#003300',
         borderRadius: 0,
-        paddingHorizontal: 3,
-        paddingVertical: 1,
-        marginBottom: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+    },
+    priceIcon: {
+        width: 12,
+        height: 12,
+        marginRight: 4,
     },
     itemPrice: {
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: 'bold',
         color: '#003300',
-        textAlign: 'center',
     },
     placeholderBox: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2, // Reduced thickness
+        borderWidth: 2,
         borderColor: '#999',
         backgroundColor: 'transparent',
         borderStyle: 'dashed',
         borderRadius: 0,
         margin: 2,
-        // Add subtle beveled effect to dashed borders
         opacity: 0.7,
     },
     placeholderText: {
@@ -510,22 +588,213 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buyButton: {
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: '#003300',
-        paddingVertical: 2,
+        paddingVertical: 3,
         paddingHorizontal: 6,
         backgroundColor: '#dbf3db',
         borderRadius: 0,
+        borderTopColor: '#f0fff0',
+        borderLeftColor: '#f0fff0',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
         shadowColor: '#001100',
         shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.4,
         shadowRadius: 0,
-        elevation: 0,
+        elevation: 2,
     },
     buyButtonText: {
         fontSize: 8,
         fontWeight: 'bold',
         color: '#003300',
+        textShadowColor: 'rgba(255, 255, 255, 0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
+    },
+    disabledButton: {
+        backgroundColor: '#cccccc',
+        borderTopColor: '#e0e0e0',
+        borderLeftColor: '#e0e0e0',
+        borderRightColor: '#999999',
+        borderBottomColor: '#999999',
+        shadowOpacity: 0.2,
+    },
+    disabledButtonText: {
+        color: '#666666',
+        fontSize: 7,
+        textShadowColor: 'transparent',
+    },
+    flashingCard: {
+        backgroundColor: '#e6ffe6',
+        shadowColor: '#00ff00',
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+        elevation: 8,
+    },
+    cartContainer: {
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#f6fff6',
+        marginBottom: 8,
+        borderRadius: 0,
+        borderTopColor: '#001100',
+        borderLeftColor: '#001100',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    cartHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 8,
+        borderBottomWidth: 2,
+        borderBottomColor: '#003300',
+        backgroundColor: '#e9f5e9',
+    },
+    cartHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    cartTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
+    },
+    cartTotal: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    cartTotalIcon: {
+        width: 14,
+        height: 14,
+        marginRight: 4,
+    },
+    cartTotalText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#003300',
+    },
+    clearCartButton: {
+        backgroundColor: '#ff6b6b',
+        borderWidth: 2,
+        borderColor: '#cc0000',
+        borderRadius: 0,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderTopColor: '#ff9999',
+        borderLeftColor: '#ff9999',
+        borderRightColor: '#cc0000',
+        borderBottomColor: '#990000',
+        shadowColor: '#660000',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.4,
+        shadowRadius: 0,
+        elevation: 2,
+    },
+    clearCartText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: 'white',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
+    },
+    cartItems: {
+        padding: 8,
+    },
+    cartItemsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    cartItem: {
+        alignItems: 'center',
+        marginRight: 12,
+        marginBottom: 8,
+        position: 'relative',
+    },
+    cartItemImage: {
+        width: 40,
+        height: 40,
+        borderWidth: 2,
+        borderColor: '#003300',
+        borderRadius: 0,
+        backgroundColor: '#f0fff0',
+    },
+    cartItemQuantity: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#003300',
+        marginTop: 2,
+        textAlign: 'center',
+    },
+    removeButton: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: '#ff6b6b',
+        borderRadius: 10,
+        width: 16,
+        height: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#cc0000',
+        zIndex: 1,
+    },
+    removeButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 10,
+        lineHeight: 10,
+    },
+    removeButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    emptyCart: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    emptyCartText: {
+        fontSize: 12,
+        color: '#666',
+    },
+    checkoutButton: {
+        marginTop: 8,
+        backgroundColor: '#006600',
+        padding: 10,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#003300',
+        borderRadius: 0,
+        borderTopColor: '#00aa00',
+        borderLeftColor: '#00aa00',
+        borderRightColor: '#004400',
+        borderBottomColor: '#002200',
+        shadowColor: '#001100',
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 0,
+        elevation: 3,
+    },
+    checkoutButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+        textShadowColor: 'rgba(0, 0, 0, 0.6)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 0,
     },
     bottomButtonRow: {
         flexDirection: 'row',
@@ -533,14 +802,13 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     footerButton: {
-        borderWidth: 3, // Thick Game Boy button borders
+        borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#ffffffaa',
         padding: 10,
         flex: 1,
         marginHorizontal: 2,
         alignItems: 'center',
-        // Game Boy style - no rounded corners
         borderRadius: 0,
         shadowColor: '#001100',
         shadowOffset: { width: 2, height: 2 },
