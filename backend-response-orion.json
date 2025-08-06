@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "transaction": {
+    "instructions": [],
+    "recentBlockhash": "mock_blockhash",
+    "feePayer": "mock_user_public_key_for_demo",
+    "tokenStandard": "pNFT"
+  },
+  "mintAddress": "mock_orion_1754523921420",
+  "estimatedCost": "~0.01 SOL",
+  "metadata": {
+    "name": "Hoshino Orion",
+    "symbol": "HOSH",
+    "uri": "ipfs://QmMetadataorion1754523921420",
+    "image": "https://ipfs.io/ipfs/QmWwLczsyDsQvznNHF92DpZYkwZG7gJU4dzKBJQujK2okr/0",
+    "sellerFeeBasisPoints": 500,
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ],
+    "isMutable": true
+  }
+}

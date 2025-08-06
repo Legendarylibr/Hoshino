@@ -1,0 +1,29 @@
+{
+  "name": "ORION",
+  "symbol": "HOSH",
+  "description": "A orion character NFT from Hoshino",
+  "image": "https://ipfs.io/ipfs/QmWwLczsyDsQvznNHF92DpZYkwZG7gJU4dzKBJQujK2okr/0",
+  "attributes": [
+    {
+      "trait_type": "Mood",
+      "value": "Happy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "type": "image/png",
+        "uri": "https://ipfs.io/ipfs/QmWwLczsyDsQvznNHF92DpZYkwZG7gJU4dzKBJQujK2okr/0"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ]
+  },
+  "sellerFeeBasisPoints": 500,
+  "isMutable": true
+}

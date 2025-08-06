@@ -1,0 +1,29 @@
+{
+  "name": "HOSHINO",
+  "symbol": "HOSH",
+  "description": "A hoshino character NFT from Hoshino",
+  "image": "https://ipfs.io/ipfs/QmV3k19Upm2UApbJmu6siP7kXSwrAKPPbqNukUXm6EB61L/0",
+  "attributes": [
+    {
+      "trait_type": "Mood",
+      "value": "Happy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "type": "image/png",
+        "uri": "https://ipfs.io/ipfs/QmV3k19Upm2UApbJmu6siP7kXSwrAKPPbqNukUXm6EB61L/0"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ]
+  },
+  "sellerFeeBasisPoints": 500,
+  "isMutable": true
+}

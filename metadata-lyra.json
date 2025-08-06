@@ -1,0 +1,29 @@
+{
+  "name": "LYRA",
+  "symbol": "HOSH",
+  "description": "A lyra character NFT from Hoshino",
+  "image": "https://ipfs.io/ipfs/QmboS6KNV4xU5PzTiGnWnQMPUtazFGyxM9d5djSYaP59Ud/0",
+  "attributes": [
+    {
+      "trait_type": "Mood",
+      "value": "Happy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "type": "image/png",
+        "uri": "https://ipfs.io/ipfs/QmboS6KNV4xU5PzTiGnWnQMPUtazFGyxM9d5djSYaP59Ud/0"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ]
+  },
+  "sellerFeeBasisPoints": 500,
+  "isMutable": true
+}

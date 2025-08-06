@@ -1,0 +1,29 @@
+{
+  "name": "SIRIUS",
+  "symbol": "HOSH",
+  "description": "A sirius character NFT from Hoshino",
+  "image": "https://ipfs.io/ipfs/QmTnPnrVWfLRh7Dd5m5nqGUdXgXhBmvtkvteHcAMS5VcT9/0",
+  "attributes": [
+    {
+      "trait_type": "Mood",
+      "value": "Happy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "type": "image/png",
+        "uri": "https://ipfs.io/ipfs/QmTnPnrVWfLRh7Dd5m5nqGUdXgXhBmvtkvteHcAMS5VcT9/0"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ]
+  },
+  "sellerFeeBasisPoints": 500,
+  "isMutable": true
+}

@@ -1,199 +1,157 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { Connection, PublicKey, Keypair, Transaction, SystemProgram } = require('@solana/web3.js');
-const { Metaplex } = require('@metaplex-foundation/js');
 
 // Initialize Solana connection
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
-const metaplex = new Metaplex(connection);
-
-// Proper IPFS CIDs for characters
-// UPDATED: Using real IPFS URLs instead of CIDs - backend handles image resolution
-const CHARACTER_CIDS = {
-  'hoshino': 'https://ipfs.io/ipfs/QmV3k19Upm2UApbJmu6siP7kXSwrAKPPbqNukUXm6EB61L/0',
-  'sirius': 'https://ipfs.io/ipfs/QmTnPnrVWfLRh7Dd5m5nqGUdXgXhBmvtkvteHcAMS5VcT9/0',
-  'lyra': 'https://ipfs.io/ipfs/QmboS6KNV4xU5PzTiGnWnQMPUtazFGyxM9d5djSYaP59Ud/0',
-  'aro': 'https://ipfs.io/ipfs/QmRq9GYWCK455p3nWde9QeXv7bAZGBYyGGE57kudthBRct/0',
-  'orion': 'https://ipfs.io/ipfs/QmWwLczsyDsQvznNHF92DpZYkwZG7gJU4dzKBJQujK2okr/0',
-  'zaniah': 'https://ipfs.io/ipfs/QmX5YaGK7AvsW3GbNRT2nPhZ1MSCgnCJYdhnkUyj6qkYKE/0'
-};
 
 /**
- * NFT Metadata Structure
- * UPDATED: Extremely simplified metadata - only name, image, and Mood attribute
- * Removed: description, external_url, properties, collection
- */
-const createCharacterMetadata = (characterId, userPublicKey) => {
-  const imageUrl = CHARACTER_CIDS[characterId];
-  if (!imageUrl) {
-    throw new Error(`Character ${characterId} not found`);
-  }
-
-  return {
-    name: characterId.toUpperCase(),
-    image: imageUrl,
-    attributes: [
-      { trait_type: 'Mood', value: 'Happy' }
-    ]
-  };
-};
-
-/**
- * Upload metadata to IPFS (mock implementation)
- * In production, use Pinata, NFT.Storage, or similar
- */
-const uploadMetadataToIPFS = async (metadata) => {
-  console.log('📤 Uploading metadata to IPFS...');
-  
-  // Mock IPFS upload - in production, use actual IPFS service
-  const mockCid = `QmMetadata${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-  
-  console.log('✅ Metadata uploaded to IPFS:', mockCid);
-  console.log('📝 Metadata content:', JSON.stringify(metadata, null, 2));
-  
-  return mockCid;
-};
-
-/**
- * Sanitize text for metadata
- */
-const sanitizeText = (text) => {
-  if (!text) return '';
-  return text
-    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .trim();
-};
-
-/**
- * Get proper IPFS CID for character or achievement
- */
-const getProperCID = (characterId, nftType) => {
-  if (nftType === 'character') {
-    return CHARACTER_CIDS[characterId] || `QmDefaultCharacter${characterId}`;
-  } else if (nftType === 'achievement') {
-    return ACHIEVEMENT_CIDS[characterId] || `QmDefaultAchievement${characterId}`;
-  }
-  return `QmDefault${nftType}${characterId}`;
-};
-
-/**
- * Create proper NFT using Metaplex
- */
-const createProperNFT = async (metadata, userPublicKey) => {
-  try {
-    console.log('🎨 Creating proper NFT with Metaplex...');
-    
-    // Upload metadata to IPFS
-    const metadataCid = await uploadMetadataToIPFS(metadata);
-    const metadataUri = `ipfs://${metadataCid}`;
-    
-    console.log('📤 Metadata URI:', metadataUri);
-    
-    // Create NFT using Metaplex
-    const { nft } = await metaplex.nfts().create({
-      name: metadata.name,
-      symbol: 'HOSH',
-      uri: metadataUri,
-      sellerFeeBasisPoints: 500, // 5% royalties
-      creators: metadata.properties.creators,
-      isMutable: true,
-      collection: metadata.collection,
-      tokenStandard: 1, // NonFungible
-    });
-    
-    console.log('✅ NFT created successfully:', nft.address.toString());
-    
-    return {
-      success: true,
-      mintAddress: nft.address.toString(),
-      metadataUri: metadataUri,
-      nft: nft
-    };
-    
-  } catch (error) {
-    console.error('❌ NFT creation failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * Generate NFT Minting Transaction with Proper NFT Creation
- * Creates a real programmable NFT on Solana
+ * Generate NFT Minting Transaction
+ * Creates a programmable NFT transaction on the server side
  */
 exports.generateNFTTransaction = onRequest({
   cors: ['*'],
   invoker: 'public'
 }, async (req, res) => {
   try {
-    console.log('🔥 Creating proper NFT...');
+    console.log('🔥 Generating NFT transaction...');
     
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
     const { 
-      characterId, 
-      userPublicKey
+      character, 
+      userPublicKey, 
+      recipient,
+      metadataUri,
+      tokenStandard = 'pNFT' // 'pNFT' or 'NFT'
     } = req.body;
 
-    if (!characterId || !userPublicKey) {
+    if (!character || !userPublicKey || !metadataUri) {
       return res.status(400).json({ 
-        error: 'Missing required fields: characterId, userPublicKey' 
+        error: 'Missing required fields: character, userPublicKey, metadataUri' 
       });
     }
 
-    console.log('📝 NFT data:', {
-      characterId,
-      userPublicKey
+    console.log('📝 Character data:', {
+      name: character.name,
+      element: character.element,
+      rarity: character.rarity,
+      userPublicKey,
+      recipient
     });
 
-    // Create metadata for the character
-    const metadata = createCharacterMetadata(characterId, userPublicKey);
-    
-    console.log('📤 Using proper IPFS CID:', CHARACTER_CIDS[characterId]);
+    // Generate mint keypair
+    const mintKeypair = Keypair.generate();
+    console.log('🔑 Mint keypair generated:', mintKeypair.publicKey.toString());
 
-    // Create proper NFT using Metaplex
-    const nftResult = await createProperNFT(metadata, userPublicKey);
+    // Get the latest blockhash
+    const latestBlockhash = await connection.getLatestBlockhash();
     
-    if (!nftResult.success) {
-      return res.status(500).json({
-        success: false,
-        error: nftResult.error || 'Failed to create NFT'
-      });
-    }
+    // Create a simple transaction for testing
+    // In a real implementation, you'd add the actual NFT minting instructions
+    const transaction = new Transaction();
+    
+    // Add a simple transfer instruction as a placeholder
+    // This will be replaced with actual NFT minting instructions
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey(userPublicKey),
+        toPubkey: new PublicKey(userPublicKey),
+        lamports: 1000 // Small amount for testing
+      })
+    );
 
-    console.log('✅ NFT created successfully:', {
-      mintAddress: nftResult.mintAddress,
-      metadataUri: nftResult.metadataUri
+    // Set transaction properties
+    transaction.recentBlockhash = latestBlockhash.blockhash;
+    transaction.feePayer = new PublicKey(userPublicKey);
+    
+    console.log('✅ Transaction built successfully:', {
+      mintAddress: mintKeypair.publicKey.toString(),
+      instructionsCount: transaction.instructions.length,
+      tokenStandard
     });
     
-    // Return NFT creation result
+    // Generate comprehensive metadata based on character type
+    const generateMetadata = (character, userPublicKey, metadataUri) => {
+      const baseMetadata = {
+        name: `Hoshino ${character.name}`,
+        symbol: 'HOSH',
+        description: character.description || `A ${character.element} character from the Hoshino universe.`,
+        image: metadataUri,
+        external_url: `https://hoshino.app/characters/${character.name.toLowerCase()}`,
+        attributes: [
+          {
+            trait_type: "Character Type",
+            value: character.element
+          },
+          {
+            trait_type: "Rarity",
+            value: character.rarity
+          },
+          {
+            trait_type: "Generation",
+            value: "1"
+          },
+          {
+            trait_type: "Mint Date",
+            value: new Date().toISOString().split('T')[0]
+          }
+        ],
+        properties: {
+          files: [
+            {
+              type: "image/png",
+              uri: metadataUri
+            }
+          ],
+          category: "image",
+          creators: [
+            {
+              address: userPublicKey,
+              share: 100
+            }
+          ]
+        }
+      };
+
+      // Add character-specific attributes
+      if (character.element === 'Achievement') {
+        baseMetadata.attributes.push({
+          trait_type: "Achievement Type",
+          value: "Game Achievement"
+        });
+        baseMetadata.attributes.push({
+          trait_type: "Points Reward",
+          value: "10"
+        });
+      }
+
+      return baseMetadata;
+    };
+
+    const metadata = generateMetadata(character, userPublicKey, metadataUri);
+
+    // Return transaction data for the client to sign
     res.json({
       success: true,
-      mintAddress: nftResult.mintAddress,
-      metadataUri: nftResult.metadataUri,
-      metadata: metadata,
+      transaction: {
+        instructions: transaction.instructions,
+        recentBlockhash: transaction.recentBlockhash,
+        feePayer: userPublicKey,
+        tokenStandard
+      },
+      mintAddress: mintKeypair.publicKey.toString(),
       estimatedCost: '~0.01 SOL',
-      nftMetadata: {
-        name: metadata.name,
-        symbol: 'HOSH',
-        uri: nftResult.metadataUri,
-        sellerFeeBasisPoints: 500,
-        creators: metadata.properties.creators,
-        isMutable: true,
-        collection: metadata.collection,
-        mintAddress: nftResult.mintAddress
-      }
+      metadata: metadata,
+      metadataUri: metadataUri
     });
     
   } catch (error) {
-    console.error('❌ NFT creation failed:', error);
+    console.error('❌ NFT transaction generation failed:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to create NFT',
+      error: 'Failed to generate NFT transaction',
       details: error.message
     });
   }

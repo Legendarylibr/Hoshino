@@ -293,8 +293,8 @@ function App() {
             console.log('🪙 Starting minting process for:', selectedCharacter.name);
             setStatusMessage(`Minting ${selectedCharacter.name} as NFT...`);
 
-            // UPDATED: Simplified NFT minting - backend handles all metadata creation
-            // No longer need to pass imageCid or character object - just characterId
+            // UPDATED: Using old backend format - backend creates transaction
+            // Backend expects: character object, userPublicKey, metadataUri
             const result = await mintCharacterNFT(selectedCharacter.id);
             
             if (!result.success) {

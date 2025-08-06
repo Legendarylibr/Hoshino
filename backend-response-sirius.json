@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "transaction": {
+    "instructions": [],
+    "recentBlockhash": "mock_blockhash",
+    "feePayer": "mock_user_public_key_for_demo",
+    "tokenStandard": "pNFT"
+  },
+  "mintAddress": "mock_sirius_1754523921419",
+  "estimatedCost": "~0.01 SOL",
+  "metadata": {
+    "name": "Hoshino Sirius",
+    "symbol": "HOSH",
+    "uri": "ipfs://QmMetadatasirius1754523921419",
+    "image": "https://ipfs.io/ipfs/QmTnPnrVWfLRh7Dd5m5nqGUdXgXhBmvtkvteHcAMS5VcT9/0",
+    "sellerFeeBasisPoints": 500,
+    "creators": [
+      {
+        "address": "mock_user_public_key_for_demo",
+        "share": 100
+      }
+    ],
+    "isMutable": true
+  }
+}

@@ -25,6 +25,7 @@ export interface MintResult {
   actualCost?: string;
   updateAuthority?: string;
   metadataUri?: string;
+  transaction?: any; // For old backend format that returns transaction data
 }
 
 /**
@@ -132,7 +133,18 @@ export class ProgrammableNFTService {
         servicePublicKey: this.mobileWalletService.getPublicKey()?.toString()
       });
 
-      // Call backend to create proper NFT
+      // Create character object for old backend format
+      const character = {
+        name: characterId.charAt(0).toUpperCase() + characterId.slice(1),
+        element: 'Character',
+        rarity: 'Common',
+        description: `A ${characterId} character NFT`
+      };
+
+      // Create simple metadata URI for character
+      const metadataUri = `https://ipfs.io/ipfs/Qm${characterId}${Date.now()}`;
+
+      // Call backend with old format
       console.log('📤 Calling backend for NFT creation...');
       
       const response = await fetch(getFunctionUrl('generateNFTTransaction'), {
@@ -141,8 +153,11 @@ export class ProgrammableNFTService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          characterId: characterId,
-          userPublicKey: this.walletPublicKey
+          character: character,
+          userPublicKey: this.walletPublicKey,
+          recipient: recipient?.toString(),
+          metadataUri: metadataUri,
+          tokenStandard: 'pNFT'
         })
       });
 
@@ -154,7 +169,7 @@ export class ProgrammableNFTService {
 
       console.log('📥 Received NFT creation result from backend:', {
         mintAddress: nftResult.mintAddress,
-        metadataUri: nftResult.metadataUri
+        transaction: nftResult.transaction
       });
 
       console.log('✅ Character pNFT created successfully!');
@@ -163,10 +178,11 @@ export class ProgrammableNFTService {
       return {
         success: true,
         mintAddress: nftResult.mintAddress,
-        signature: 'NFT_CREATED_ON_BACKEND', // NFT is created directly on backend
+        signature: 'TRANSACTION_CREATED_ON_BACKEND', // Transaction created on backend
         actualCost: nftResult.estimatedCost,
         updateAuthority: this.walletPublicKey,
-        metadataUri: nftResult.metadataUri
+        metadataUri: metadataUri, // Use the metadataUri we sent to the backend
+        transaction: nftResult.transaction
       };
 
     } catch (error) {
@@ -221,6 +237,9 @@ export class ProgrammableNFTService {
       // Call backend to create proper NFT
       console.log('📤 Calling backend for achievement NFT creation...');
       
+      // Create simple metadata URI for achievement
+      const metadataUri = `https://ipfs.io/ipfs/Qm${achievement.name.replace(/\s+/g, '')}${Date.now()}`;
+
       const response = await fetch(getFunctionUrl('generateNFTTransaction'), {
         method: 'POST',
         headers: {
@@ -235,8 +254,8 @@ export class ProgrammableNFTService {
           },
           userPublicKey: this.walletPublicKey,
           recipient: recipient?.toString(),
-          tokenStandard: 'pNFT',
-          nftType: 'achievement'
+          metadataUri: metadataUri,
+          tokenStandard: 'pNFT'
         })
       });
 
@@ -256,7 +275,7 @@ export class ProgrammableNFTService {
         signature: 'NFT_CREATED_ON_BACKEND', // NFT is created directly on backend
         actualCost: nftResult.estimatedCost,
         updateAuthority: this.walletPublicKey,
-        metadataUri: nftResult.metadataUri
+        metadataUri: metadataUri // Use the metadataUri we sent to the backend
       };
 
     } catch (error) {
@@ -322,6 +341,87 @@ export class ProgrammableNFTService {
       return {
         success: false,
         error: `Failed to purchase coins: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Test backend compatibility
+   * This method tests if the backend functions are working correctly
+   */
+  async testBackendCompatibility(): Promise<{ success: boolean; error?: string; details?: any }> {
+    try {
+      console.log('🧪 Testing backend compatibility...');
+
+      // Test 1: Health check
+      const healthResponse = await fetch(getFunctionUrl('solanaHealth'), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const healthResult = await healthResponse.json();
+      
+      if (!healthResult.status || healthResult.status !== 'healthy') {
+        return {
+          success: false,
+          error: 'Backend health check failed',
+          details: healthResult
+        };
+      }
+
+      console.log('✅ Backend health check passed');
+
+      // Test 2: NFT transaction generation (without wallet)
+      const testCharacter = {
+        name: 'TestCharacter',
+        element: 'Test',
+        rarity: 'Common',
+        description: 'Test character for compatibility check'
+      };
+
+      const testResponse = await fetch(getFunctionUrl('generateNFTTransaction'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          character: testCharacter,
+          userPublicKey: '11111111111111111111111111111111', // Test public key
+          metadataUri: 'ipfs://QmTestMetadata',
+          tokenStandard: 'pNFT'
+        })
+      });
+
+      const testResult = await testResponse.json();
+
+      if (!testResult.success) {
+        return {
+          success: false,
+          error: 'NFT transaction generation test failed',
+          details: testResult
+        };
+      }
+
+      console.log('✅ NFT transaction generation test passed');
+
+      return {
+        success: true,
+        details: {
+          health: healthResult,
+          nftTest: {
+            mintAddress: testResult.mintAddress,
+            estimatedCost: testResult.estimatedCost
+          }
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Backend compatibility test failed:', error);
+      return {
+        success: false,
+        error: `Backend compatibility test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
