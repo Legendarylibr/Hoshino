@@ -35,9 +35,17 @@
   - Use inner screen view boundaries instead of full screen?
   - Prevent content from bleeding into status bar/navigation areas
 
-- [ ] Consistent Border Scheme: Fix inner screen and dialog box framing
-  - Standardize border styles across all screens
-  - Ensure consistent pixelated border system
+- [x] ✅ **InnerScreen Border & Shadow System** - COMPLETED
+  - Updated InnerScreen to use rounded corners (20px radius) instead of pixelated borders
+  - Implemented soft orange gradient outer shadows (5px spread) for depth
+  - Added subtle black border with opacity (rgba(0, 0, 0, 0.3))
+  - Removed complex inner shadow system - kept design simple and elegant
+  - Created shadow container structure to properly layer shadows outside the main screen
+  - Result: Clean, modern look that matches reference image style
+
+- [ ] Consistent Border Scheme: Fix remaining dialog box framing
+  - Standardize border styles across remaining screens
+  - Ensure consistent rounded border system
   - Match dialog boxes with inner screen border design
 
 - [ ] Consistent Font Theme: Standardize typography across the app

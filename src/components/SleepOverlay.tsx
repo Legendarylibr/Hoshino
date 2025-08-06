@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     Dimensions,
 } from 'react-native';
-import StarfieldBackground from './StarfieldBackground';
+//import StarfieldBackground from './StarfieldBackground';
 
 const { width, height } = Dimensions.get('window');
 

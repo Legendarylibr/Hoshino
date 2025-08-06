@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput } from 'react-native';
+import Frame from './Frame';
 import { useWallet } from '../contexts/WalletContext';
 import InnerScreen from './InnerScreen';
 
@@ -32,6 +33,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     const [displaySegments, setDisplaySegments] = useState<Array<{text: string, isBold: boolean}>>([]);
     const [segmentIndex, setSegmentIndex] = useState(0);
     const [charIndex, setCharIndex] = useState(0);
+
     
     // Use refs to track current state in intervals
     const segmentIndexRef = useRef(0);
@@ -45,7 +47,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     }, [initialPhase]);
 
     // Function to split text into chunks that fit within 3 lines
-    const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 19) => {
+    const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 25) => {
         // Special case for "I HIT THE MOON!!" to ensure it's on 2 lines when bold
         if (text === "I HIT THE MOON!!!!!") {
             return ["I HIT THE\nMOON!!!!!"];
@@ -487,6 +489,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
         }
     };
 
+
+
     return (
         <InnerScreen
             showStatsBar={false}
@@ -508,9 +512,18 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                     </View>
 
                     <View style={styles.storySection}>
+                        {/* Dialog shadow that extends to bottom of screen */}
+                        <View style={styles.dialogShadow} />
                         <View style={styles.storyDialogBottom}>
-                            <View style={styles.storyDialogueLargeBox}>
-                                <View style={styles.storyDialogueInnerBox} key="stable-dialog">
+                            <Frame
+                                width={280}
+                                height={55}
+                                top={-23}
+                                left={8}
+                                position="absolute"
+                                pixelSize={2}
+                            >
+                                <View style={styles.dialogContentContainer}>
                                     <View style={styles.dialogTextContainer}>
                                         {renderSegments(displaySegments, segmentIndex, charIndex)}
                                     </View>
@@ -530,7 +543,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                                         </View>
                                     )}
                                 </View>
-                            </View>
+                            </Frame>
                         </View>
                     </View>
                 </>
@@ -611,9 +624,10 @@ const styles = StyleSheet.create({
     },
     storySection: {
         flex: 1,
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
+        position: 'relative',
     },
     storyCharacterCentered: {
         flex: 1,
@@ -622,43 +636,46 @@ const styles = StyleSheet.create({
         width: '100%',
         marginTop: 80, // Increased from 30 to move star down
     },
+    dialogShadow: {
+        position: 'absolute',
+        top: '50%', // Start from middle of screen (where dialog is)
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.2)', // Subtle shadow
+        zIndex: 1,
+    },
     storyDialogBottom: {
+        position: 'absolute',
+        bottom: 20,
+        left: 0,
+        right: 0,
         width: '100%',
         padding: 5,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'transparent', // Remove background since we have separate shadow
+        zIndex: 2,
     },
     storyDialogueLargeBox: {
         backgroundColor: '#E8F5E8', // Light pastel green background
-        padding: 20, // Increased padding for less cramped look
-        borderRadius: 8, // Less rounded for more pixelated look
-        borderWidth: 3,
-        borderColor: '#2E5A3E', // Dark green outer border
-        // Softer inner border effect
-        shadowColor: '#4A7A5A',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 1,
-        elevation: 1,
+        padding: 0, // Remove padding to create pixelated border effect
+        borderRadius: 0, // Remove rounded corners for pixelated look
+        borderWidth: 0, // Remove CSS border - we'll use pixelated borders
         // Fixed size dialog box
         width: isTablet ? 400 : 300,
-        height: isTablet ? 140 : 120, // Increased height to prevent clipping
+        height: isTablet ? 140 : 120,
         alignSelf: 'center',
-        // Create inner border with minimal padding
-        paddingLeft: 3,
-        paddingRight: 3,
-        paddingTop: 3,
-        paddingBottom: 3,
+        position: 'relative',
+        overflow: 'visible', // Allow pixelated borders to show
     },
     storyDialogueInnerBox: {
         backgroundColor: '#E8F5E8',
-        padding: 15, // Increased padding
-        borderRadius: 6, // Less rounded for more pixelated look
-        borderWidth: 2,
-        borderColor: '#4A7A5A', // Inner border color
+        padding: 0,
+        borderRadius: 0, // Remove rounded corners for pixelated look
+        borderWidth: 0, // Remove CSS border - we'll use pixelated borders
         width: '100%',
         height: '100%',
-        justifyContent: 'flex-start', // Changed to flex-start to bring content up
-        paddingTop: 17, // Add top padding for spacing
+        position: 'relative',
+        overflow: 'visible', // Allow pixelated borders to show
     },
     storySpeakerLarge: {
         fontWeight: 'bold',
@@ -692,7 +709,7 @@ const styles = StyleSheet.create({
         width: isTablet ? 250 : 200,
         height: isTablet ? 250 : 200,
         resizeMode: 'contain',
-        marginLeft: -3,
+        marginLeft: 0,
     },
     eyesSection: {
         height: isTablet ? 60 : 40,
@@ -833,9 +850,214 @@ const styles = StyleSheet.create({
         fontSize: 20,
         color: 'white',
     },
+    dialogContentContainer: {
+        position: 'absolute',
+        top: 13,
+        left: -3,
+        right: -19,
+        bottom: 12,
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        marginTop: -45,
+        backgroundColor: '#E8F5E8', // Match the inner box background
+    },
     dialogTextContainer: {
         flex: 1, // Take up available space for text
+        marginTop: 9,
+        marginLeft: 8,
+        marginRight: 15,
+        minHeight: 44,
     },
+
+    // Outer pixelated border system for dialog box
+    dialogBorderTop: {
+        position: 'absolute',
+        top: 0,
+        left: 6,
+        right: 6,
+        height: 3,
+        backgroundColor: '#2E5A3E', // Dark green outer border
+        zIndex: 10,
+    },
+    dialogBorderBottom: {
+        position: 'absolute',
+        bottom: 0,
+        left: 6,
+        right: 6,
+        height: 3,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+    dialogBorderLeft: {
+        position: 'absolute',
+        top: 3,
+        bottom: 3,
+        left: 0,
+        width: 3,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+    dialogBorderRight: {
+        position: 'absolute',
+        top: 3,
+        bottom: 3,
+        right: 0,
+        width: 3,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+
+    // Inner pixelated border system for dialog box
+    dialogBorderInnerTop: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        right: 8,
+        height: 4,
+        backgroundColor: '#4A7A5A', // Medium green inner border
+        zIndex: 11,
+    },
+    dialogBorderInnerBottom: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        right: 8,
+        height: 4,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogBorderInnerLeft: {
+        position: 'absolute',
+        top: 8,
+        bottom: 8,
+        left: 8,
+        width: 4,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogBorderInnerRight: {
+        position: 'absolute',
+        top: 8,
+        bottom: 8,
+        right: 8,
+        width: 4,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+
+    // Main corner pixels for dialog box
+    dialogCornerTL: {
+        position: 'absolute',
+        top: 3,
+        left: 3,
+        width: 6,
+        height: 6,
+        backgroundColor: '#2E5A3E', // Dark green outer corners
+        zIndex: 10,
+    },
+    dialogCornerTR: {
+        position: 'absolute',
+        top: 3,
+        right: 3,
+        width: 6,
+        height: 6,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+    dialogCornerBL: {
+        position: 'absolute',
+        bottom: 3,
+        left: 3,
+        width: 6,
+        height: 6,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+    dialogCornerBR: {
+        position: 'absolute',
+        bottom: 3,
+        right: 3,
+        width: 6,
+        height: 6,
+        backgroundColor: '#2E5A3E',
+        zIndex: 10,
+    },
+
+    // Additional corner detail pixels for dialog box
+    dialogCornerPixelTL1: {
+        position: 'absolute',
+        top: 4,
+        left: 12,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A', // Medium green inner corner pixels
+        zIndex: 11,
+    },
+    dialogCornerPixelTL2: {
+        position: 'absolute',
+        top: 12,
+        left: 4,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelTR1: {
+        position: 'absolute',
+        top: 4,
+        right: 12,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelTR2: {
+        position: 'absolute',
+        top: 12,
+        right: 4,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelBL1: {
+        position: 'absolute',
+        bottom: 4,
+        left: 12,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelBL2: {
+        position: 'absolute',
+        bottom: 12,
+        left: 4,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelBR1: {
+        position: 'absolute',
+        bottom: 4,
+        right: 12,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+    dialogCornerPixelBR2: {
+        position: 'absolute',
+        bottom: 12,
+        right: 4,
+        width: 3,
+        height: 3,
+        backgroundColor: '#4A7A5A',
+        zIndex: 11,
+    },
+
+
 });
 
 export default WelcomeScreen;
