@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, Keyboard } from 'react-native';
 
 // Get screen dimensions for responsive sizing
@@ -26,6 +26,9 @@ interface InnerScreenProps {
     keyboardVisible?: boolean; // New prop for keyboard state
     showCloseButton?: boolean; // New prop for close button
     onCloseButtonPress?: () => void; // New prop for close button action
+    allowOverflow?: boolean; // New prop to allow overflow for menu bars
+    isTransitioning?: boolean; // New prop for transition animation
+    transitionOpacity?: number; // New prop for transition opacity
 }
 
 const InnerScreen: React.FC<InnerScreenProps> = ({
@@ -48,7 +51,10 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     overlayMode = false,
     keyboardVisible = false,
     showCloseButton = false,
-    onCloseButtonPress
+    onCloseButtonPress,
+    allowOverflow = false,
+    isTransitioning = false,
+    transitionOpacity = 0
 }) => {
     return (
         <View style={styles.tamagotchiScreenContainer}>
@@ -67,17 +73,25 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
             )}
 
             {/* Shadow container with overflow visible */}
-            <View style={styles.shadowContainer}>
-                {/* Gradient shadow layers */}
-                <View style={styles.gradientShadowOuter} />
-                <View style={styles.gradientShadowInner} />
+            <View style={[
+                styles.shadowContainer,
+                isSelectionPage && styles.shadowContainerLarge
+            ]}>
+                {/* Gradient shadow layers - only for non-selection pages */}
+                {!isSelectionPage && (
+                    <>
+                        <View style={styles.gradientShadowOuter} />
+                        <View style={styles.gradientShadowInner} />
+                    </>
+                )}
                 
                 {/* Inner screen with rounded borders */}
                 <View style={[
                     styles.innerScreen,
                     isSelectionPage && styles.innerScreenLarge,
                     overlayMode && styles.overlayInnerScreen,
-                    keyboardVisible && styles.innerScreenWithKeyboard
+                    keyboardVisible && styles.innerScreenWithKeyboard,
+                    allowOverflow && styles.innerScreenAllowOverflow
                 ]}>
                     {/* Screen background */}
                     {showBackgroundImage && (
@@ -110,10 +124,18 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                         </View>
                     )}
 
-                    {/* Main content area */}
-                    <View style={styles.mainDisplayArea}>
-                        {children}
-                    </View>
+                                    {/* Main content area */}
+                <View style={styles.mainDisplayArea}>
+                    {children}
+                </View>
+                
+                {/* Transition Overlay - only affects InnerScreen content */}
+                {isTransitioning && (
+                    <View style={[
+                        styles.transitionOverlay,
+                        { opacity: transitionOpacity }
+                    ]} />
+                )}
 
                     {/* Close Button */}
                     {showCloseButton && onCloseButtonPress && (
@@ -204,6 +226,15 @@ const styles = StyleSheet.create({
         marginRight: isTablet ? 11 : 0, // Reduced by 5px to move right
         marginBottom: isTablet ? 16 : 12,
     },
+    shadowContainerLarge: {
+        position: 'absolute',
+        top: isTablet ? '15%' : '17%',
+        width: isTablet ? '85%' : '88%',
+        height: isTablet ? '75%' : '65%',
+        overflow: 'visible',
+        marginRight: isTablet ? 11 : 0,
+        marginBottom: isTablet ? 16 : 12,
+    },
     innerScreen: {
         width: '100%',
         height: '100%',
@@ -224,8 +255,8 @@ const styles = StyleSheet.create({
         elevation: 8, // Android shadow
     },
     innerScreenLarge: {
-        width: isTablet ? '85%' : '88%',
-        height: isTablet ? '75%' : '65%',
+        // Remove direct width/height since they're handled by shadowContainer
+        // Keep only the margin adjustment
         marginTop: isTablet ? -10 : -20,
     },
     darkenedBackground: {
@@ -237,6 +268,10 @@ const styles = StyleSheet.create({
     },
     innerScreenWithKeyboard: {
         height: isTablet ? '45%' : '40%',
+    },
+    innerScreenAllowOverflow: {
+        overflow: 'visible',
+        paddingBottom: 80, // Add padding to accommodate menu bar
     },
     darkenedButtons: {
         opacity: 0.3,
@@ -259,6 +294,7 @@ const styles = StyleSheet.create({
         borderRadius: 25, // Match inner screen radius + 5px
         backgroundColor: 'rgba(255, 140, 0, 0.15)', // Soft orange tint
         zIndex: 1,
+        pointerEvents: 'none', // Don't intercept touch events
     },
     gradientShadowInner: {
         position: 'absolute',
@@ -269,6 +305,7 @@ const styles = StyleSheet.create({
         borderRadius: 22, // Match inner screen radius + 2px
         backgroundColor: 'rgba(255, 140, 0, 0.1)', // Softer orange tint
         zIndex: 2,
+        pointerEvents: 'none', // Don't intercept touch events
     },
     gradientShadowCorner1: {
         position: 'absolute',
@@ -279,6 +316,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: 'rgba(255, 140, 0, 0.12)', // Soft orange corner
         zIndex: 3,
+        pointerEvents: 'none', // Don't intercept touch events
     },
     gradientShadowCorner2: {
         position: 'absolute',
@@ -289,6 +327,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: 'rgba(255, 140, 0, 0.12)', // Soft orange corner
         zIndex: 3,
+        pointerEvents: 'none', // Don't intercept touch events
     },
     gradientShadowCorner3: {
         position: 'absolute',
@@ -299,6 +338,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: 'rgba(255, 140, 0, 0.12)', // Soft orange corner
         zIndex: 3,
+        pointerEvents: 'none', // Don't intercept touch events
     },
     gradientShadowCorner4: {
         position: 'absolute',
@@ -309,6 +349,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: 'rgba(255, 140, 0, 0.12)', // Soft orange corner
         zIndex: 3,
+        pointerEvents: 'none', // Don't intercept touch events
     },
 
 
@@ -327,6 +368,8 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: 'darkgray',
         zIndex: 2,
+        borderBottomWidth: 2,
+        borderBottomColor: 'rgba(0, 0, 0, 0.55)',
     },
     statItem: {
         alignItems: 'center',
@@ -437,6 +480,15 @@ const styles = StyleSheet.create({
         color: '#E8F5E8',
         fontFamily: 'PressStart2P',
         transform: [{ translateY: -1 }],
+    },
+    transitionOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        zIndex: 10,
     },
 });
 

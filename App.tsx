@@ -20,6 +20,7 @@ import CharacterChat from './src/components/CharacterChat';
 import GlobalLeaderboard from './src/components/GlobalLeaderboard';
 import Notification, { DeploymentStatusBanner } from './src/components/Notification';
 import WalletButton from './src/components/WalletButton';
+import Settings from './src/components/Settings';
 
 // React Native compatible wallet integration
 import { useWallet, WalletProvider } from './src/contexts/WalletContext';
@@ -116,6 +117,7 @@ function App() {
     const [previousView, setPreviousView] = useState('welcome');
     const [welcomePhase, setWelcomePhase] = useState<string>('intro');
     const [shouldGoToCongratulations, setShouldGoToCongratulations] = useState(false);
+    const [shouldFadeInInteraction, setShouldFadeInInteraction] = useState(false);
 
     const navigateToView = (view: string) => {
         setPreviousView(currentView);
@@ -498,6 +500,7 @@ function App() {
             setPlayerName(name);
             savePlayerName(name, publicKey.toString());
         }
+        setShouldFadeInInteraction(true);
         setCurrentView('interaction');
     };
 
@@ -510,13 +513,14 @@ function App() {
                 hunger: 2,
                 energy: 4
             });
+            console.log('🎉 Setting selected character:', character.name);
         }
         setShouldGoToCongratulations(true);
         setCurrentView('welcome');
-        // Reset the flag after a short delay
+        // Reset the flag after a longer delay to ensure WelcomeScreen has time to render
         setTimeout(() => {
             setShouldGoToCongratulations(false);
-        }, 100);
+        }, 1000);
     };
 
     const handleFeed = async (
@@ -565,6 +569,7 @@ function App() {
                         playerName={playerName}
                         goToCongratulations={shouldGoToCongratulations}
                         initialPhase={welcomePhase}
+                        selectedMoonlingName={selectedCharacter?.name}
                     />
                 );
             case 'selection':
@@ -659,7 +664,10 @@ function App() {
                 return (
                     <MoonlingInteraction
                         selectedCharacter={selectedCharacter}
-                        onSelectCharacter={() => navigateToView('selection')}
+                        onSelectCharacter={() => {
+                            setShouldFadeInInteraction(false);
+                            navigateToView('selection');
+                        }}
                         onFeed={() => setCurrentView('feeding')}
                         connected={connected}
                         walletAddress={publicKey?.toString()}
@@ -674,7 +682,9 @@ function App() {
                         onShop={() => setCurrentView('shop')}
                         onInventory={() => setCurrentView('inventory')}
                         onChat={() => setCurrentView('chat')}
+                        onSettings={() => setCurrentView('settings')}
                         localGameEngine={localGameEngine}
+                        shouldFadeIn={shouldFadeInInteraction}
                         onMintAchievements={mintAchievementNFTs}
                         onMint={() => {
                             console.log('🎫 Mint button clicked!', {
@@ -818,6 +828,13 @@ function App() {
                         onClose={() => setCurrentView('interaction')}
                     />
                 );
+            case 'settings':
+                return (
+                    <Settings
+                        onBack={() => setCurrentView('interaction')}
+                        onNotification={addNotification}
+                    />
+                );
             default:
                 return (
                     <WelcomeScreen
@@ -932,6 +949,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#5D4E37',
     },
+
 });
 
 // Main App component with WalletProvider wrapper

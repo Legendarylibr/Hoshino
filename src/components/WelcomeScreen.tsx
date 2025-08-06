@@ -17,9 +17,10 @@ interface Props {
     playerName?: string;
     goToCongratulations?: boolean;
     initialPhase?: string;
+    selectedMoonlingName?: string;
 }
 
-const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations, initialPhase }) => {
+const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations, initialPhase, selectedMoonlingName }) => {
     const { publicKey } = useWallet();
     
     const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'nameInput' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'congratulations' | 'mintMore' | 'final' | 'complete'>(initialPhase as any || 'intro');
@@ -30,9 +31,13 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     const [displayText, setDisplayText] = useState('');
     const [textIndex, setTextIndex] = useState(0);
     const [isTyping, setIsTyping] = useState(false);
+    const [isDialogChanging, setIsDialogChanging] = useState(false);
+    const [showOptionsAfterDelay, setShowOptionsAfterDelay] = useState(false);
     const [displaySegments, setDisplaySegments] = useState<Array<{text: string, isBold: boolean}>>([]);
     const [segmentIndex, setSegmentIndex] = useState(0);
     const [charIndex, setCharIndex] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [transitionOpacity, setTransitionOpacity] = useState(0);
 
     
     // Use refs to track current state in intervals
@@ -47,7 +52,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     }, [initialPhase]);
 
     // Function to split text into chunks that fit within 3 lines
-    const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 25) => {
+    const splitTextIntoChunks = (text: string, maxCharsPerLine: number = 35) => {
         // Special case for "I HIT THE MOON!!" to ensure it's on 2 lines when bold
         if (text === "I HIT THE MOON!!!!!") {
             return ["I HIT THE\nMOON!!!!!"];
@@ -74,6 +79,11 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             chunks.push(currentChunk);
         }
         
+        // Only split into groups if the total text is very long
+        if (chunks.length <= 3) {
+            return [chunks.join(' ')];
+        }
+        
         // Split into groups of 3 lines max
         const lineGroups: string[] = [];
         let currentGroup = '';
@@ -97,12 +107,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     const processTextToSegments = (text: string) => {
         const boldWords = [
             "CRASHHH KABOOMM",
-            "FGSHSGQNZBOCZZZ",
-            "I HIT THE MOON!!!!!",
-            'Woo-hoooo!',
-            '28 days',
-            'Hoshino fades away',
-            'game interface fades in'
+            "FGSHSHDGJQNDBZBSBOCZZZZ",
+            "I HIT THE MOON!!!"
         ];
         
         let segments: Array<{text: string, isBold: boolean}> = [];
@@ -135,29 +141,49 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     // Function to render segments with current typewriter progress
     const renderSegments = (segments: Array<{text: string, isBold: boolean}>, currentSegmentIndex: number, currentCharIndex: number) => {
         return (
-            <Text style={styles.storyTextLarge}>
+            <View style={styles.storyTextContainer}>
                 {segments.map((segment, index) => {
                     if (index < currentSegmentIndex) {
                         // Fully rendered segment
-                        return (
-                            <Text key={index} style={[segment.isBold && styles.boldText]}>
-                                {segment.text}
-                            </Text>
-                        );
+                        if (segment.isBold) {
+                            return (
+                                <View key={index} style={styles.centeredSegmentContainer}>
+                                    <Text style={styles.storyTextLarge}>
+                                        {segment.text}
+                                    </Text>
+                                </View>
+                            );
+                        } else {
+                            return (
+                                <Text key={index} style={styles.storyTextLarge}>
+                                    {segment.text}
+                                </Text>
+                            );
+                        }
                     } else if (index === currentSegmentIndex) {
                         // Currently typing segment
                         const visibleText = segment.text.substring(0, currentCharIndex);
-                        return (
-                            <Text key={index} style={[segment.isBold && styles.boldText]}>
-                                {visibleText}
-                            </Text>
-                        );
+                        if (segment.isBold) {
+                            return (
+                                <View key={index} style={styles.centeredSegmentContainer}>
+                                    <Text style={styles.storyTextLarge}>
+                                        {visibleText}
+                                    </Text>
+                                </View>
+                            );
+                        } else {
+                            return (
+                                <Text key={index} style={styles.storyTextLarge}>
+                                    {visibleText}
+                                </Text>
+                            );
+                        }
                     } else {
                         // Not yet reached
                         return null;
                     }
                 })}
-            </Text>
+            </View>
         );
     };
 
@@ -165,8 +191,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     const dialogs = {
         intro: [
             "Uggggghhhh... Oh?",
-            "Hi! My name is Hoshino!",
-            "I'm a little in trouble right now...",
+            "Hiiii! My name is Hoshino!",
+            "See, I'm a little in trouble right now...",
             "Do you want to help me?"
         ],
         introNo: [
@@ -179,20 +205,24 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
         ],
         explanation: [
             "Amazing, " + playerName + "! Let me explain.",
-            "I was on a long travel and I couldn't find a safe area for me to rest, I was sooo",
-            "tired and at some point I...",
+            "I was on a long travel and I couldn't find", 
+            "a safe space for me to rest, I was sooooooooo",
+            "so tired, and at some point I...",
             "I...",
-            "zzzzz...",
-            "zzzzzzzzzzzzz...",
+            "Zzzzz...",
+            "Zzzzzzzzzzzzz...",
             "Until...",
             "CRASHHH KABOOMM",
-            "FGSHSGQNZBOCZZZ",
-            "I HIT THE MOON!!!!!",
-            "I did a mess, it wasn't my intention I swear!",
+            "FGSHSHDGJQNDBZBSBOCZZZZ",
+            "I HIT THE MOON!!!",
+            "I-I did a mess...",
+            "It wasn't my intention I swear!",
             "But the problem doesn't finish here...",
             "Since the crash, some tiny creatures...",
             "started emerging from the crater I made.",
-            "I don't know what to do with them, is it ok if I send you one every new Moon Cycle?"
+            "I don't know what to do with them,",
+            "is it ok if I send you one?",
+            "every new Moon Cycle?"
         ],
         explanationNo: [
             "O-ok...",
@@ -200,19 +230,33 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             "You sure?"
         ],
         chooseMoonling: [
-            "Choose and mint your moonling!"
+            "Amazing news!",
+            "Hush hush, choose and mint your Moonling!"
         ],
         congratulations: [
-            "Woo-hoooo! Fantastic choice!",
-            "Yay! From today, you will be its guardian."
+            selectedMoonlingName ? `YAY! IT'S ${selectedMoonlingName.toUpperCase()}!` : "YAY! IT'S YOUR MOONLING!"
         ],
         mintMore: [
-            "Would you like to mint another?"
+            "Happy with your pick?",
+
         ],
         final: [
-            "Now hear me out. Your goal is to keep its mood maxxed out every day. To do so, you need to perform some actions daily: you can feed, chat, play, put to sleep and let it meet its friends.",
-            "At the end of the Moon Cycle, you and your pet will part ways. It will ascend back to the moon, where it belongs, changed by the way you treated it. Take good care of it and it will reward you nicely.",
-            "See you in 28 days!"
+            "Woo-hoooo!",
+            "Fantastic choice cheeky!",
+            "From today, you will be its guardian.",
+            "Now hear me out.",
+            "Your goal is to keep its mood maxxed out every day.",
+            "To do so, you need to perform some actions daily:",
+            "you can feed, chat, play, put to sleep,",
+            "and let it meet its friends.",
+            "At the end of the Moon Cycle,",
+            "you and your pet will part ways.",
+            "It will ascend back to the moon,",
+            "where it belongs, changed by",
+            "the way you treated it.",
+            "Take good care of it",
+            "and you'll be nicely rewarded.",
+            "See you in 28 days pal!"
         ]
     };
 
@@ -255,10 +299,11 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
     useEffect(() => {
         if (goToCongratulations) {
             console.log('📱 WelcomeScreen: Going to congratulations phase');
+            console.log('📱 WelcomeScreen: Selected moonling name:', selectedMoonlingName);
             setCurrentPhase('congratulations');
             setDialogIndex(0);
         }
-    }, [goToCongratulations]);
+    }, [goToCongratulations, selectedMoonlingName]);
 
     const handleDialogClick = () => {
         if (dialogIndex < processedDialogs[currentPhase].length - 1) {
@@ -296,12 +341,26 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                     // Will be handled by button choice
                     break;
                 case 'final':
-                    // Go to interaction screen after final dialog
-                    if (onGoToInteraction) {
-                        onGoToInteraction(playerName);
-                    } else {
-                        onContinue(playerName); // Fallback
-                    }
+                    // Start transition animation
+                    setIsTransitioning(true);
+                    setTransitionOpacity(0);
+                    
+                    // Choppy fade out animation (5-6 layers, 0.5s apart)
+                    const fadeOutSteps = [0.2, 0.4, 0.6, 0.8, 1.0];
+                    fadeOutSteps.forEach((opacity, index) => {
+                        setTimeout(() => {
+                            setTransitionOpacity(opacity);
+                        }, index * 500);
+                    });
+                    
+                    // Go to interaction screen after fade out
+                    setTimeout(() => {
+                        if (onGoToInteraction) {
+                            onGoToInteraction(playerName);
+                        } else {
+                            onContinue(playerName); // Fallback
+                        }
+                    }, fadeOutSteps.length * 500);
                     break;
             }
             setDialogIndex(0);
@@ -322,10 +381,9 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
         } else if (currentPhase === 'mintMore') {
-            // Go back to selection screen
-            if (onGoToSelection) {
-                onGoToSelection(currentPhase);
-            }
+            // Continue to final phase (YES = done)
+            setCurrentPhase('final');
+            setDialogIndex(0);
         }
     };
 
@@ -343,9 +401,10 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             setCurrentPhase('chooseMoonling');
             setDialogIndex(0);
         } else if (currentPhase === 'mintMore') {
-            // Continue to final phase
-            setCurrentPhase('final');
-            setDialogIndex(0);
+            // Go back to selection screen (NO = mint more)
+            if (onGoToSelection) {
+                onGoToSelection(currentPhase);
+            }
         }
     };
 
@@ -380,16 +439,19 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                             (currentPhase === 'explanationNo' && dialogIndex === processedDialogs.explanationNo.length - 1) ||
                             (currentPhase === 'mintMore' && dialogIndex === processedDialogs.mintMore.length - 1);
     const showNameInput = currentPhase === 'nameInput';
-    const showChoiceDialog = showYesNoButtons;
 
     // Typewriter effect for dialog text
     useEffect(() => {
         const currentDialog = getCurrentDialog();
         
-        if (currentDialog && !showYesNoButtons) {
+        if (currentDialog) {
+            // Set dialog changing flag immediately
+            setIsDialogChanging(true);
+            
             // Small delay to ensure state is properly updated
             setTimeout(() => {
                 setIsTyping(true);
+                setIsDialogChanging(false);
                 setSegmentIndex(0);
                 setCharIndex(0);
                 segmentIndexRef.current = 0;
@@ -426,13 +488,6 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                 
                 return () => clearInterval(typeInterval);
             }, 100);
-        } else if (currentDialog && showYesNoButtons) {
-            // For YES/NO dialogs, show text immediately
-            const segments = processTextToSegments(currentDialog);
-            setDisplaySegments(segments);
-            setSegmentIndex(segments.length - 1);
-            setCharIndex(segments[segments.length - 1]?.text.length || 0);
-            setIsTyping(false);
         } else {
             // Reset when no dialog or empty dialog
             setDisplaySegments([]);
@@ -441,6 +496,21 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             setIsTyping(false);
         }
     }, [dialogIndex, currentPhase, showYesNoButtons]);
+
+    // Handle delay for showing options after typing completes
+    useEffect(() => {
+        if (showYesNoButtons && !isTyping && !isDialogChanging) {
+            const timer = setTimeout(() => {
+                setShowOptionsAfterDelay(true);
+            }, 100); // 100ms delay
+            return () => clearTimeout(timer);
+        } else {
+            setShowOptionsAfterDelay(false);
+        }
+    }, [showYesNoButtons, isTyping, isDialogChanging]);
+
+    // Prevent showing choice dialog during dialog transitions
+    const showChoiceDialog = showYesNoButtons && !isTyping && !isDialogChanging && showOptionsAfterDelay;
 
     // Arrow animation effect - only show after typing is complete
     useEffect(() => {
@@ -460,9 +530,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             setSelectedChoice('yes');
         } else if (showNameInput) {
             handleNameSubmit();
-        } else {
-            handleDialogClick();
         }
+        // Only center button progresses text for non-choice dialogs
     };
 
     const handleRightButton = () => {
@@ -470,9 +539,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             setSelectedChoice('no');
         } else if (showNameInput) {
             handleNameSubmit();
-        } else {
-            handleDialogClick();
         }
+        // Only center button progresses text for non-choice dialogs
     };
 
     const handleCenterButton = () => {
@@ -484,6 +552,24 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             }
         } else if (showNameInput) {
             handleNameSubmit();
+        } else if (isTyping) {
+            // Complete the typewriter animation immediately
+            const currentSegment = displaySegments[segmentIndex];
+            if (currentSegment) {
+                setCharIndex(currentSegment.text.length);
+                charIndexRef.current = currentSegment.text.length;
+                
+                // If there are more segments, move to the next one
+                if (segmentIndex < displaySegments.length - 1) {
+                    setSegmentIndex(segmentIndex + 1);
+                    segmentIndexRef.current = segmentIndex + 1;
+                    setCharIndex(0);
+                    charIndexRef.current = 0;
+                } else {
+                    // All segments are complete, finish typing
+                    setIsTyping(false);
+                }
+            }
         } else {
             handleDialogClick();
         }
@@ -501,6 +587,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
             centerButtonText={showChoiceDialog ? '' : ''}
             rightButtonText={showChoiceDialog ? '' : ''}
             centerButtonDisabled={showNameInput && playerName.trim().length === 0}
+            isTransitioning={isTransitioning}
+            transitionOpacity={transitionOpacity}
         >
             {currentPhase !== 'nameInput' && (
                 <>
@@ -517,8 +605,8 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                         <View style={styles.storyDialogBottom}>
                             <Frame
                                 width={280}
-                                height={55}
-                                top={-23}
+                                height={62}
+                                top={-26}
                                 left={8}
                                 position="absolute"
                                 pixelSize={2}
@@ -684,14 +772,28 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     storyTextLarge: {
-        fontSize: 13,
+        fontSize: 11,
         color: '#2E5A3E', // Dark green text
-        lineHeight: 20,
+        lineHeight: 18,
         fontFamily: 'PressStart2P',
+        letterSpacing: -1, // Reduce space between characters
     },
     boldText: {
         fontSize: 16,
         fontFamily: 'PressStart2P',
+    },
+    storyTextContainer: {
+        width: '100%',
+    },
+    centeredText: {
+        textAlign: 'center',
+        width: '100%',
+    },
+    centeredSegmentContainer: {
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
     },
     storyPromptLarge: {
         fontSize: 12,
@@ -817,21 +919,21 @@ const styles = StyleSheet.create({
         marginTop: 0,
         marginHorizontal: 30,
         position: 'absolute',
-        bottom: 3,
+        bottom: 8, // Moved up 3px from 3 to 6
         left: 0,
         right: 0,
     },
     choiceText: {
-        fontSize: 16,
+        fontSize: 13,
         color: '#4A7A5A', // Medium green for choice text
         marginHorizontal: 30, // Increased horizontal spacing instead of gap
         fontFamily: 'PressStart2P',
+        opacity: 0.5, // Make non-underlined options transparent
     },
     selectedChoice: {
         color: '#2E5A3E', // Dark green for selected choice
-        textDecorationLine: 'underline',
-        textDecorationColor: '#2E5A3E', // Dark green underline
         fontFamily: 'PressStart2P',
+        opacity: 1, // Make selected option fully opaque
     },
     continueArrow: {
         position: 'absolute',
@@ -839,9 +941,9 @@ const styles = StyleSheet.create({
         right: 10,
         width: 0,
         height: 0,
-        borderLeftWidth: 8, // Increased from 6 to 8
-        borderRightWidth: 8, // Increased from 6 to 8
-        borderTopWidth: 12, // Increased from 10 to 12
+        borderLeftWidth: 6, // Reduced from 8 to 6
+        borderRightWidth: 6, // Reduced from 8 to 6
+        borderTopWidth: 8, // Reduced from 12 to 8
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
         borderTopColor: '#2E5A3E',
@@ -852,13 +954,16 @@ const styles = StyleSheet.create({
     },
     dialogContentContainer: {
         position: 'absolute',
-        top: 13,
+        top: 10,
         left: -3,
         right: -19,
-        bottom: 12,
+        bottom: 15,
         justifyContent: 'flex-start',
-        alignItems: 'center',
+        alignItems: 'flex-start', // Left align the text
         marginTop: -45,
+        paddingLeft: 10, // Add 3px padding to move text right
+        paddingTop: 5, // Add 5px padding to move text down
+        paddingRight: 10,
         backgroundColor: '#E8F5E8', // Match the inner box background
     },
     dialogTextContainer: {

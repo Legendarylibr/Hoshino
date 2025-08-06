@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Modal, StyleSheet, Dimensions } from 'react-native';
 import Shop from './Shop';
 import Gallery from './Gallery';
 import MoonCycleDisplay from './MoonCycleDisplay';
@@ -9,11 +9,14 @@ import IngredientSelection from './IngredientSelection';
 import InnerScreen from './InnerScreen';
 import WalletButton from './WalletButton';
 import Settings from './Settings';
+import Frame from './Frame';
 import { useWallet } from '../contexts/WalletContext';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
 import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
 import SettingsService, { MenuButton } from '../services/SettingsService';
 import SleepOverlay from './SleepOverlay';
+
+const { height } = Dimensions.get('window');
 
 
 // Helper function to get image source based on character image name
@@ -58,8 +61,11 @@ interface Props {
     onInventory?: () => void;
     onChat?: () => void;
     onBack?: () => void;
+    onSettings?: () => void;
     // ✅ New props for local game engine
     localGameEngine?: LocalGameEngine | null;
+    // Transition animation control
+    shouldFadeIn?: boolean;
 }
 
 const MoonlingInteraction: React.FC<Props> = ({
@@ -78,8 +84,10 @@ const MoonlingInteraction: React.FC<Props> = ({
     onInventory,
     onChat,
     onBack,
+    onSettings,
     // ✅ New props
-    localGameEngine
+    localGameEngine,
+    shouldFadeIn = false
 }) => {
     const { connected: walletConnected, publicKey, connect, disconnect } = useWallet();
     // ✅ Use GameStats from LocalGameEngine instead of simple stats
@@ -99,6 +107,8 @@ const MoonlingInteraction: React.FC<Props> = ({
 
     const [showShop, setShowShop] = useState(false);
     const [showGallery, setShowGallery] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(true);
+    const [transitionOpacity, setTransitionOpacity] = useState(1);
 
     // ✅ Load stats from LocalGameEngine when available with StatDecayService sync
     useEffect(() => {
@@ -115,6 +125,33 @@ const MoonlingInteraction: React.FC<Props> = ({
             })();
         }
     }, [localGameEngine, selectedCharacter]);
+
+    // Fade in animation when component mounts (only if shouldFadeIn is true)
+    useEffect(() => {
+        if (shouldFadeIn) {
+            // Start with full opacity and fade in
+            setTransitionOpacity(1);
+            setIsTransitioning(true);
+            
+            // Choppy fade in animation (5-6 layers, 0.5s apart)
+            const fadeInSteps = [0.8, 0.6, 0.4, 0.2, 0.0];
+            fadeInSteps.forEach((opacity, index) => {
+                setTimeout(() => {
+                    setTransitionOpacity(opacity);
+                }, index * 500);
+            });
+            
+            // End transition after fade in
+            setTimeout(() => {
+                setIsTransitioning(false);
+                setTransitionOpacity(0);
+            }, fadeInSteps.length * 500);
+        } else {
+            // No transition needed, start with normal opacity
+            setIsTransitioning(false);
+            setTransitionOpacity(0);
+        }
+    }, [shouldFadeIn]);
 
     // ✅ Optimized: Reduced frequency for better mobile performance and conflict prevention
     useEffect(() => {
@@ -375,13 +412,27 @@ const MoonlingInteraction: React.FC<Props> = ({
                 setShowGallery(true);
                 break;
 
-            case 'settings':
-                setShowSettings(true);
-                break;
+                                    case 'settings':
+                            if (onSettings) {
+                                onSettings();
+                            }
+                            break;
 
             default:
                 onNotification?.(`Unknown action: ${action}`, 'error');
         }
+    };
+
+    const imageSources = {
+        background: require('../../assets/images/screen bg.png'),
+        feed: require('../../assets/images/feed.png'),
+        chat: require('../../assets/images/chat.png'),
+        games: require('../../assets/images/games.png'),
+        sleep: require('../../assets/images/sleepzzzz.png'),
+        shop: require('../../assets/images/shop.png'),
+        inventory: require('../../assets/images/backpack.png'),
+        gallery: require('../../assets/images/gallery.png'),
+        settings: require('../../assets/images/settings.png'),
     };
 
     // Render menu button
@@ -405,6 +456,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                 key={button.id}
                 style={styles.menuIcon}
                 onPress={() => handleMenuButtonAction(button.action)}
+                activeOpacity={0.7}
             >
                 <Image source={getImageSource(button.icon)} style={styles.menuImage} />
             </TouchableOpacity>
@@ -423,17 +475,7 @@ const MoonlingInteraction: React.FC<Props> = ({
         );
     }
 
-    const imageSources = {
-        background: require('../../assets/images/screen bg.png'),
-        feed: require('../../assets/images/feed.png'),
-        chat: require('../../assets/images/chat.png'),
-        games: require('../../assets/images/games.png'),
-        sleep: require('../../assets/images/sleepzzzz.png'),
-        shop: require('../../assets/images/shop.png'),
-        inventory: require('../../assets/images/backpack.png'),
-                gallery: require('../../assets/images/gallery.png'),
-        settings: require('../../assets/images/settings.png'),
-    };
+
 
     return (
         <>
@@ -445,28 +487,45 @@ const MoonlingInteraction: React.FC<Props> = ({
             />
             <InnerScreen
             showStatsBar={true}
+            isTransitioning={isTransitioning}
+            transitionOpacity={transitionOpacity}
             statsBarContent={
                 <>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Mood {moodState ? `(${moodState.state})` : ''}</Text>
-                        <Text style={styles.starRating}>
-                            {'★'.repeat(currentStats.mood)}
-                            {'☆'.repeat(5 - currentStats.mood)}
-                        </Text>
+                        <View style={styles.starContainer}>
+                            {[...Array(5)].map((_, index) => (
+                                <Image
+                                    key={`mood-${index}`}
+                                    source={index < currentStats.mood ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    style={styles.starImage}
+                                />
+                            ))}
+                        </View>
                     </View>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Hunger</Text>
-                        <Text style={styles.starRating}>
-                            {'★'.repeat(currentStats.hunger)}
-                            {'☆'.repeat(5 - currentStats.hunger)}
-                        </Text>
+                        <View style={styles.starContainer}>
+                            {[...Array(5)].map((_, index) => (
+                                <Image
+                                    key={`hunger-${index}`}
+                                    source={index < currentStats.hunger ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    style={styles.starImage}
+                                />
+                            ))}
+                        </View>
                     </View>
                     <View style={styles.statItem}>
                         <Text style={styles.statLabel}>Sleep</Text>
-                        <Text style={styles.starRating}>
-                            {'★'.repeat(currentStats.energy)}
-                            {'☆'.repeat(5 - currentStats.energy)}
-                        </Text>
+                        <View style={styles.starContainer}>
+                            {[...Array(5)].map((_, index) => (
+                                <Image
+                                    key={`sleep-${index}`}
+                                    source={index < currentStats.energy ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    style={styles.starImage}
+                                />
+                            ))}
+                        </View>
                     </View>
                 </>
             }
@@ -493,6 +552,7 @@ const MoonlingInteraction: React.FC<Props> = ({
             </View>
 
             {/* Navigation Menu - Inside Main Screen */}
+            {/* Menu Bar at Bottom */}
             <View style={styles.integratedMenuBar}>
                 {/* Dynamic Menu Buttons */}
                 {menuButtons.length > 0 && (
@@ -512,6 +572,18 @@ const MoonlingInteraction: React.FC<Props> = ({
                 )}
             </View>
 
+            {/* Decorative Frame Overlay */}
+            <Frame
+                width={281}
+                height={75}
+                top={155}
+                left={8}
+                position="absolute"
+                showBackgroundImage={false}
+                pixelSize={3}
+            >
+                <View style={{ width: '100%', height: '100%' }} />
+            </Frame>
 
             </InnerScreen>
             {showSleepMode && (
@@ -521,27 +593,16 @@ const MoonlingInteraction: React.FC<Props> = ({
                 />
             )}
             
-            {showSettings && (
-                <View style={styles.settingsOverlay}>
-                    <Settings
-                        onBack={() => setShowSettings(false)}
-                        onNotification={onNotification}
-                        onSettingsChanged={() => {
-                            // Reload menu buttons when settings change
-                            const loadMenuButtons = async () => {
-                                const buttons = settingsService.getMenuButtons();
-                                setMenuButtons(buttons);
-                            };
-                            loadMenuButtons();
-                        }}
-                    />
-                </View>
-            )}
+
         </>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        position: 'relative',
+    },
     statItem: {
         alignItems: 'center',
         flex: 1,
@@ -554,6 +615,16 @@ const styles = StyleSheet.create({
     starRating: {
         fontSize: 16,
         color: '#ffd700',
+    },
+    starContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    starImage: {
+        width: 16,
+        height: 16,
+        marginHorizontal: 0.1,
     },
     mainDisplayArea: {
         flex: 1,
@@ -569,7 +640,7 @@ const styles = StyleSheet.create({
         width: 250,
         height: 250,
         resizeMode: 'contain',
-        marginTop: -20,
+        marginTop: -80,
     },
     noCharacterPlaceholder: {
         flex: 1,
@@ -579,12 +650,12 @@ const styles = StyleSheet.create({
     integratedMenuBar: {
         flexDirection: 'column',
         justifyContent: 'flex-end',
-        padding: 1,
+        padding: 8,
         backgroundColor: '#E8F5E8',
-        width: '100%',
+        width: '98%',
         position: 'absolute',
         bottom: 5,
-        left: 0,
+        left: 3,
         right: 0,
     },
     menuRow: {

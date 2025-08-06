@@ -8,7 +8,8 @@ import {
     TouchableOpacity,
     Dimensions,
 } from 'react-native';
-//import StarfieldBackground from './StarfieldBackground';
+
+// import StarfieldBackground from './StarfieldBackground';
 
 const { width, height } = Dimensions.get('window');
 
@@ -208,7 +209,7 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
             <TouchableWithoutFeedback onPress={handleDismiss}>
                 <View style={styles.container}>
                     {/* Animated Starfield Background */}
-                    <StarfieldBackground intensity="medium" animate={true} />
+                    {/* <StarfieldBackground intensity="medium" animate={true} /> */}
 
                     {/* Semi-transparent black overlay for night mode */}
                     <Animated.View

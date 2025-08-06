@@ -655,7 +655,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 15,
         fontFamily: 'PressStart2P',
-        fontWeight: 'bold',
     },
     mintButton: {
         backgroundColor: '#2E5A3E',
