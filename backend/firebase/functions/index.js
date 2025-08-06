@@ -12,6 +12,9 @@ exports.getConversation = aiChatFunctions.getConversation;
 
 // Export Solana transaction functions
 exports.generateNFTTransaction = solanaTransactionFunctions.generateNFTTransaction;
+exports.mintCharacter = solanaTransactionFunctions.mintCharacter;
+exports.mintAchievement = solanaTransactionFunctions.mintAchievement;
+exports.mintMarketplaceItem = solanaTransactionFunctions.mintMarketplaceItem;
 exports.generateCurrencyPurchaseTransaction = solanaTransactionFunctions.generateCurrencyPurchaseTransaction;
 exports.fetchNFTMetadata = solanaTransactionFunctions.fetchNFTMetadata;
 exports.solanaHealth = solanaTransactionFunctions.solanaHealth;
@@ -28,6 +31,9 @@ exports.health = onRequest({
       'chat', 
       'getConversation', 
       'generateNFTTransaction',
+      'mintCharacter',
+      'mintAchievement',
+      'mintMarketplaceItem',
       'generateCurrencyPurchaseTransaction',
       'fetchNFTMetadata',
       'solanaHealth',

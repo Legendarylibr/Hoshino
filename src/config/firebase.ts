@@ -15,6 +15,9 @@ export const FIREBASE_CONFIG = {
   // Individual function endpoints
   functions: {
     generateNFTTransaction: 'https://us-central1-hoshino-996d0.cloudfunctions.net/generateNFTTransaction',
+    mintCharacter: 'https://us-central1-hoshino-996d0.cloudfunctions.net/mintCharacter',
+    mintAchievement: 'https://us-central1-hoshino-996d0.cloudfunctions.net/mintAchievement',
+    mintMarketplaceItem: 'https://us-central1-hoshino-996d0.cloudfunctions.net/mintMarketplaceItem',
     generateCurrencyPurchaseTransaction: 'https://us-central1-hoshino-996d0.cloudfunctions.net/generateCurrencyPurchaseTransaction',
     fetchNFTMetadata: 'https://us-central1-hoshino-996d0.cloudfunctions.net/fetchNFTMetadata',
     chat: 'https://us-central1-hoshino-996d0.cloudfunctions.net/chat',

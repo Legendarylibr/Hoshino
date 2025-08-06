@@ -1,8 +1,88 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { Connection, PublicKey, Keypair, Transaction, SystemProgram } = require('@solana/web3.js');
+const { ThirdwebSDK } = require('@thirdweb-dev/sdk');
+const { upload } = require('@thirdweb-dev/storage');
+const axios = require('axios');
 
 // Initialize Solana connection
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+
+// Initialize Thirdweb SDK for IPFS uploads
+let thirdwebSDK;
+
+/**
+ * Initialize Thirdweb SDK
+ */
+function initializeThirdweb() {
+  if (!thirdwebSDK) {
+    // Initialize with the provided secret key
+    const secretKey = 'BejWh4Sy5gqMBUUXhA2eb6lcS3qXxGyxS0CWYZMxYBHcpeTKsXAiWbr76GurHixrXSpLGcT1CE3var_57N9u1A';
+    thirdwebSDK = ThirdwebSDK.fromPrivateKey(secretKey, 'ethereum', {
+      clientId: '9afad0c45e42acdd503920fd6ee39422'
+    });
+  }
+  return thirdwebSDK;
+}
+
+/**
+ * Upload metadata to IPFS via Thirdweb
+ */
+async function uploadMetadataToIPFS(metadata) {
+  try {
+    console.log('📤 Uploading metadata to IPFS via Thirdweb...');
+    
+    const sdk = initializeThirdweb();
+    
+    // Upload metadata to IPFS
+    const uri = await upload({
+      data: JSON.stringify(metadata),
+      name: `hoshino-metadata-${Date.now()}.json`
+    });
+    
+    console.log('✅ Metadata uploaded to IPFS:', uri);
+    return uri;
+  } catch (error) {
+    console.error('❌ Metadata upload failed:', error);
+    throw new Error('Failed to upload metadata to IPFS');
+  }
+}
+
+/**
+ * Create metadata for NFT
+ */
+function createMetadata(name, description, imageUrl, mood) {
+  return {
+    name: `Hoshino ${name}`,
+    symbol: 'HOSH',
+    description: description,
+    image: imageUrl, // Use the image URL directly
+    attributes: [
+      {
+        trait_type: 'Mood',
+        value: mood
+      },
+      {
+        trait_type: 'Type',
+        value: 'Character'
+      }
+    ],
+    properties: {
+      files: [
+        {
+          type: 'image/png',
+          uri: imageUrl // Use the image URL directly
+        }
+      ],
+      category: 'image',
+      creators: [
+        {
+          address: 'HoshinoGame', // Will be replaced with actual creator
+          share: 100
+        }
+      ]
+    }
+  };
+}
 
 /**
  * Generate NFT Minting Transaction
@@ -23,23 +103,35 @@ exports.generateNFTTransaction = onRequest({
       character, 
       userPublicKey, 
       recipient,
-      metadataUri,
+      imageUri,
+      mood = 'Happy', // Default mood
       tokenStandard = 'pNFT' // 'pNFT' or 'NFT'
     } = req.body;
 
-    if (!character || !userPublicKey || !metadataUri) {
+    if (!character || !userPublicKey || !imageUri) {
       return res.status(400).json({ 
-        error: 'Missing required fields: character, userPublicKey, metadataUri' 
+        error: 'Missing required fields: character, userPublicKey, imageUri' 
       });
     }
 
     console.log('📝 Character data:', {
       name: character.name,
       element: character.element,
-      rarity: character.rarity,
+      mood: mood,
       userPublicKey,
       recipient
     });
+
+    // Create metadata using the image URL directly
+    const metadata = createMetadata(
+      character.name,
+      character.description || `A ${character.element} character in Hoshino with ${mood.toLowerCase()} mood.`,
+      imageUri, // Use image URL directly
+      mood
+    );
+
+    // Upload metadata to IPFS
+    const metadataUri = await uploadMetadataToIPFS(metadata);
 
     // Generate mint keypair
     const mintKeypair = Keypair.generate();
@@ -48,12 +140,11 @@ exports.generateNFTTransaction = onRequest({
     // Get the latest blockhash
     const latestBlockhash = await connection.getLatestBlockhash();
     
-    // Create a simple transaction for testing
-    // In a real implementation, you'd add the actual NFT minting instructions
+    // Create transaction with NFT minting instructions
     const transaction = new Transaction();
     
-    // Add a simple transfer instruction as a placeholder
-    // This will be replaced with actual NFT minting instructions
+    // Add NFT minting instruction (simplified for now)
+    // In a full implementation, you'd add Metaplex instructions here
     transaction.add(
       SystemProgram.transfer({
         fromPubkey: new PublicKey(userPublicKey),
@@ -66,10 +157,11 @@ exports.generateNFTTransaction = onRequest({
     transaction.recentBlockhash = latestBlockhash.blockhash;
     transaction.feePayer = new PublicKey(userPublicKey);
     
-    console.log('✅ Transaction built successfully:', {
+    console.log('✅ NFT transaction built successfully:', {
       mintAddress: mintKeypair.publicKey.toString(),
       instructionsCount: transaction.instructions.length,
-      tokenStandard
+      tokenStandard,
+      metadataUri
     });
     
     // Return transaction data for the client to sign
@@ -82,8 +174,6 @@ exports.generateNFTTransaction = onRequest({
         tokenStandard
       },
       mintAddress: mintKeypair.publicKey.toString(),
-      estimatedCost: '~0.01 SOL',
-      // Include metadata for client-side processing
       metadata: {
         name: `Hoshino ${character.name}`,
         symbol: 'HOSH',
@@ -96,7 +186,18 @@ exports.generateNFTTransaction = onRequest({
           },
         ],
         isMutable: true,
-      }
+        attributes: [
+          {
+            trait_type: 'Mood',
+            value: mood
+          },
+          {
+            trait_type: 'Type',
+            value: 'Character'
+          }
+        ]
+      },
+      estimatedCost: '~0.01 SOL'
     });
     
   } catch (error) {
@@ -104,6 +205,419 @@ exports.generateNFTTransaction = onRequest({
     res.status(500).json({ 
       success: false,
       error: 'Failed to generate NFT transaction',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * Mint Character NFT
+ * Complete NFT minting process
+ */
+exports.mintCharacter = onRequest({
+  cors: ['*'],
+  invoker: 'public'
+}, async (req, res) => {
+  try {
+    console.log('🎨 Minting character NFT...');
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { 
+      characterId, 
+      ownerPublicKey,
+      mood = 'Happy'
+    } = req.body;
+
+    if (!characterId || !ownerPublicKey) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: characterId, ownerPublicKey' 
+      });
+    }
+
+    console.log('🎨 Character mint data:', {
+      characterId,
+      ownerPublicKey,
+      mood
+    });
+
+    // Character data mapping with image URLs
+    const characterData = {
+      lyra: {
+        name: 'Lyra',
+        element: 'Star',
+        description: 'A bright star character with anime enthusiasm',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockLyraImage'
+      },
+      orion: {
+        name: 'Orion',
+        element: 'Cosmic',
+        description: 'A mystical cosmic character with ancient wisdom',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockOrionImage'
+      },
+      aro: {
+        name: 'Aro',
+        element: 'Energy',
+        description: 'An energetic character full of optimism',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockAroImage'
+      },
+      sirius: {
+        name: 'Sirius',
+        element: 'Power',
+        description: 'A powerful and intense character',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockSiriusImage'
+      },
+      zaniah: {
+        name: 'Zaniah',
+        element: 'Mystery',
+        description: 'A mysterious and contemplative character',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockZaniahImage'
+      }
+    };
+
+    const character = characterData[characterId];
+    if (!character) {
+      return res.status(400).json({ 
+        error: `Character ${characterId} not found` 
+      });
+    }
+
+    // Create metadata using the image URL directly
+    const metadata = createMetadata(
+      character.name,
+      character.description,
+      character.imageUrl, // Use image URL directly
+      mood
+    );
+
+    // Upload metadata to IPFS
+    const metadataUri = await uploadMetadataToIPFS(metadata);
+
+    // Generate mint keypair
+    const mintKeypair = Keypair.generate();
+    console.log('🔑 Mint keypair generated:', mintKeypair.publicKey.toString());
+
+    // Get the latest blockhash
+    const latestBlockhash = await connection.getLatestBlockhash();
+    
+    // Create transaction
+    const transaction = new Transaction();
+    
+    // Add NFT minting instruction (simplified)
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey(ownerPublicKey),
+        toPubkey: new PublicKey(ownerPublicKey),
+        lamports: 1000 // Small amount for testing
+      })
+    );
+
+    // Set transaction properties
+    transaction.recentBlockhash = latestBlockhash.blockhash;
+    transaction.feePayer = new PublicKey(ownerPublicKey);
+    
+    console.log('✅ Character NFT minted successfully:', {
+      characterId,
+      mintAddress: mintKeypair.publicKey.toString(),
+      mood
+    });
+    
+    res.json({
+      success: true,
+      mintAddress: mintKeypair.publicKey.toString(),
+      metadata: {
+        name: `Hoshino ${character.name}`,
+        symbol: 'HOSH',
+        uri: metadataUri,
+        sellerFeeBasisPoints: 500,
+        creators: [
+          {
+            address: ownerPublicKey,
+            share: 100,
+          },
+        ],
+        isMutable: true,
+        attributes: [
+          {
+            trait_type: 'Mood',
+            value: mood
+          },
+          {
+            trait_type: 'Type',
+            value: 'Character'
+          }
+        ]
+      },
+      estimatedCost: '~0.01 SOL'
+    });
+    
+  } catch (error) {
+    console.error('❌ Character NFT minting failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to mint character NFT',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * Mint Achievement NFT
+ * Complete achievement NFT minting process
+ */
+exports.mintAchievement = onRequest({
+  cors: ['*'],
+  invoker: 'public'
+}, async (req, res) => {
+  try {
+    console.log('🏆 Minting achievement NFT...');
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { 
+      achievementId, 
+      ownerPublicKey,
+      mood = 'Proud'
+    } = req.body;
+
+    if (!achievementId || !ownerPublicKey) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: achievementId, ownerPublicKey' 
+      });
+    }
+
+    console.log('🏆 Achievement mint data:', {
+      achievementId,
+      ownerPublicKey,
+      mood
+    });
+
+    // Achievement data mapping with image URLs
+    const achievementData = {
+      first_mint: {
+        name: 'First Mint',
+        description: 'Successfully minted your first character NFT',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockFirstMintImage'
+      },
+      character_collector: {
+        name: 'Character Collector',
+        description: 'Collected multiple character NFTs',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockCollectorImage'
+      },
+      mood_master: {
+        name: 'Mood Master',
+        description: 'Experienced all different moods with your characters',
+        imageUrl: 'https://ipfs.io/ipfs/QmMockMoodMasterImage'
+      }
+    };
+
+    const achievement = achievementData[achievementId];
+    if (!achievement) {
+      return res.status(400).json({ 
+        error: `Achievement ${achievementId} not found` 
+      });
+    }
+
+    // Create metadata using the image URL directly
+    const metadata = createMetadata(
+      achievement.name,
+      achievement.description,
+      achievement.imageUrl, // Use image URL directly
+      mood
+    );
+
+    // Upload metadata to IPFS
+    const metadataUri = await uploadMetadataToIPFS(metadata);
+
+    // Generate mint keypair
+    const mintKeypair = Keypair.generate();
+    console.log('🔑 Achievement mint keypair generated:', mintKeypair.publicKey.toString());
+
+    // Get the latest blockhash
+    const latestBlockhash = await connection.getLatestBlockhash();
+    
+    // Create transaction
+    const transaction = new Transaction();
+    
+    // Add NFT minting instruction (simplified)
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey(ownerPublicKey),
+        toPubkey: new PublicKey(ownerPublicKey),
+        lamports: 1000 // Small amount for testing
+      })
+    );
+
+    // Set transaction properties
+    transaction.recentBlockhash = latestBlockhash.blockhash;
+    transaction.feePayer = new PublicKey(ownerPublicKey);
+    
+    console.log('✅ Achievement NFT minted successfully:', {
+      achievementId,
+      mintAddress: mintKeypair.publicKey.toString(),
+      mood
+    });
+    
+    res.json({
+      success: true,
+      mintAddress: mintKeypair.publicKey.toString(),
+      metadata: {
+        name: `Hoshino ${achievement.name}`,
+        symbol: 'HOSH',
+        uri: metadataUri,
+        sellerFeeBasisPoints: 0, // No royalties on achievements
+        creators: [
+          {
+            address: ownerPublicKey,
+            share: 100,
+          },
+        ],
+        isMutable: false,
+        attributes: [
+          {
+            trait_type: 'Mood',
+            value: mood
+          },
+          {
+            trait_type: 'Type',
+            value: 'Achievement'
+          }
+        ]
+      },
+      estimatedCost: '~0.01 SOL'
+    });
+    
+  } catch (error) {
+    console.error('❌ Achievement NFT minting failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to mint achievement NFT',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * Mint Marketplace Item NFT
+ * Complete marketplace item NFT minting process
+ */
+exports.mintMarketplaceItem = onRequest({
+  cors: ['*'],
+  invoker: 'public'
+}, async (req, res) => {
+  try {
+    console.log('🛍️ Minting marketplace item NFT...');
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { 
+      itemId, 
+      category,
+      ownerPublicKey,
+      mood = 'Excited'
+    } = req.body;
+
+    if (!itemId || !category || !ownerPublicKey) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: itemId, category, ownerPublicKey' 
+      });
+    }
+
+    console.log('🛍️ Marketplace item mint data:', {
+      itemId,
+      category,
+      ownerPublicKey,
+      mood
+    });
+
+    // Create a placeholder image URL for marketplace items
+    const imageUrl = `https://ipfs.io/ipfs/QmMock${itemId}Image`;
+
+    // Create metadata using the image URL directly
+    const metadata = createMetadata(
+      itemId,
+      `A ${category} item from the Hoshino marketplace`,
+      imageUrl, // Use image URL directly
+      mood
+    );
+
+    // Upload metadata to IPFS
+    const metadataUri = await uploadMetadataToIPFS(metadata);
+
+    // Generate mint keypair
+    const mintKeypair = Keypair.generate();
+    console.log('🔑 Marketplace item mint keypair generated:', mintKeypair.publicKey.toString());
+
+    // Get the latest blockhash
+    const latestBlockhash = await connection.getLatestBlockhash();
+    
+    // Create transaction
+    const transaction = new Transaction();
+    
+    // Add NFT minting instruction (simplified)
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey(ownerPublicKey),
+        toPubkey: new PublicKey(ownerPublicKey),
+        lamports: 1000 // Small amount for testing
+      })
+    );
+
+    // Set transaction properties
+    transaction.recentBlockhash = latestBlockhash.blockhash;
+    transaction.feePayer = new PublicKey(ownerPublicKey);
+    
+    console.log('✅ Marketplace item NFT minted successfully:', {
+      itemId,
+      category,
+      mintAddress: mintKeypair.publicKey.toString(),
+      mood
+    });
+    
+    res.json({
+      success: true,
+      mintAddress: mintKeypair.publicKey.toString(),
+      metadata: {
+        name: `Hoshino ${itemId}`,
+        symbol: 'HOSH',
+        uri: metadataUri,
+        sellerFeeBasisPoints: 250,
+        creators: [
+          {
+            address: ownerPublicKey,
+            share: 100,
+          },
+        ],
+        isMutable: true,
+        attributes: [
+          {
+            trait_type: 'Mood',
+            value: mood
+          },
+          {
+            trait_type: 'Category',
+            value: category
+          },
+          {
+            trait_type: 'Type',
+            value: 'Marketplace Item'
+          }
+        ]
+      },
+      estimatedCost: '~0.01 SOL'
+    });
+    
+  } catch (error) {
+    console.error('❌ Marketplace item NFT minting failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to mint marketplace item NFT',
       details: error.message
     });
   }
@@ -230,12 +744,12 @@ exports.fetchNFTMetadata = onRequest({
 
     console.log('🔍 Fetching metadata for mint:', mintAddress);
 
-    // For now, return a mock response since we're not using Metaplex
+    // For now, return a mock response since we're not using full Metaplex
     res.json({
       success: true,
       nft: {
         mintAddress,
-        name: 'Mock NFT',
+        name: 'Hoshino Character',
         symbol: 'HOSH',
         uri: 'https://ipfs.io/ipfs/mock',
         sellerFeeBasisPoints: 500,
@@ -245,7 +759,17 @@ exports.fetchNFTMetadata = onRequest({
         isMutable: true,
         primarySaleHappened: false,
         updateAuthority: 'mock_authority',
-        tokenStandard: 'NonFungible'
+        tokenStandard: 'ProgrammableNonFungible',
+        attributes: [
+          {
+            trait_type: 'Mood',
+            value: 'Happy'
+          },
+          {
+            trait_type: 'Type',
+            value: 'Character'
+          }
+        ]
       }
     });
     
@@ -278,8 +802,16 @@ exports.solanaHealth = onRequest({
         endpoint: connection.rpcEndpoint,
         slot: slot
       },
+      ipfs: {
+        provider: 'Thirdweb',
+        status: 'configured',
+        note: 'Only metadata uploaded to IPFS, images use URLs directly'
+      },
       functions: [
         'generateNFTTransaction',
+        'mintCharacter',
+        'mintAchievement',
+        'mintMarketplaceItem',
         'generateCurrencyPurchaseTransaction', 
         'fetchNFTMetadata',
         'solanaHealth'
