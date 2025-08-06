@@ -63,6 +63,10 @@ more dificult in its current state
 **Impact**: Custom underlines harder to maintain and position consistently
 **Tried**: Font underline only allows on/off, no thickness control
 
+## 💰 **Wallet Compatibility**
+
+- **Phantom Wallet**: Attempted fallback signing approach but still doesn't work properly. Phantom wallet opens but doesn't prompt for transaction signature. Solflare remains the primary supported wallet.
+
 ---
 
 *Last Updated: [Current Date]*
