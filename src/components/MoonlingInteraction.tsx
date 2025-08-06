@@ -53,6 +53,7 @@ interface Props {
     onShop?: () => void;
     onInventory?: () => void;
     onChat?: () => void;
+
     onBack?: () => void;
     // ✅ New props for local game engine
     localGameEngine?: LocalGameEngine | null;
@@ -73,6 +74,7 @@ const MoonlingInteraction: React.FC<Props> = ({
     onShop,
     onInventory,
     onChat,
+
     onBack,
     // ✅ New props
     localGameEngine
@@ -318,7 +320,7 @@ const MoonlingInteraction: React.FC<Props> = ({
             }
             onLeftButtonPress={onBack}
             onCenterButtonPress={() => onNotification?.('🎮 Moonling Interaction: Care for your character!', 'info')}
-            onRightButtonPress={() => onNotification?.('🎮 Moonling Help: Feed, play, sleep, and care for your cosmic companion!', 'info')}
+            onRightButtonPress={() => onNotification?.('🎮 Moonling Help: Feed, play, sleep, and care for your companion!', 'info')}
             leftButtonText="←"
             centerButtonText="🎮"
             rightButtonText="?"
@@ -493,6 +495,24 @@ const MoonlingInteraction: React.FC<Props> = ({
 
 
         </InnerScreen>
+        
+        {/* Sleep Mode Modal */}
+        <Modal
+            visible={showSleepMode}
+            animationType="fade"
+            transparent={false}
+            onRequestClose={() => setShowSleepMode(false)}
+        >
+            <SleepMode
+                character={selectedCharacter}
+                onSleepSessionEnd={(sessionData) => {
+                    // Handle sleep session completion
+                    onNotification?.(`💤 Sleep session complete! Energy +${sessionData.energyGain}, Mood +${sessionData.moodGain}`, 'success');
+                    setShowSleepMode(false);
+                }}
+                onClose={() => setShowSleepMode(false)}
+            />
+        </Modal>
         </>
     );
 };

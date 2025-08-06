@@ -55,21 +55,12 @@ export enum ItemCategory {
   UTILITY = 'utility'
 }
 
-export enum ItemRarity {
-  COMMON = 'common',
-  UNCOMMON = 'uncommon', 
-  RARE = 'rare',
-  EPIC = 'epic',
-  LEGENDARY = 'legendary'
-}
-
 export interface MarketplaceItem {
   id: string
   name: string
   description: string
   imageUrl: string
   category: ItemCategory
-  rarity: ItemRarity
   priceSOL: number
   priceStarFragments: number
   inStock: boolean

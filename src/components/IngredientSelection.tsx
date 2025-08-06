@@ -14,7 +14,6 @@ interface Ingredient {
     name: string;
     description: string;
     image: string;
-    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic';
     cost: number;
     owned: number;
 }
@@ -40,12 +39,12 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
 
     // Mock ingredients data
     const ingredients: Ingredient[] = [
-        { id: 'dream-bean', name: 'Dream Bean', description: 'A magical bean that grows in moonlight', image: 'dream-bean.png', rarity: 'Common', cost: 5, owned: 3 },
-        { id: 'nebula-plum', name: 'Nebula Plum', description: 'A fruit that tastes like stardust', image: 'nebula-plum.png', rarity: 'Uncommon', cost: 10, owned: 2 },
-        { id: 'cloud-cake', name: 'Cloud Cake', description: 'A fluffy cake made from cloud essence', image: 'cloud-cake.png', rarity: 'Rare', cost: 15, owned: 1 },
-        { id: 'starberry', name: 'Starberry', description: 'A berry that glows like a tiny star', image: 'starberry.png', rarity: 'Epic', cost: 25, owned: 1 },
-        { id: 'moon-sugar', name: 'Moon Sugar', description: 'Crystalline sugar harvested from moonbeams', image: 'moon-sugar.png', rarity: 'Common', cost: 8, owned: 5 },
-        { id: 'cosmic-honey', name: 'Cosmic Honey', description: 'Honey collected from space bees', image: 'cosmic-honey.png', rarity: 'Uncommon', cost: 12, owned: 2 },
+        { id: 'dream-bean', name: 'Dream Bean', description: 'A magical bean that grows in moonlight', image: 'dream-bean.png', cost: 5, owned: 3 },
+        { id: 'nebula-plum', name: 'Nebula Plum', description: 'A fruit that tastes like stardust', image: 'nebula-plum.png', cost: 10, owned: 2 },
+        { id: 'cloud-cake', name: 'Cloud Cake', description: 'A fluffy cake made from cloud essence', image: 'cloud-cake.png', cost: 15, owned: 1 },
+        { id: 'starberry', name: 'Starberry', description: 'A berry that glows like a tiny star', image: 'starberry.png', cost: 25, owned: 1 },
+        { id: 'moon-sugar', name: 'Moon Sugar', description: 'Crystalline sugar harvested from moonbeams', image: 'moon-sugar.png', cost: 8, owned: 5 },
+        { id: 'stellar-honey', name: 'Stellar Honey', description: 'Honey collected from space bees', image: 'stellar-honey.png', cost: 12, owned: 2 },
     ];
 
     // Mock recipes data
@@ -71,7 +70,7 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
             description: 'A colorful dish that energizes moonlings',
             ingredients: [
                 { id: 'nebula-plum', quantity: 1 },
-                { id: 'cosmic-honey', quantity: 1 }
+                { id: 'stellar-honey', quantity: 1 }
             ],
             result: {
                 id: 'nebula-delight',
@@ -83,11 +82,11 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
         {
             id: 'stellar-feast',
             name: 'Stellar Feast',
-            description: 'A luxurious meal fit for cosmic royalty',
+            description: 'A luxurious meal fit for stellar royalty',
             ingredients: [
                 { id: 'cloud-cake', quantity: 1 },
                 { id: 'starberry', quantity: 1 },
-                { id: 'cosmic-honey', quantity: 2 }
+                { id: 'stellar-honey', quantity: 2 }
             ],
             result: {
                 id: 'stellar-feast',
@@ -134,15 +133,7 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
         onNotification?.(`🍳 Successfully crafted ${recipe.result.name}!`, 'success');
     };
 
-    const getRarityColor = (rarity: string): string => {
-        switch (rarity) {
-            case 'Common': return '#6b7280';
-            case 'Uncommon': return '#10b981';
-            case 'Rare': return '#3b82f6';
-            case 'Epic': return '#8b5cf6';
-            default: return '#6b7280';
-        }
-    };
+
 
     const getDifficultyColor = (difficulty: string): string => {
         switch (difficulty) {
@@ -195,8 +186,8 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
                                     <Text style={styles.ingredientIcon}>🍎</Text>
                                     <Text style={styles.ingredientName}>{ingredient.name}</Text>
                                     <Text style={styles.ingredientDescription}>{ingredient.description}</Text>
-                                    <Text style={[styles.ingredientRarity, { color: getRarityColor(ingredient.rarity) }]}>
-                                        {ingredient.rarity}
+                                                            <Text style={styles.ingredientRarity}>
+                            Premium
                                     </Text>
                                     <Text style={styles.ingredientOwned}>Owned: {ingredient.owned}</Text>
                                 </TouchableOpacity>

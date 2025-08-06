@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '../services/MarketplaceService';
+import MarketplaceService, { MarketplaceItem, ItemCategory } from '../services/MarketplaceService';
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
@@ -26,16 +26,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         return cart.reduce((total, cartItem) => total + (cartItem.item.priceStarFragments * cartItem.quantity), 0);
     };
 
-    const getRarityBorderColor = (rarity: ItemRarity): string => {
-        switch (rarity) {
-            case ItemRarity.COMMON: return '#8B8B8B';
-            case ItemRarity.UNCOMMON: return '#4CAF50';
-            case ItemRarity.RARE: return '#2196F3';
-            case ItemRarity.EPIC: return '#9C27B0';
-            case ItemRarity.LEGENDARY: return '#FF9800';
-            default: return '#003300';
-        }
-    };
+
 
     const addToCart = (item: MarketplaceItem) => {
         const totalCostAfterAdd = getTotalPrice() + item.priceStarFragments;
@@ -109,7 +100,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 description: 'Sweet crystalline sugar with a pink hue',
                 imageUrl: PinkSugar,
                 category: ItemCategory.FOOD,
-                rarity: ItemRarity.COMMON,
+
                 priceSOL: 0,
                 priceStarFragments: 15,
                 inStock: true,
@@ -120,7 +111,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 description: 'A mysterious egg that glows with stellar energy',
                 imageUrl: NovaEgg,
                 category: ItemCategory.FOOD,
-                rarity: ItemRarity.UNCOMMON,
+
                 priceSOL: 0,
                 priceStarFragments: 25,
                 inStock: true,
@@ -131,7 +122,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 description: 'A rare berry with stellar properties',
                 imageUrl: MiraBerry,
                 category: ItemCategory.FOOD,
-                rarity: ItemRarity.RARE,
+
                 priceSOL: 0,
                 priceStarFragments: 20,
                 inStock: true,
@@ -142,7 +133,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 description: 'Increases movement speed temporarily',
                 imageUrl: 'https://via.placeholder.com/48/00FF00/000000?text=⚡',
                 category: ItemCategory.POWERUP,
-                rarity: ItemRarity.COMMON,
+
                 priceSOL: 0,
                 priceStarFragments: 12,
                 inStock: true,
@@ -153,7 +144,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 description: 'Provides stellar protection',
                 imageUrl: 'https://via.placeholder.com/48/4169E1/000000?text=🛡️',
                 category: ItemCategory.POWERUP,
-                rarity: ItemRarity.RARE,
+
                 priceSOL: 0,
                 priceStarFragments: 45,
                 inStock: true,
@@ -222,7 +213,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                     return (
                         <View key={index} style={[
                             styles.itemCard,
-                            item && { borderColor: getRarityBorderColor(item.rarity) },
+                            item && { borderColor: '#8b5cf6' },
                             item && flashingItem === item.id && styles.flashingCard
                         ]}>
                             {item ? (

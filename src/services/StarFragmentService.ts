@@ -12,7 +12,7 @@ export interface Mission {
     maxProgress: number
     completed: boolean
     expiresAt?: Date
-    difficulty: 'easy' | 'medium' | 'hard' | 'legendary'
+    difficulty: 'easy' | 'medium' | 'hard'
 }
 
 export interface MissionRequirement {
@@ -199,7 +199,7 @@ export class StarFragmentService {
             },
             {
                 id: 'weekly_marketplace',
-                name: '🛒 Cosmic Shopper',
+                name: '🛒 Star Shopper',
                 description: 'Make 3 marketplace purchases this week',
                 type: 'weekly',
                 requirements: [{ type: 'marketplace_purchase', target: 3, description: 'Buy 3 items from shop' }],

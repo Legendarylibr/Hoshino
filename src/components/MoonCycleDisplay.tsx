@@ -108,7 +108,6 @@ const MoonCycleDisplay: React.FC<Props> = ({
                     onIngredientFound?.({
                         id: 'sleep_end',
                         name: sleepResult.message,
-                        rarity: sleepResult.stars >= 5 ? 'epic' : 'common',
                         moodBonus: sleepResult.stars >= 5 ? 1 : 0,
                         description: `Slept for ${sleepResult.energyGained >= 5 ? '8.5+' : sleepResult.energyGained * 1.7} hours`
                     });
@@ -119,7 +118,6 @@ const MoonCycleDisplay: React.FC<Props> = ({
                     onIngredientFound?.({
                         id: 'sleep_start',
                         name: 'Sleep Started',
-                        rarity: 'common',
                         moodBonus: 0,
                         description: sleepStart.message
                     });
@@ -332,10 +330,10 @@ const MoonCycleDisplay: React.FC<Props> = ({
                 >
                     <Text style={styles.ingredientDiscoveryH4}>🎯 Ingredient Found!</Text>
                     <LinearGradient
-                        colors={recentIngredient.rarity === 'legendary' ? ['#fef3c7', '#fde68a'] : ['#ede9fe', '#ddd6fe']}
+                        colors={['#ede9fe', '#ddd6fe']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[styles.ingredientItem, { borderColor: recentIngredient.rarity === 'legendary' ? '#f59e0b' : '#8b5cf6' }]}
+                        style={[styles.ingredientItem, { borderColor: '#8b5cf6' }]}
                     >
                         <View style={styles.ingredientInfo}>
                             <Text style={styles.ingredientInfoStrong}>{recentIngredient.name}</Text>

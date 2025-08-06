@@ -1,6 +1,6 @@
 # Hoshino Firebase Backend
 
-This is the Firebase backend for the Hoshino moonling game, providing AI chat functionality and data persistence.
+This is the Firebase backend for the Hoshino Virtual Pet Experience, providing AI chat functionality and data persistence.
 
 ## Features
 

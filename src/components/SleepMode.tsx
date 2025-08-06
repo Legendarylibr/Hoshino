@@ -176,7 +176,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
     const generateDreamLog = (): string[] => {
         const dreamTemplates = {
             lyra: [
-                "Dreamed of cooking the perfect ramen in a cosmic kitchen",
+                "Dreamed of cooking the perfect ramen in a celestial kitchen",
                 "Floated through a galaxy made of noodles and starlight",
                 "Danced with anime characters in a food festival among the stars"
             ],
@@ -191,9 +191,9 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
                 "Surfed on comet tails across the cosmos"
             ],
             hoshino: [
-                "Traveled between dimensions solving cosmic mysteries",
+                "Traveled between dimensions solving celestial mysteries",
                 "Mediated a peace treaty between rival star systems",
-                "Rebalanced the cosmic forces with ancient wisdom"
+                "Rebalanced the celestial forces with ancient wisdom"
             ],
             aurora: [
                 "Protected dream realms with shields of rainbow light",
@@ -203,7 +203,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
         };
 
         const characterDreams = dreamTemplates[character.id as keyof typeof dreamTemplates] || [
-            "Had wonderful cosmic adventures",
+            "Had wonderful celestial adventures",
             "Explored magical realms of starlight",
             "Danced among the constellations"
         ];
@@ -232,7 +232,7 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
 
     const getMoonlingMoodReaction = (mood: string): string => {
         const reactions = {
-            excellent: `😍 ${character.name} feels amazing! Full of cosmic energy!`,
+            excellent: `😍 ${character.name} feels amazing! Full of stellar energy!`,
             good: `😊 ${character.name} had great rest and feels refreshed!`,
             fair: `😐 ${character.name} got some rest but could sleep more...`,
             poor: `😴 ${character.name} is still tired... needs more sleep!`

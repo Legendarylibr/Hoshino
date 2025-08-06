@@ -41,7 +41,6 @@ export interface CycleReward {
 export interface IngredientDiscovery {
     id: string
     name: string
-    rarity: 'common' | 'rare' | 'epic' | 'legendary'
     moodBonus: number
     description: string
     characterSpecific?: string // For Lyra's anime-themed ingredients
@@ -218,7 +217,6 @@ export class MoonCycleService {
                 {
                     id: 'ramen_packet',
                     name: 'Instant Ramen Packet',
-                    rarity: 'common' as const,
                     moodBonus: 1,
                     description: 'A classic anime staple! Perfect for late-night study sessions.',
                     characterSpecific: 'Lyra squeals: "OMG this is like in every slice-of-life anime!"'
@@ -226,7 +224,6 @@ export class MoonCycleService {
                 {
                     id: 'bento_box',
                     name: 'Homemade Bento Box',
-                    rarity: 'rare' as const,
                     moodBonus: 2,
                     description: 'Carefully prepared with love, just like in romance anime.',
                     characterSpecific: 'Lyra blushes: "This is so romantic! Like when the love interest makes lunch!"'
@@ -234,7 +231,6 @@ export class MoonCycleService {
                 {
                     id: 'magical_mochi',
                     name: 'Magical Girl Mochi',
-                    rarity: 'epic' as const,
                     moodBonus: 3,
                     description: 'Sparkles with magical energy, straight from a magical girl anime.',
                     characterSpecific: 'Lyra transforms: "In the name of the moon, I will eat this mochi!"'
@@ -242,7 +238,6 @@ export class MoonCycleService {
                 {
                     id: 'legendary_takoyaki',
                     name: 'Legendary Takoyaki',
-                    rarity: 'legendary' as const,
                     moodBonus: 5,
                     description: 'The ultimate takoyaki that appears once in a lifetime, like in shonen anime.',
                     characterSpecific: 'Lyra cries anime tears: "This is my power-up moment! My protagonist arc!"'

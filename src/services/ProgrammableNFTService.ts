@@ -24,7 +24,6 @@ export interface GameAchievement {
   id: string;
   name: string;
   description: string;
-  rarity?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   unlockedAt?: Date;
   imageUrl?: string;
 }
@@ -196,7 +195,7 @@ export class ProgrammableNFTService {
       // Create metadata attributes
       const attributes = [
         { trait_type: 'Element', value: character.element },
-        { trait_type: 'Rarity', value: character.rarity },
+
         { trait_type: 'Type', value: 'Character' }
       ];
 
@@ -312,7 +311,7 @@ export class ProgrammableNFTService {
       // Create metadata attributes
       const attributes = [
         { trait_type: 'Type', value: 'Achievement' },
-        { trait_type: 'Rarity', value: achievement.rarity || 'Common' }
+
       ];
 
       // Create and upload metadata
@@ -338,7 +337,7 @@ export class ProgrammableNFTService {
           character: {
             name: achievement.name,
             element: 'Achievement',
-            rarity: achievement.rarity || 'Common',
+    
             description: achievement.description
           },
           userPublicKey: this.walletPublicKey,

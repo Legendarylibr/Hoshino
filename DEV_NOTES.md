@@ -30,7 +30,7 @@
   
 - [ ] UI Improvements: Add shading to buttons and screen for depth
 - [ ] Layout: Divide interaction screen buttons into 2 rows (4 buttons each)
-- [ ] Fix Safe Area Bleeding: Adjust cosmic inventory, shop, and feeding screens
+- [ ] Fix Safe Area Bleeding: Adjust inventory, shop, and feeding screens
   - Move content away from safe zones (top/bottom edges)
   - Use inner screen view boundaries instead of full screen?
   - Prevent content from bleeding into status bar/navigation areas

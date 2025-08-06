@@ -118,7 +118,7 @@ const SleepAnimation: React.FC<Props> = ({
             ],
             luna: [
                 "Zzz... floating among the stars... ⭐",
-                "Sleeping in cosmic harmony... 🌙",
+                "Sleeping in celestial harmony... 🌙",
                 "Zzz... lunar energy flowing through dreams... ✨",
             ],
             io: [
@@ -129,7 +129,7 @@ const SleepAnimation: React.FC<Props> = ({
             hoshino: [
                 "Zzz... interdimensional dreams... 🌀",
                 "Sleeping across all dimensions... 🚀",
-                "Zzz... cosmic balance in slumber... 🔮",
+                "Zzz... celestial balance in slumber... 🔮",
             ],
             aurora: [
                 "Zzz... aurora dreams flowing... 🌈",

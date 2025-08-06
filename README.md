@@ -1,6 +1,6 @@
-# Hoshino - Cosmic Moonling Game
+# Hoshino - Virtual Pet Experience
 
-A React Native game where you care for cosmic creatures called moonlings.
+A React Native game where you care for virtual creatures called moonlings.
 
 ## Prerequisites
 

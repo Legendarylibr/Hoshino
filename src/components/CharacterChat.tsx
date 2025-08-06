@@ -170,8 +170,8 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
                 {/* Chat Interface - Only show when toggled on */}
                 {showChat && (
                     <View style={styles.chatContainer}>
-                        {/* Cosmic Background Effect */}
-                        <View style={styles.cosmicBackground}>
+                        {/* Celestial Background Effect */}
+                <View style={styles.celestialBackground}>
                             {/* Simulated stars */}
                             <View style={[styles.star, { top: '10%', left: '15%' }]} />
                             <View style={[styles.star, { top: '25%', right: '20%' }]} />
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         backgroundColor: 'rgba(25, 25, 112, 0.8)', // Deep space blue
         borderWidth: 2,
-        borderColor: '#FFD700', // Cosmic gold
+        borderColor: '#FFD700', // Celestial gold
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
         padding: 4,
         zIndex: 10,
     },
-    cosmicBackground: {
+    celestialBackground: {
         position: 'absolute',
         top: 0,
         left: 0,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     userMessageBorder: {
-        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Cosmic purple
+        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Celestial purple
         borderColor: '#DA70D6', // Orchid border
     },
     characterMessageBorder: {
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
         minWidth: 60,
     },
     sendButtonBorder: {
-        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Cosmic purple
+        backgroundColor: 'rgba(138, 43, 226, 0.8)', // Celestial purple
         borderWidth: 2,
         borderColor: '#DA70D6', // Orchid
         borderRadius: 4,

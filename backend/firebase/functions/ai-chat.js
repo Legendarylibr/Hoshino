@@ -267,13 +267,13 @@ Keep responses under 50 words.`;
     if (isSafetyFilterViolation(error)) {
       const safetyFilterResponses = {
         lyra: "Oops! My anime filter is being too strict! (´･ω･`) Let me rephrase that in a more wholesome way!",
-        orion: "The cosmic sensors are being extra cautious! (´･_･`) Let me adjust my star energy!",
+        orion: "The stellar sensors are being extra cautious! (´･_･`) Let me adjust my star energy!",
         aro: "My chaos got filtered! (｡◕‿◕｡) Let me tone it down a bit!",
         sirius: "My dad jokes got flagged! (◕‿◕) Let me reboot with cleaner humor!",
         zaniah: "The astral plane is being protective! (´･ω･`) Let me align with better vibes!"
       };
       
-      const fallbackResponse = safetyFilterResponses[moonlingId] || "My cosmic filters are being extra careful! Let me adjust my energy! 😊";
+      const fallbackResponse = safetyFilterResponses[moonlingId] || "My stellar filters are being extra careful! Let me adjust my energy! 😊";
       
       return res.json({
         success: true,
@@ -294,7 +294,7 @@ Keep responses under 50 words.`;
         orion: "The stars are quiet right now... (´･_･`) Let's chat again soon!",
         aro: "My celestial energy is recharging! (｡◕‿◕｡) Come back in a moment!",
         sirius: "The Dog Star needs a quick rest! (◕‿◕) Try again shortly!",
-        zaniah: "The cosmic winds are still... (´･ω･`) We'll connect again soon!"
+        zaniah: "The stellar winds are still... (´･ω･`) We'll connect again soon!"
       };
       
       const fallbackResponse = fallbackResponses[moonlingId] || "I'm taking a quick break! 😊";

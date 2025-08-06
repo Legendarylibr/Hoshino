@@ -127,7 +127,7 @@ class ChatService {
       },
       zaniah: {
         name: 'Zaniah',
-        description: 'Mysterious cosmic entity',
+        description: 'Mysterious celestial entity',
         traits: ['mysterious', 'contemplative', 'wise', 'powerful']
       }
     };

@@ -36,7 +36,7 @@ export const ASSET_REGISTRY: Record<string, NFTAsset> = {
   'lyra': {
     id: 'lyra',
     name: 'Lyra',
-    description: 'A musical soul who harmonizes with the cosmic frequencies.',
+    description: 'A musical soul who harmonizes with the celestial frequencies.',
     ipfsHash: 'QmeCu9XBsSmHDMFic6Q8SGKn5Viwup6DqvkLCCgP3V157y',
     category: 'character'
   },
@@ -107,9 +107,9 @@ export const ASSET_REGISTRY: Record<string, NFTAsset> = {
   },
   
   // Items
-  'cosmic_ball': {
-    id: 'cosmic_ball',
-    name: 'Cosmic Ball',
+  'stellar_ball': {
+    id: 'stellar_ball',
+    name: 'Stellar Ball',
     description: 'A toy that brings endless joy and sparkles with stardust.',
     ipfsHash: 'QmItemHash1234567890abcdefgh', // Replace with your actual IPFS hash
     category: 'item'

@@ -176,7 +176,7 @@ const FeedingAnimation: React.FC<Props> = ({
                 "I'm having Food Wars flashbacks! This is SO dramatic! 😤💖"
             ],
             luna: [
-                "The celestial flavors align with cosmic harmony... 🌙✨",
+                "The celestial flavors align with stellar harmony... 🌙✨",
                 "This nourishment resonates with lunar energy... 🌌",
                 "The stars have blessed this meal... ⭐",
                 "Ancient wisdom flows through every bite... 🌟"
@@ -189,7 +189,7 @@ const FeedingAnimation: React.FC<Props> = ({
             ],
             hoshino: [
                 "Across all dimensions, this ranks among the finest... 🌟",
-                "The cosmic balance of flavors is remarkable... 🌀",
+                "The stellar balance of flavors is remarkable... 🌀",
                 "This transcends ordinary sustenance... 🚀",
                 "A meal worthy of interdimensional travel... 🔮"
             ],
@@ -223,9 +223,9 @@ const FeedingAnimation: React.FC<Props> = ({
             'mochi': { emoji: '🍡', name: 'Mochi' },
             'takoyaki': { emoji: '🐙', name: 'Takoyaki' },
             'star_fruit': { emoji: '⭐', name: 'Star Fruit' },
-            'cosmic_honey': { emoji: '🍯', name: 'Cosmic Honey' },
+            'stellar_honey': { emoji: '🍯', name: 'Stellar Honey' },
             'moon_cake': { emoji: '🥮', name: 'Moon Cake' },
-            'default': { emoji: '☁️', name: 'Cosmic Treat' }
+            'default': { emoji: '☁️', name: 'Stellar Treat' }
         };
         return foodData[food || 'default'] || foodData['default'];
     };

@@ -54,22 +54,13 @@ export const useInventory = () => {
             name: invItem.item.name,
             description: invItem.item.description,
             image: invItem.item.id + '.png', // You might need to adjust this
-            rarity: convertRarityToIngredientFormat(invItem.item.rarity),
+
             cost: invItem.item.priceStarFragments,
             owned: invItem.quantity
         }));
     };
 
-    // Helper function to convert MarketplaceItem rarity to IngredientSelection format
-    const convertRarityToIngredientFormat = (rarity: any): 'Common' | 'Uncommon' | 'Rare' | 'Epic' => {
-        switch (rarity.toString()) {
-            case 'COMMON': return 'Common';
-            case 'UNCOMMON': return 'Uncommon';
-            case 'RARE': return 'Rare';
-            case 'EPIC': return 'Epic';
-            default: return 'Common';
-        }
-    };
+
 
     return {
         inventory,

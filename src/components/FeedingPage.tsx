@@ -8,7 +8,7 @@ interface FoodItem {
     emoji: string;
     hungerBoost: number;
     moodBoost: number;
-    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+
     description: string;
 }
 
@@ -25,7 +25,7 @@ const FOOD_ITEMS: FoodItem[] = [
         emoji: '🍬',
         hungerBoost: 1,
         moodBoost: 1,
-        rarity: 'Common',
+
         description: 'Sweet crystalline sugar with a pink hue'
     },
     {
@@ -43,23 +43,12 @@ const FOOD_ITEMS: FoodItem[] = [
         emoji: '🫐',
         hungerBoost: 3,
         moodBoost: 3,
-        rarity: 'Rare',
+
         description: 'A rare berry with stellar properties'
     }
 ];
 
-const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-        case 'Common':
-            return '#8B8B8B';
-        case 'Uncommon':
-            return '#4CAF50';
-        case 'Rare':
-            return '#2196F3';
-        default:
-            return '#8B8B8B';
-    }
-};
+
 
 const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
     const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
@@ -152,7 +141,7 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
                                 style={[
                                     styles.characterCard,
                                     {
-                                        borderColor: getRarityColor(food.rarity),
+                                        borderColor: '#8b5cf6',
                                         opacity: isDisabled ? 0.5 : 1,
                                         backgroundColor: isDisabled ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.95)',
                                     },
@@ -165,10 +154,10 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
                                 <Text
                                     style={[
                                         styles.characterRarity,
-                                        { color: getRarityColor(food.rarity) },
+                                        { color: '#8b5cf6' },
                                     ]}
                                 >
-                                    {food.rarity}
+                                    Premium
                                 </Text>
                             </TouchableOpacity>
                         );

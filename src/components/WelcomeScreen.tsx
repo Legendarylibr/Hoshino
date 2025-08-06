@@ -587,7 +587,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                     <View style={styles.completionMessage}>
                         <Text style={styles.welcomePlayer}>Welcome, {playerName}!</Text>
                         <Text style={styles.transitionText}>
-                            {connected ? 'Entering the cosmic realm...' : 'Please connect your Solflare wallet to continue'}
+                            {connected ? 'Entering the virtual world...' : 'Please connect your Solflare wallet to continue'}
                         </Text>
                     </View>
                 </View>

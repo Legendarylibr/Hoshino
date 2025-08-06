@@ -3,14 +3,11 @@ import { WalletAdapter } from '@solana/wallet-adapter-base'
 import { StarFragmentService } from './StarFragmentService'
 import { ProgrammableNFTService, GameAchievement } from './ProgrammableNFTService'
 
-export type AchievementRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary'
-
 export interface Achievement {
   id: string
   name: string
   description: string
   imageUrl: string
-  rarity: AchievementRarity
   pointsReward: number
   isUnlocked: boolean
   unlockedAt?: Date
@@ -45,8 +42,6 @@ export interface TimedReward {
   id: string
   name: string
   description: string
-
-  rarity: AchievementRarity
   isActive: boolean
   imageUrl: string
 }
@@ -305,18 +300,18 @@ export class AchievementService {
   async mintDailyReward(ownerPublicKey: PublicKey): Promise<{ success: boolean; nft?: any; error?: string; actualCost?: string }> {
     try {
       const dailyRewards = [
-        { name: "Daily Login Bonus", rarity: AchievementRarity.COMMON, image: "daily-login.png" },
-        { name: "First Feed of the Day", rarity: AchievementRarity.COMMON, image: "daily-feed.png" },
-        { name: "Daily Chat Master", rarity: AchievementRarity.RARE, image: "daily-chat.png" },
-        { name: "Daily Care Streak", rarity: AchievementRarity.EPIC, image: "daily-streak.png" }
+        { name: "Daily Login Bonus", image: "daily-login.png" },
+        { name: "First Feed of the Day", image: "daily-feed.png" },
+        { name: "Daily Chat Master", image: "daily-chat.png" },
+        { name: "Daily Care Streak", image: "daily-streak.png" }
       ]
 
       const randomReward = dailyRewards[Math.floor(Math.random() * dailyRewards.length)]
       
       const timedReward: TimedReward = {
+        id: `daily_${randomReward.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
         name: randomReward.name,
         description: "Daily reward for consistent Hoshino care",
-        rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
       }
@@ -333,17 +328,17 @@ export class AchievementService {
   async mintWeeklyReward(ownerPublicKey: PublicKey): Promise<{ success: boolean; nft?: any; error?: string; actualCost?: string }> {
     try {
       const weeklyRewards = [
-        { name: "Weekly Dedication Badge", rarity: AchievementRarity.RARE, image: "weekly-dedication.png" },
-        { name: "Seven Day Streak", rarity: AchievementRarity.EPIC, image: "weekly-streak.png" },
-        { name: "Master Caretaker", rarity: AchievementRarity.LEGENDARY, image: "weekly-master.png" }
+        { name: "Weekly Dedication Badge", image: "weekly-dedication.png" },
+        { name: "Seven Day Streak", image: "weekly-streak.png" },
+        { name: "Master Caretaker", image: "weekly-master.png" }
       ]
 
       const randomReward = weeklyRewards[Math.floor(Math.random() * weeklyRewards.length)]
       
       const timedReward: TimedReward = {
+        id: `weekly_${randomReward.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
         name: randomReward.name,
         description: "Weekly reward for exceptional Hoshino dedication",
-        rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
       }
@@ -360,17 +355,17 @@ export class AchievementService {
   async mintMonthlyReward(ownerPublicKey: PublicKey): Promise<{ success: boolean; nft?: any; error?: string; actualCost?: string }> {
     try {
       const monthlyRewards = [
-        { name: "Monthly Champion", rarity: AchievementRarity.EPIC, image: "monthly-champion.png" },
-        { name: "Legendary Caretaker", rarity: AchievementRarity.LEGENDARY, image: "monthly-legendary.png" },
-        { name: "Ultra Rare Cosmic Bond", rarity: AchievementRarity.LEGENDARY, image: "monthly-cosmic.png" }
+        { name: "Monthly Champion", image: "monthly-champion.png" },
+        { name: "Legendary Caretaker", image: "monthly-legendary.png" },
+        { name: "Ultra Rare Stellar Bond", image: "monthly-stellar.png" }
       ]
 
       const randomReward = monthlyRewards[Math.floor(Math.random() * monthlyRewards.length)]
       
       const timedReward: TimedReward = {
+        id: `monthly_${randomReward.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
         name: randomReward.name,
         description: "Monthly reward for ultimate Hoshino mastery",
-        rarity: randomReward.rarity,
         isActive: true,
         imageUrl: `https://hoshino.game/assets/rewards/${randomReward.image}`
       }
@@ -767,7 +762,7 @@ export class AchievementService {
         return userStats.daysActive >= 30
       case 'nft_collector':
         return userStats.hasNFT
-      case 'cosmic_bond':
+      case 'stellar_bond':
         return userStats.relationshipLevel >= 100
       case 'level_master':
         return userStats.characterLevel >= 10
@@ -791,7 +786,7 @@ export class AchievementService {
       {
         id: 'first_moonling',
         name: 'First Companion',
-                  description: 'Welcome to the Hoshino universe! You\'ve adopted your first cosmic moonling.',
+                  description: 'Welcome to the Hoshino universe! You\'ve adopted your first moonling.',
         rarity: AchievementRarity.COMMON,
         rewardType: RewardType.ACHIEVEMENT,
         isRareDrop: false,
@@ -834,13 +829,13 @@ export class AchievementService {
         imageUrl: 'https://hoshino.game/assets/achievements/nft-collector.png'
       },
       {
-        id: 'cosmic_bond',
-        name: 'Cosmic Bond',
+        id: 'stellar_bond',
+        name: 'Stellar Bond',
         description: 'Achieved maximum level relationship with your Hoshino. Truly legendary!',
         rarity: AchievementRarity.LEGENDARY,
         rewardType: RewardType.ACHIEVEMENT,
         isRareDrop: true,
-        imageUrl: 'https://hoshino.game/assets/achievements/cosmic-bond.png'
+        imageUrl: 'https://hoshino.game/assets/achievements/stellar-bond.png'
       },
       {
         id: 'level_master',
@@ -991,7 +986,7 @@ export class AchievementService {
     
     switch (achievement.rarity) {
       case AchievementRarity.LEGENDARY:
-        baseRewards.items.push('cosmic_essence', 'legendary_food')
+        baseRewards.items.push('stellar_essence', 'legendary_food')
         baseRewards.specialAbilities.push('auto_care')
         break
       case AchievementRarity.EPIC:

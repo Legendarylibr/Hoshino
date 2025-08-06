@@ -18,6 +18,7 @@ import Gallery from './src/components/Gallery';
 import WelcomeScreen from './src/components/WelcomeScreen';
 import CharacterChat from './src/components/CharacterChat';
 import GlobalLeaderboard from './src/components/GlobalLeaderboard';
+
 import Notification, { DeploymentStatusBanner } from './src/components/Notification';
 import WalletButton from './src/components/WalletButton';
 
@@ -674,6 +675,7 @@ function App() {
                         onShop={() => setCurrentView('shop')}
                         onInventory={() => setCurrentView('inventory')}
                         onChat={() => setCurrentView('chat')}
+
                         localGameEngine={localGameEngine}
                         onMintAchievements={mintAchievementNFTs}
                         onMint={() => {
@@ -818,6 +820,7 @@ function App() {
                         onClose={() => setCurrentView('interaction')}
                     />
                 );
+
             default:
                 return (
                     <WelcomeScreen
