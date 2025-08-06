@@ -11,6 +11,8 @@ import WalletButton from './WalletButton';
 import { useWallet } from '../contexts/WalletContext';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
 import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
+import SleepOverlay from './SleepOverlay';
+
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -492,7 +494,13 @@ const MoonlingInteraction: React.FC<Props> = ({
             </View>
 
 
-        </InnerScreen>
+            </InnerScreen>
+            {showSleepMode && (
+                <SleepOverlay
+                    visible={showSleepMode}
+                    onDismiss={() => setShowSleepMode(false)}
+                />
+            )}
         </>
     );
 };
