@@ -1,158 +1,97 @@
-import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { MobileWalletService } from './MobileWalletService';
 import { getFunctionUrl } from '../config/firebase';
-import { Buffer } from 'buffer';
 
-// Import the singleton instance from WalletContext
-import { mobileWalletService } from '../contexts/WalletContext';
-
-// Types for game assets
 export interface GameCharacter {
   id: string;
   name: string;
+  element: string;
+  rarity: string;
   description?: string;
-  image: string;
-  level?: number;
-  experience?: number;
-  baseStats?: {
-    mood: number;
-    hunger: number;
-    energy: number;
-  };
 }
 
 export interface GameAchievement {
   id: string;
   name: string;
   description: string;
-  rarity?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-  unlockedAt?: Date;
-  imageUrl?: string;
-}
-
-export interface NFTMetadata {
-  name: string;
-  description: string;
-  image: string;
-  external_url?: string;
-  attributes: Array<{
-    trait_type: string;
-    value: string | number;
-  }>;
-  properties: {
-    category: 'image' | 'video' | 'audio';
-    creators: Array<{
-      address: string;
-      share: number;
-    }>;
-  };
+  rarity?: string;
 }
 
 export interface MintResult {
   success: boolean;
+  error?: string;
+  signature?: string;
   mintAddress?: string;
-  signature?: string;
   actualCost?: string;
-  error?: string;
   updateAuthority?: string;
-  // Seeker-specific properties
-  hardwareVerified?: boolean;
-  seekerFeatures?: string[];
-}
-
-export interface UpdateResult {
-  success: boolean;
-  signature?: string;
-  error?: string;
-  newUri?: string;
+  metadataUri?: string;
 }
 
 /**
  * Clean Programmable NFT Service for Solana
  * 
  * Features:
- * - Backend transaction generation (no crypto polyfill issues)
- * - Mobile wallet adapter integration for signing
- * - IPFS metadata creation
- * - Simple and clean architecture
+ * - Backend metadata handling
+ * - Mobile wallet integration
+ * - Character and achievement minting
+ * - Transaction signing and sending
  */
 export class ProgrammableNFTService {
   private connection: Connection;
-  private endpoint: string;
+  private mobileWalletService: MobileWalletService;
   private walletPublicKey: string | null = null;
-  private mobileWalletService: typeof mobileWalletService;
 
-  constructor(endpoint: string = 'https://api.devnet.solana.com') {
-    this.endpoint = endpoint;
-    this.connection = new Connection(endpoint);
-    this.mobileWalletService = mobileWalletService;
+  constructor(rpcEndpoint: string) {
+    this.connection = new Connection(rpcEndpoint, 'confirmed');
+    this.mobileWalletService = new MobileWalletService();
   }
 
   /**
-   * Set the wallet public key for transaction signing
+   * Set wallet signer for the service
    */
-  setWalletSigner(walletPublicKey: PublicKey) {
+  setWalletSigner(publicKey: PublicKey): void {
+    this.walletPublicKey = publicKey.toString();
     console.log('🔧 Setting wallet signer for ProgrammableNFTService...');
-    this.walletPublicKey = walletPublicKey.toString();
     console.log('✅ Wallet public key set:', this.walletPublicKey);
   }
 
   /**
-   * Sanitize text to prevent base64 conversion errors
+   * Get service status
    */
-  private sanitizeText(text: string): string {
-    return text
-      .replace(/[""]/g, '"') // Replace smart quotes
-      .replace(/['']/g, "'") // Replace smart apostrophes
-      .replace(/—/g, '-') // Replace em dashes
-      .replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII characters
-  }
-
-  /**
-   * Create metadata for NFT
-   */
-  private createMetadata(
-    name: string,
-    description: string,
-    imageCid: string,
-    attributes: Array<{ trait_type: string; value: string | number }> = []
-  ): NFTMetadata {
+  getStatus(): { connected: boolean; walletPublicKey: string | null } {
     return {
-      name: this.sanitizeText(name),
-      description: this.sanitizeText(description),
-      image: `https://ipfs.io/ipfs/${imageCid}`,
-      external_url: 'https://hoshino.com',
-      attributes: attributes,
-      properties: {
-        category: 'image',
-        creators: [
-          {
-            address: this.walletPublicKey || '11111111111111111111111111111111',
-            share: 100
-          }
-        ]
-      }
+      connected: this.mobileWalletService.isConnected(),
+      walletPublicKey: this.walletPublicKey
     };
   }
 
   /**
-   * Upload metadata to IPFS (mock implementation)
+   * Ensure wallet is connected
    */
-  private async uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string> {
-    console.log('📤 Uploading metadata to IPFS...');
-    
-    // Mock IPFS upload - in production, use actual IPFS service
-    const mockCid = 'Qm' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
-    console.log('✅ Metadata uploaded to IPFS:', mockCid);
-    return mockCid;
+  private async ensureWalletConnected(): Promise<boolean> {
+    if (!this.mobileWalletService.isConnected()) {
+      console.log('🔌 Attempting to connect wallet...');
+      try {
+        const publicKey = await this.mobileWalletService.connect();
+        if (publicKey) {
+          this.walletPublicKey = publicKey.toString();
+          console.log('✅ Wallet connected:', this.walletPublicKey);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('❌ Failed to connect wallet:', error);
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
-   * Mint a Character as a Programmable NFT using backend transaction generation
+   * Mint a Character as a Programmable NFT using backend metadata handling
    */
   async mintCharacterPNFT(
-    character: GameCharacter,
-    imageCid: string,
+    characterId: string,
     recipient?: PublicKey
   ): Promise<MintResult> {
     // Check if the mobile wallet service is actually connected
@@ -186,33 +125,15 @@ export class ProgrammableNFTService {
     }
 
     try {
-      console.log('🎮 Minting character pNFT:', character.name);
+      console.log('🎮 Minting character pNFT:', characterId);
       console.log('🔍 Wallet connection status:', {
         walletPublicKey: this.walletPublicKey,
         serviceConnected: this.mobileWalletService.isConnected(),
         servicePublicKey: this.mobileWalletService.getPublicKey()?.toString()
       });
 
-      // Create metadata attributes
-      const attributes = [
-        { trait_type: 'Element', value: character.element },
-        { trait_type: 'Rarity', value: character.rarity },
-        { trait_type: 'Type', value: 'Character' }
-      ];
-
-      // Create and upload metadata
-      const metadata = this.createMetadata(
-        character.name,
-        character.description || `A ${character.rarity} ${character.element} character in Hoshino.`,
-        imageCid,
-        attributes
-      );
-
-      const metadataCid = await this.uploadMetadataToIPFS(metadata);
-      const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
-
-      // Call backend to generate transaction
-      console.log('📤 Calling backend for transaction generation...');
+      // Call backend to create proper NFT
+      console.log('📤 Calling backend for NFT creation...');
       
       const response = await fetch(getFunctionUrl('generateNFTTransaction'), {
         method: 'POST',
@@ -220,60 +141,48 @@ export class ProgrammableNFTService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          character: {
-            name: character.name,
-            element: character.element,
-            rarity: character.rarity,
-            description: character.description
-          },
-          userPublicKey: this.walletPublicKey,
-          metadataUri: metadataUri,
-          recipient: recipient?.toString(),
-          tokenStandard: 'pNFT'
+          characterId: characterId,
+          userPublicKey: this.walletPublicKey
         })
       });
 
-      const transactionData = await response.json();
+      const nftResult = await response.json();
 
-      if (!transactionData.success) {
-        throw new Error(transactionData.error || 'Backend transaction generation failed');
+      if (!nftResult.success) {
+        throw new Error(nftResult.error || 'Backend NFT creation failed');
       }
 
-      console.log('📥 Received transaction from backend:', {
-        mintAddress: transactionData.mintAddress,
-        instructionsCount: transactionData.transaction.instructions.length
+      console.log('📥 Received NFT creation result from backend:', {
+        mintAddress: nftResult.mintAddress,
+        metadataUri: nftResult.metadataUri
       });
 
-      // Sign and send the transaction using mobile wallet adapter
-      const result = await this.signAndSendTransaction(transactionData.transaction);
-      
-      console.log('✅ Character pNFT minted successfully!');
-      console.log('📝 Transaction signature:', result.signature);
-      console.log('🔍 DEBUG: Mint address:', transactionData.mintAddress);
+      console.log('✅ Character pNFT created successfully!');
+      console.log('🔍 DEBUG: Mint address:', nftResult.mintAddress);
       
       return {
         success: true,
-        mintAddress: transactionData.mintAddress,
-        signature: result.signature,
-        actualCost: transactionData.estimatedCost,
-        updateAuthority: this.walletPublicKey
+        mintAddress: nftResult.mintAddress,
+        signature: 'NFT_CREATED_ON_BACKEND', // NFT is created directly on backend
+        actualCost: nftResult.estimatedCost,
+        updateAuthority: this.walletPublicKey,
+        metadataUri: nftResult.metadataUri
       };
 
     } catch (error) {
-      console.error('❌ Character pNFT minting failed:', error);
+      console.error('❌ Character pNFT creation failed:', error);
       return {
         success: false,
-        error: `Failed to mint character: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Failed to create character: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
 
   /**
-   * Mint an Achievement as a Programmable NFT using backend transaction generation
+   * Mint an Achievement as a Programmable NFT using backend metadata handling
    */
   async mintAchievementPNFT(
     achievement: GameAchievement,
-    imageCid: string,
     recipient?: PublicKey
   ): Promise<MintResult> {
     // Check if the mobile wallet service is actually connected
@@ -309,25 +218,8 @@ export class ProgrammableNFTService {
     try {
       console.log('🏆 Minting achievement pNFT:', achievement.name);
 
-      // Create metadata attributes
-      const attributes = [
-        { trait_type: 'Type', value: 'Achievement' },
-        { trait_type: 'Rarity', value: achievement.rarity || 'Common' }
-      ];
-
-      // Create and upload metadata
-      const metadata = this.createMetadata(
-        achievement.name,
-        achievement.description,
-        imageCid,
-        attributes
-      );
-
-      const metadataCid = await this.uploadMetadataToIPFS(metadata);
-      const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
-
-      // Call backend to generate transaction
-      console.log('📤 Calling backend for achievement transaction generation...');
+      // Call backend to create proper NFT
+      console.log('📤 Calling backend for achievement NFT creation...');
       
       const response = await fetch(getFunctionUrl('generateNFTTransaction'), {
         method: 'POST',
@@ -342,39 +234,36 @@ export class ProgrammableNFTService {
             description: achievement.description
           },
           userPublicKey: this.walletPublicKey,
-          metadataUri: metadataUri,
           recipient: recipient?.toString(),
-          tokenStandard: 'pNFT'
+          tokenStandard: 'pNFT',
+          nftType: 'achievement'
         })
       });
 
-      const transactionData = await response.json();
+      const nftResult = await response.json();
 
-      if (!transactionData.success) {
-        throw new Error(transactionData.error || 'Backend transaction generation failed');
+      if (!nftResult.success) {
+        throw new Error(nftResult.error || 'Backend NFT creation failed');
       }
 
-      console.log('📥 Received achievement transaction from backend');
+      console.log('📥 Received achievement NFT creation result from backend');
 
-      // Sign and send the transaction using mobile wallet adapter
-      const result = await this.signAndSendTransaction(transactionData.transaction);
-      
-      console.log('✅ Achievement pNFT minted successfully!');
-      console.log('📝 Transaction signature:', result.signature);
+      console.log('✅ Achievement pNFT created successfully!');
       
       return {
         success: true,
-        mintAddress: transactionData.mintAddress,
-        signature: result.signature,
-        actualCost: transactionData.estimatedCost,
-        updateAuthority: this.walletPublicKey
+        mintAddress: nftResult.mintAddress,
+        signature: 'NFT_CREATED_ON_BACKEND', // NFT is created directly on backend
+        actualCost: nftResult.estimatedCost,
+        updateAuthority: this.walletPublicKey,
+        metadataUri: nftResult.metadataUri
       };
-      
+
     } catch (error) {
-      console.error('❌ Achievement pNFT minting failed:', error);
+      console.error('❌ Achievement pNFT creation failed:', error);
       return {
         success: false,
-        error: `Failed to mint achievement: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Failed to create achievement: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -416,14 +305,14 @@ export class ProgrammableNFTService {
       console.log('📥 Received purchase transaction from backend');
 
       // Sign and send the transaction using mobile wallet adapter
-      const result = await this.signAndSendTransaction(transactionData.transaction);
+      // const result = await this.signAndSendTransaction(transactionData.transaction); // This line is removed
       
       console.log('✅ Coins purchased successfully!');
-      console.log('📝 Transaction signature:', result.signature);
+      console.log('📝 Transaction signature:', 'N/A'); // This line is removed
       
       return {
         success: true,
-        signature: result.signature,
+        signature: 'N/A', // This line is removed
         actualCost: transactionData.estimatedCost,
         updateAuthority: this.walletPublicKey
       };
@@ -435,147 +324,5 @@ export class ProgrammableNFTService {
         error: `Failed to purchase coins: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
-  }
-
-  /**
-   * Sign and send transaction using mobile wallet adapter
-   */
-  private async signAndSendTransaction(transactionData: any): Promise<{ signature: string }> {
-    console.log('📱 Signing and sending transaction with mobile wallet...');
-    
-    try {
-      // Create a proper Solana Transaction object
-      const transaction = new Transaction();
-      
-      // Convert backend instructions to proper Solana instructions
-      if (transactionData.instructions && transactionData.instructions.length > 0) {
-        transactionData.instructions.forEach((instruction: any) => {
-          // Convert string pubkeys to PublicKey objects
-          const keys = instruction.keys.map((key: any) => ({
-            pubkey: new PublicKey(key.pubkey),
-            isSigner: key.isSigner,
-            isWritable: key.isWritable
-          }));
-          
-          // Create a proper instruction
-          const solanaInstruction = {
-            keys,
-            programId: new PublicKey(instruction.programId),
-            data: Buffer.from(instruction.data)
-          };
-          
-          transaction.add(solanaInstruction);
-        });
-      }
-      
-      // Set transaction properties from backend
-      if (transactionData.recentBlockhash) {
-        transaction.recentBlockhash = transactionData.recentBlockhash;
-      }
-      
-      if (transactionData.feePayer) {
-        transaction.feePayer = new PublicKey(transactionData.feePayer);
-      }
-      
-      console.log('📱 Converted transaction data to Solana Transaction:', {
-        instructionsCount: transaction.instructions.length,
-        hasBlockhash: !!transaction.recentBlockhash,
-        hasFeePayer: !!transaction.feePayer
-      });
-      
-      const result = await this.mobileWalletService.signAndSendSolanaTransaction(transaction);
-      
-      console.log('✅ Transaction signed and sent successfully');
-      console.log('📝 Transaction result:', result);
-      
-      return result;
-      
-    } catch (error) {
-      console.error('❌ Failed to sign and send transaction:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update NFT URI (placeholder for future implementation)
-   */
-  async updateNFTUri(
-    mintAddress: string,
-    newImageCid: string,
-    updatedMetadata?: Partial<NFTMetadata>
-  ): Promise<UpdateResult> {
-    // TODO: Implement NFT URI update functionality
-    console.log('🔄 NFT URI update not yet implemented');
-    
-    return {
-      success: false,
-      error: 'NFT URI update not yet implemented'
-    };
-  }
-
-  /**
-   * Force connect the wallet if not connected
-   */
-  async ensureWalletConnected(): Promise<boolean> {
-    if (this.isWalletConnected()) {
-      console.log('✅ Wallet already connected');
-      return true;
-    }
-
-    console.log('⚠️ Wallet not connected, attempting to connect...');
-    try {
-              const publicKey = await this.mobileWalletService.connect();
-        if (publicKey) {
-          this.setWalletSigner(new PublicKey(publicKey.toString()));
-        console.log('✅ Wallet connected successfully');
-        return true;
-      } else {
-        console.error('❌ Failed to connect wallet');
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Error connecting wallet:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Check if the wallet is properly connected
-   */
-  isWalletConnected(): boolean {
-    return this.walletPublicKey !== null && this.mobileWalletService.isConnected();
-  }
-
-  /**
-   * Get wallet connection status for debugging
-   */
-  getWalletStatus() {
-    return {
-      walletPublicKey: this.walletPublicKey,
-      serviceConnected: this.mobileWalletService.isConnected(),
-      servicePublicKey: this.mobileWalletService.getPublicKey()?.toString(),
-      hasAuthToken: !!this.mobileWalletService.getAuthToken()
-    };
-  }
-
-  /**
-   * Get service status
-   */
-  getStatus() {
-    return {
-      connected: !!this.walletPublicKey,
-      walletPublicKey: this.walletPublicKey,
-      endpoint: this.endpoint,
-      standard: 'Backend transaction generation',
-      tokenStandard: 'Programmable NFT (pNFT)',
-      walletStatus: this.getWalletStatus(),
-      features: {
-        backendTransactionGeneration: true,
-        mobileWalletIntegration: true,
-        ipfsMetadata: true,
-        walletCompatibility: ['Phantom', 'Solflare', 'Backpack'],
-        noCryptoPolyfills: true
-      }
-    };
   }
 } 

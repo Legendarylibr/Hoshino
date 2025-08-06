@@ -103,8 +103,7 @@ function App() {
 
     // NEW: Programmable NFT Integration
     const {
-        quickMintCharacter,
-        quickMintAchievement,
+        mintCharacterNFT,
         connected: nftConnected,
         connectWallet: connectNFTWallet,
         disconnect: disconnectNFTWallet,
@@ -294,18 +293,9 @@ function App() {
             console.log('🪙 Starting minting process for:', selectedCharacter.name);
             setStatusMessage(`Minting ${selectedCharacter.name} as NFT...`);
 
-            // Check if character exists in asset registry
-            const asset = getAsset(selectedCharacter.id);
-            if (!asset) {
-                throw new Error(`Character ${selectedCharacter.id} not found in asset registry`);
-            }
-
-            if (asset.category !== 'character') {
-                throw new Error(`Asset ${selectedCharacter.id} is not a character`);
-            }
-
-            // Mint NFT using existing IPFS CID from AssetRegistry
-            const result = await mintCharacterNFT(selectedCharacter, asset.ipfsHash);
+            // UPDATED: Simplified NFT minting - backend handles all metadata creation
+            // No longer need to pass imageCid or character object - just characterId
+            const result = await mintCharacterNFT(selectedCharacter.id);
             
             if (!result.success) {
                 throw new Error(result.error || 'Minting failed');
@@ -317,7 +307,7 @@ function App() {
             );
 
             setSelectedCharacter((prev) =>
-                prev ? { ...prev, nftMint: 'mock_mint_address' } : null
+                prev ? { ...prev, nftMint: result.mintAddress } : null
             );
 
             if (selectedCharacter) {

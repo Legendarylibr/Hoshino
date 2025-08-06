@@ -1,232 +1,211 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { getCharacterAssets, getAchievementAssets, getItemAssets, getAsset } from '../config/AssetRegistry';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
 
-export const AssetRegistryDemo = () => {
-    const [selectedCategory, setSelectedCategory] = useState<'character' | 'achievement' | 'item'>('character');
+interface Props {
+  onBack?: () => void;
+}
 
-    const getAssetsByCategory = () => {
-        switch (selectedCategory) {
-            case 'character':
-                return getCharacterAssets();
-            case 'achievement':
-                return getAchievementAssets();
-            case 'item':
-                return getItemAssets();
-            default:
-                return [];
-        }
-    };
+const AssetRegistryDemo: React.FC<Props> = ({ onBack }) => {
+  const { mockMintCharacterNFT } = useProgrammableNFT();
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastResult, setLastResult] = useState<string>('');
 
-    return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-            <Text style={styles.title}>🎮 Asset Registry Demo</Text>
+  const testCharacters = [
+    { id: 'hoshino', name: 'HOSHINO' },
+    { id: 'sirius', name: 'SIRIUS' },
+    { id: 'lyra', name: 'LYRA' },
+    { id: 'aro', name: 'ARO' },
+    { id: 'orion', name: 'ORION' },
+    { id: 'zaniah', name: 'ZANIAH' }
+  ];
 
-            <View style={styles.categorySelector}>
-                <Text style={styles.subtitle}>Select Category:</Text>
-                <View style={styles.buttonContainer}>
-                    {(['character', 'achievement', 'item'] as const).map(category => (
-                        <TouchableOpacity
-                            key={category}
-                            onPress={() => setSelectedCategory(category)}
-                            style={[
-                                styles.categoryButton,
-                                selectedCategory === category ? styles.selectedButton : styles.unselectedButton,
-                                category !== 'item' ? styles.buttonMargin : null
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.buttonText,
-                                    selectedCategory === category ? styles.selectedButtonText : styles.unselectedButtonText
-                                ]}
-                            >
-                                {category}s
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
+  const handleMockMint = async (characterId: string) => {
+    setIsLoading(true);
+    setLastResult('');
 
-            <View>
-                <Text style={[styles.subtitle, { marginBottom: 15 }]}>
-                    Available {selectedCategory}s: ({getAssetsByCategory().length})
-                </Text>
+    try {
+      console.log(`🎮 Testing mock mint for: ${characterId}`);
+      
+      const result = await mockMintCharacterNFT(characterId);
+      
+      if (result.success) {
+        const successMessage = `✅ Mock NFT Created!\n\nCharacter: ${characterId.toUpperCase()}\nMint Address: ${result.mintAddress}\nMetadata URI: ${result.metadataUri}\nCost: ${result.actualCost}`;
+        setLastResult(successMessage);
+        Alert.alert('🎉 Success!', successMessage);
+      } else {
+        const errorMessage = `❌ Mock mint failed: ${result.error}`;
+        setLastResult(errorMessage);
+        Alert.alert('❌ Error', errorMessage);
+      }
+    } catch (error) {
+      const errorMessage = `❌ Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      setLastResult(errorMessage);
+      Alert.alert('❌ Error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-                <View style={styles.assetList}>
-                    {getAssetsByCategory().map(asset => (
-                        <View key={asset.id} style={styles.assetCard}>
-                            <Text style={styles.assetName}>{asset.name}</Text>
+  return (
+    <View style={styles.container}>
+      {/* Back Button */}
+      {onBack && (
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={onBack}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+      )}
 
-                            <View style={[styles.assetDetail, { flexDirection: 'row' }]}>
-                                <Text style={styles.detailLabel}>ID: </Text>
-                                <Text style={styles.detailValue}>{asset.id}</Text>
-                            </View>
+      <Text style={styles.title}>🧪 Mock NFT Minting Test</Text>
+      <Text style={styles.subtitle}>Test the simplified NFT minting without backend</Text>
+      
+      <View style={styles.characterGrid}>
+        {testCharacters.map((character) => (
+          <TouchableOpacity
+            key={character.id}
+            style={[styles.characterButton, isLoading && styles.disabledButton]}
+            onPress={() => handleMockMint(character.id)}
+            disabled={isLoading}
+          >
+            <Text style={styles.characterName}>{character.name}</Text>
+            <Text style={styles.characterId}>{character.id}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-                            <View style={[styles.assetDetail, { flexDirection: 'row' }]}>
-                                <Text style={styles.detailLabel}>Category: </Text>
-                                <Text style={styles.detailValue}>{asset.category}</Text>
-                            </View>
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>🎮 Minting NFT...</Text>
+        </View>
+      )}
 
-                            <View style={styles.assetDetail}>
-                                <Text style={styles.detailLabel}>Description:</Text>
-                                <Text style={styles.description}>{asset.description}</Text>
-                            </View>
+      {lastResult && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>📋 Last Result:</Text>
+          <Text style={styles.resultText}>{lastResult}</Text>
+        </View>
+      )}
 
-                            <View style={styles.assetDetail}>
-                                <Text style={styles.detailLabel}>IPFS Hash:</Text>
-                                <Text style={styles.ipfsHash}>{asset.ipfsHash}</Text>
-                            </View>
-
-                            <Text style={styles.readyText}>✅ Ready for NFT minting</Text>
-                        </View>
-                    ))}
-                </View>
-            </View>
-
-            <View style={styles.summaryContainer}>
-                <Text style={styles.summaryTitle}>✅ Asset Registry System Active</Text>
-                <Text style={styles.summaryText}>
-                    • <Text style={styles.bold}>Total Assets:</Text> {getCharacterAssets().length + getAchievementAssets().length + getItemAssets().length}{'\n'}
-                    • <Text style={styles.bold}>Characters:</Text> {getCharacterAssets().length}{'\n'}
-                    • <Text style={styles.bold}>Achievements:</Text> {getAchievementAssets().length}{'\n'}
-                    • <Text style={styles.bold}>Items:</Text> {getItemAssets().length}{'\n'}
-                    • <Text style={styles.bold}>All IPFS hashes ready for instant minting</Text>{'\n'}
-                    • <Text style={styles.bold}>Add new assets by just updating AssetRegistry.ts</Text>
-                </Text>
-            </View>
-        </ScrollView>
-    );
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoTitle}>ℹ️ What this tests:</Text>
+        <Text style={styles.infoText}>• Mock NFT creation without backend</Text>
+        <Text style={styles.infoText}>• Simplified metadata structure</Text>
+        <Text style={styles.infoText}>• Uppercase character names</Text>
+        <Text style={styles.infoText}>• Basic Mood attribute only</Text>
+        <Text style={styles.infoText}>• Real IPFS image URLs</Text>
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#1a1a1a',
-    },
-    contentContainer: {
-        padding: 20,
-    },
-    title: {
-        fontSize: 16,
-        marginBottom: 20,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    categorySelector: {
-        marginBottom: 20,
-    },
-    subtitle: {
-        fontSize: 12,
-        marginBottom: 10,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-    },
-    categoryButton: {
-        borderWidth: 2,
-        borderColor: '#FCD34D',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-    },
-    selectedButton: {
-        backgroundColor: '#FCD34D',
-    },
-    unselectedButton: {
-        backgroundColor: '#4a4a4a',
-    },
-    buttonMargin: {
-        marginRight: 10,
-    },
-    buttonText: {
-        fontSize: 8,
-        textTransform: 'capitalize',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    selectedButtonText: {
-        color: '#1a1a1a',
-    },
-    unselectedButtonText: {
-        color: '#FCD34D',
-    },
-    assetList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-around',
-    },
-    assetCard: {
-        width: 250,
-        backgroundColor: '#2a2a2a',
-        borderWidth: 2,
-        borderColor: '#FCD34D',
-        borderRadius: 8,
-        padding: 15,
-        margin: 7.5,
-    },
-    assetName: {
-        fontSize: 10,
-        marginBottom: 8,
-        color: '#FFD700',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    assetDetail: {
-        marginBottom: 8,
-    },
-    detailLabel: {
-        fontSize: 10,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-        fontWeight: 'bold',
-    },
-    detailValue: {
-        fontSize: 10,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    description: {
-        fontSize: 8,
-        marginTop: 4,
-        lineHeight: 11.2,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    ipfsHash: {
-        fontSize: 6,
-        marginTop: 4,
-        color: '#888',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    readyText: {
-        fontSize: 8,
-        color: '#4ade80',
-        marginTop: 10,
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    summaryContainer: {
-        marginTop: 30,
-        padding: 15,
-        backgroundColor: '#0a4d0a',
-        borderWidth: 2,
-        borderColor: '#4ade80',
-        borderRadius: 8,
-    },
-    summaryTitle: {
-        fontSize: 12,
-        marginBottom: 10,
-        color: '#4ade80',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    summaryText: {
-        fontSize: 8,
-        lineHeight: 12.8,
-        color: '#FCD34D',
-        fontFamily: 'Press Start 2P, monospace',
-    },
-    bold: {
-        fontWeight: 'bold',
-    },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#1a1a2e',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: '#FF6B6B',
+    padding: 10,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  backButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginTop: 60,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#cccccc',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  characterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  characterButton: {
+    width: '48%',
+    backgroundColor: '#16213e',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0f3460',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  characterName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 5,
+  },
+  characterId: {
+    fontSize: 12,
+    color: '#888888',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#00ff88',
+    fontWeight: 'bold',
+  },
+  resultContainer: {
+    backgroundColor: '#16213e',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
+  },
+  resultText: {
+    fontSize: 12,
+    color: '#cccccc',
+    fontFamily: 'monospace',
+  },
+  infoContainer: {
+    backgroundColor: '#0f3460',
+    padding: 15,
+    borderRadius: 10,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#cccccc',
+    marginBottom: 5,
+  },
 });
 
 export default AssetRegistryDemo;

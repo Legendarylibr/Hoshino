@@ -9,11 +9,12 @@ interface NFTHookState {
 }
 
 /**
- * React hook for Programmable NFT operations
+ * React hook for Programmable NFT operations with backend metadata handling
  * 
  * Features:
  * - Uses existing WalletContext for wallet connection
  * - Character and achievement pNFT minting
+ * - Backend metadata handling for consistency
  * - Simple and clean error handling
  */
 export const useProgrammableNFT = () => {
@@ -61,8 +62,7 @@ export const useProgrammableNFT = () => {
    * Mint a character as a programmable NFT
    */
   const mintCharacterNFT = useCallback(async (
-    character: GameCharacter,
-    imageCid: string
+    characterId: string
   ): Promise<MintResult> => {
     if (!connected || !state.service || !publicKey) {
       return {
@@ -72,17 +72,17 @@ export const useProgrammableNFT = () => {
     }
 
     try {
-      console.log(`🎮 Minting character pNFT: ${character.name}`);
+      console.log(`🎮 Minting character pNFT: ${characterId}`);
       
       const solanaPublicKey = new PublicKey(publicKey);
       const result = await state.service.mintCharacterPNFT(
-        character,
-        imageCid,
+        characterId,
         solanaPublicKey
       );
 
       if (result.success) {
         console.log('✅ Character pNFT minted successfully:', result.mintAddress);
+        console.log('📝 Metadata URI:', result.metadataUri);
       }
 
       return result;
@@ -99,8 +99,7 @@ export const useProgrammableNFT = () => {
    * Mint an achievement as a programmable NFT
    */
   const mintAchievementNFT = useCallback(async (
-    achievement: GameAchievement,
-    imageCid: string
+    achievement: GameAchievement
   ): Promise<MintResult> => {
     if (!connected || !state.service || !publicKey) {
       return {
@@ -115,12 +114,12 @@ export const useProgrammableNFT = () => {
       const solanaPublicKey = new PublicKey(publicKey);
       const result = await state.service.mintAchievementPNFT(
         achievement,
-        imageCid,
         solanaPublicKey
       );
 
       if (result.success) {
         console.log('✅ Achievement pNFT minted successfully:', result.mintAddress);
+        console.log('📝 Metadata URI:', result.metadataUri);
       }
 
       return result;
@@ -129,6 +128,39 @@ export const useProgrammableNFT = () => {
       return {
         success: false,
         error: `Failed to mint achievement: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }, [connected, state.service, publicKey]);
+
+  /**
+   * Purchase in-game currency
+   */
+  const purchaseCoins = useCallback(async (
+    amount: number,
+    recipientAddress: string
+  ): Promise<MintResult> => {
+    if (!connected || !state.service || !publicKey) {
+      return {
+        success: false,
+        error: 'Wallet not connected. Please connect your wallet first.'
+      };
+    }
+
+    try {
+      console.log(`💰 Purchasing coins: ${amount} SOL`);
+      
+      const result = await state.service.purchaseCoins(amount, recipientAddress);
+
+      if (result.success) {
+        console.log('✅ Coins purchased successfully:', result.signature);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ Coin purchase failed:', error);
+      return {
+        success: false,
+        error: `Failed to purchase coins: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }, [connected, state.service, publicKey]);
@@ -152,30 +184,22 @@ export const useProgrammableNFT = () => {
       wallet: {
         connected,
         publicKey: publicKey || null
+      },
+      features: {
+        backendMetadataHandling: true,
+        characterMinting: true,
+        achievementMinting: true,
+        coinPurchase: true
       }
     };
   }, [state.service, connected, publicKey]);
 
-
-
   return {
-    // Connection state (from WalletContext)
-    connected,
-    publicKey: publicKey ? new PublicKey(publicKey) : null,
-    error: state.error,
-    
-    // Connection functions (from WalletContext)
-    connectWallet: connect,
-    disconnect,
-    
-    // Minting functions (with CID)
     mintCharacterNFT,
     mintAchievementNFT,
-    
-    // Utility functions
-    getServiceStatus,
-    
-    // Service reference (for advanced usage)
-    service: state.service
+    connected,
+    connectWallet: connect,
+    disconnect,
+    getServiceStatus: state.service.getStatus,
   };
 }; 
