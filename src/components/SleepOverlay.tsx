@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Animated,
   TouchableWithoutFeedback,
-  Easing,
   Dimensions,
 } from 'react-native';
 
@@ -40,7 +39,6 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
 
@@ -50,13 +48,11 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
           Animated.timing(starTwinkleAnim, {
             toValue: 1,
             duration: 2000,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
           Animated.timing(starTwinkleAnim, {
             toValue: 0,
             duration: 2000,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
         ])
@@ -68,13 +64,11 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
           Animated.timing(moonGlowAnim, {
             toValue: 1,
             duration: 3000,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
           Animated.timing(moonGlowAnim, {
             toValue: 0,
             duration: 3000,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
         ])
@@ -86,13 +80,11 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
           Animated.timing(zzzAnim, {
             toValue: 1,
             duration: 2500,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
           Animated.timing(zzzAnim, {
             toValue: 0,
             duration: 2500,
-            easing: Easing.inOut(Easing.sine),
             useNativeDriver: true,
           }),
         ])
@@ -102,7 +94,6 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 600,
-        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }).start();
     }
@@ -113,14 +104,13 @@ const SleepOverlay: React.FC<Props> = ({ visible, onDismiss }) => {
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 600,
-      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start(() => {
       onDismiss();
     });
   };
 
-  if (!visible && fadeAnim._value === 0) {
+  if (!visible) {
     return null;
   }
 
