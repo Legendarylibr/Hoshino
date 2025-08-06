@@ -71,11 +71,12 @@ The backend includes predefined character data:
 
 | Character ID | Name | Element | Description |
 |--------------|------|---------|-------------|
-| `lyra` | Lyra | Star | A bright star character with anime enthusiasm |
-| `orion` | Orion | Cosmic | A mystical cosmic character with ancient wisdom |
-| `aro` | Aro | Energy | An energetic character full of optimism |
-| `sirius` | Sirius | Power | A powerful and intense character |
-| `zaniah` | Zaniah | Mystery | A mysterious and contemplative character |
+| `hoshino` | Hoshino | Celestial | A celestial companion who brings joy and wonder to your daily life |
+| `lyra` | Lyra | Star | A musical soul who harmonizes with the cosmic frequencies |
+| `orion` | Orion | Cosmic | A powerful hunter constellation with unwavering strength and courage |
+| `aro` | Aro | Energy | A mysterious stellar companion with ancient wisdom and power |
+| `sirius` | Sirius | Power | A bright star companion with boundless energy and loyalty |
+| `zaniah` | Zaniah | Mystery | A gentle star maiden with healing powers and celestial grace |
 
 ## Achievement Data
 

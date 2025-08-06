@@ -175,10 +175,9 @@ export class ProgrammableNFTService {
         servicePublicKey: this.mobileWalletService.getPublicKey()?.toString()
       });
 
-      // Create metadata attributes with mood trait
+      // Create metadata attributes with mood trait only
       const attributes = [
-        { trait_type: 'Mood', value: mood },
-        { trait_type: 'Type', value: 'Character' }
+        { trait_type: 'Mood', value: mood }
       ];
 
       // Create metadata using image URL directly
@@ -256,10 +255,9 @@ export class ProgrammableNFTService {
     try {
       console.log('🏆 Minting achievement pNFT:', achievement.name);
 
-      // Create metadata attributes with mood trait
+      // Create metadata attributes with mood trait only
       const attributes = [
-        { trait_type: 'Mood', value: mood },
-        { trait_type: 'Type', value: 'Achievement' }
+        { trait_type: 'Mood', value: mood }
       ];
 
       // Create metadata using image URL directly
@@ -338,11 +336,9 @@ export class ProgrammableNFTService {
     try {
       console.log('🛍️ Minting marketplace item pNFT:', itemId);
 
-      // Create metadata attributes with mood trait
+      // Create metadata attributes with mood trait only
       const attributes = [
-        { trait_type: 'Mood', value: mood },
-        { trait_type: 'Category', value: category },
-        { trait_type: 'Type', value: 'Marketplace Item' }
+        { trait_type: 'Mood', value: mood }
       ];
 
       // Create metadata using image URL directly

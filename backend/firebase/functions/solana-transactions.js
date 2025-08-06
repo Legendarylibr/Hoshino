@@ -60,10 +60,6 @@ function createMetadata(name, description, imageUrl, mood) {
       {
         trait_type: 'Mood',
         value: mood
-      },
-      {
-        trait_type: 'Type',
-        value: 'Character'
       }
     ],
     properties: {
@@ -190,10 +186,6 @@ exports.generateNFTTransaction = onRequest({
           {
             trait_type: 'Mood',
             value: mood
-          },
-          {
-            trait_type: 'Type',
-            value: 'Character'
           }
         ]
       },
@@ -245,35 +237,41 @@ exports.mintCharacter = onRequest({
 
     // Character data mapping with image URLs
     const characterData = {
+      hoshino: {
+        name: 'Hoshino',
+        element: 'Celestial',
+        description: 'A celestial companion who brings joy and wonder to your daily life.',
+        imageUrl: 'https://ipfs.io/ipfs/QmV3k19Upm2UApbJmu6siP7kXSwrAKPPbqNukUXm6EB61L/0'
+      },
       lyra: {
         name: 'Lyra',
         element: 'Star',
-        description: 'A bright star character with anime enthusiasm',
-        imageUrl: 'https://ipfs.io/ipfs/QmMockLyraImage'
+        description: 'A musical soul who harmonizes with the cosmic frequencies.',
+        imageUrl: 'https://ipfs.io/ipfs/QmboS6KNV4xU5PzTiGnWnQMPUtazFGyxM9d5djSYaP59Ud/0'
       },
       orion: {
         name: 'Orion',
         element: 'Cosmic',
-        description: 'A mystical cosmic character with ancient wisdom',
-        imageUrl: 'https://ipfs.io/ipfs/QmMockOrionImage'
+        description: 'A powerful hunter constellation with unwavering strength and courage.',
+        imageUrl: 'https://ipfs.io/ipfs/QmWwLczsyDsQvznNHF92DpZYkwZG7gJU4dzKBJQujK2okr/0'
       },
       aro: {
         name: 'Aro',
         element: 'Energy',
-        description: 'An energetic character full of optimism',
-        imageUrl: 'https://ipfs.io/ipfs/QmMockAroImage'
+        description: 'A mysterious stellar companion with ancient wisdom and power.',
+        imageUrl: 'https://ipfs.io/ipfs/QmRq9GYWCK455p3nWde9QeXv7bAZGBYyGGE57kudthBRct/0'
       },
       sirius: {
         name: 'Sirius',
         element: 'Power',
-        description: 'A powerful and intense character',
-        imageUrl: 'https://ipfs.io/ipfs/QmMockSiriusImage'
+        description: 'A bright star companion with boundless energy and loyalty.',
+        imageUrl: 'https://ipfs.io/ipfs/QmTnPnrVWfLRh7Dd5m5nqGUdXgXhBmvtkvteHcAMS5VcT9/0'
       },
       zaniah: {
         name: 'Zaniah',
         element: 'Mystery',
-        description: 'A mysterious and contemplative character',
-        imageUrl: 'https://ipfs.io/ipfs/QmMockZaniahImage'
+        description: 'A gentle star maiden with healing powers and celestial grace.',
+        imageUrl: 'https://ipfs.io/ipfs/QmX5YaGK7AvsW3GbNRT2nPhZ1MSCgnCJYdhnkUyj6qkYKE/0'
       }
     };
 
@@ -343,10 +341,6 @@ exports.mintCharacter = onRequest({
           {
             trait_type: 'Mood',
             value: mood
-          },
-          {
-            trait_type: 'Type',
-            value: 'Character'
           }
         ]
       },
@@ -481,10 +475,6 @@ exports.mintAchievement = onRequest({
           {
             trait_type: 'Mood',
             value: mood
-          },
-          {
-            trait_type: 'Type',
-            value: 'Achievement'
           }
         ]
       },
