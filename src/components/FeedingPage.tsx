@@ -5,10 +5,9 @@ import InnerScreen from './InnerScreen';
 interface FoodItem {
     id: string;
     name: string;
-    emoji: string;
+    image: string;
     hungerBoost: number;
     moodBoost: number;
-    rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
     description: string;
 }
 
@@ -22,42 +21,40 @@ const FOOD_ITEMS: FoodItem[] = [
     {
         id: 'sugar',
         name: 'Pink Sugar',
-        emoji: '🍬',
+        image: 'Pink Sugar.png',
         hungerBoost: 1,
         moodBoost: 1,
-        rarity: 'Common',
         description: 'Sweet crystalline sugar with a pink hue'
     },
     {
         id: 'nova',
         name: 'Nova Egg',
-        emoji: '🥚',
+        image: 'Nova Egg.png',
         hungerBoost: 2,
         moodBoost: 2,
-        rarity: 'Uncommon',
         description: 'A mysterious egg that glows with stellar energy'
     },
     {
         id: 'mira',
         name: 'Mira Berry',
-        emoji: '🫐',
+        image: 'Mira Berry.png',
         hungerBoost: 3,
         moodBoost: 3,
-        rarity: 'Rare',
         description: 'A rare berry with stellar properties'
     }
 ];
 
-const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-        case 'Common':
-            return '#8B8B8B';
-        case 'Uncommon':
-            return '#4CAF50';
-        case 'Rare':
-            return '#2196F3';
+// Helper function to get image source based on food image name
+const getFoodImageSource = (imageName: string) => {
+    switch (imageName) {
+        case 'Pink Sugar.png':
+            return require('../../assets/images/Pink Sugar.png');
+        case 'Nova Egg.png':
+            return require('../../assets/images/Nova Egg.png');
+        case 'Mira Berry.png':
+            return require('../../assets/images/Mira Berry.png');
         default:
-            return '#8B8B8B';
+            return require('../../assets/images/Pink Sugar.png'); // fallback
     }
 };
 
@@ -106,26 +103,7 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
 
     return (
         <InnerScreen
-            showStatsBar={true}
-            statsBarContent={
-                <>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Feeding Time</Text>
-                        <Text style={styles.statStars}>🍎</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Hunger</Text>
-                        <Text style={styles.statStars}>
-                            {'☆'.repeat(currentHunger)}
-                            {currentHunger >= 5 ? ' (Full!)' : ''}
-                        </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Status</Text>
-                        <Text style={styles.statStars}>{currentHunger >= 5 ? '😋' : '🍽️'}</Text>
-                    </View>
-                </>
-            }
+            showStatsBar={false}
             onLeftButtonPress={onBack}
             onCenterButtonPress={() => {
                 if (currentHunger < 5) {
@@ -135,9 +113,9 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
             onRightButtonPress={() => {
                 // Help button - could show feeding tips
             }}
-            leftButtonText="←"
-            centerButtonText="🍽️"
-            rightButtonText="?"
+            leftButtonText=""
+            centerButtonText=""
+            rightButtonText=""
         >
             {/* Main Display Area */}
             <View style={styles.mainDisplayArea}>
@@ -152,7 +130,6 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
                                 style={[
                                     styles.characterCard,
                                     {
-                                        borderColor: getRarityColor(food.rarity),
                                         opacity: isDisabled ? 0.5 : 1,
                                         backgroundColor: isDisabled ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.95)',
                                     },
@@ -160,16 +137,8 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
                                 onPress={() => !isDisabled && handleFeed(food)}
                                 activeOpacity={isDisabled ? 1 : 0.7}
                             >
-                                <Text style={styles.foodEmoji}>{food.emoji}</Text>
+                                <Image source={getFoodImageSource(food.image)} style={styles.foodImage} />
                                 <Text style={styles.characterName}>{food.name}</Text>
-                                <Text
-                                    style={[
-                                        styles.characterRarity,
-                                        { color: getRarityColor(food.rarity) },
-                                    ]}
-                                >
-                                    {food.rarity}
-                                </Text>
                             </TouchableOpacity>
                         );
                     })}
@@ -177,14 +146,13 @@ const FeedingPage = ({ onBack, onFeed, currentHunger }: Props) => {
 
                 {feedingAnimation && selectedFood && (
                     <View style={styles.feedingOverlay}>
-                        <Animated.Text
+                        <Animated.Image
+                            source={getFoodImageSource(selectedFood.image)}
                             style={[
-                                styles.feedingEmoji,
+                                styles.feedingImage,
                                 { transform: [{ translateY: bounceAnim }] },
                             ]}
-                        >
-                            {selectedFood.emoji}
-                        </Animated.Text>
+                        />
                         <Text style={styles.feedingText}>
                             Feeding {selectedFood.name}...
                         </Text>
@@ -201,19 +169,23 @@ const styles = StyleSheet.create({
     },
     statLabel: {
         fontSize: 10,
+        fontFamily: 'PressStart2P',
     },
     statStars: {
         fontSize: 12,
+        fontFamily: 'PressStart2P',
     },
     mainDisplayArea: {
         flex: 1,
         position: 'relative',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     characterSelectionGrid: {
-        flex: 1,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-around',
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 10,
     },
     characterCard: {
@@ -224,16 +196,15 @@ const styles = StyleSheet.create({
         margin: 5,
         width: 100,
     },
-    foodEmoji: {
-        fontSize: 30,
+    foodImage: {
+        width: 40,
+        height: 40,
         marginBottom: 4,
+        resizeMode: 'contain',
     },
     characterName: {
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    characterRarity: {
         fontSize: 10,
+        fontFamily: 'PressStart2P',
     },
     feedingOverlay: {
         position: 'absolute',
@@ -246,13 +217,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         zIndex: 100,
     },
-    feedingEmoji: {
-        fontSize: 60,
+    feedingImage: {
+        width: 60,
+        height: 60,
+        resizeMode: 'contain',
     },
     feedingText: {
         color: '#FFD700',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: 'PressStart2P',
         marginTop: 10,
         textAlign: 'center',
     },

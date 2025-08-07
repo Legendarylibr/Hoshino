@@ -158,9 +158,9 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
             onLeftButtonPress={onBack}
             onCenterButtonPress={() => onNotification?.('🍳 Cooking Help: Select ingredients and craft delicious meals for your moonlings!', 'info')}
             onRightButtonPress={() => onNotification?.('🍳 Cooking Tips: Combine ingredients to create special recipes that boost your moonling\'s stats!', 'info')}
-            leftButtonText="←"
-            centerButtonText="🍳"
-            rightButtonText="?"
+            leftButtonText=""
+            centerButtonText=""
+            rightButtonText=""
         >
             <ScrollView style={[styles.mainDisplayArea, styles.ingredientSelection]}>
                 {/* Tab Navigation */}

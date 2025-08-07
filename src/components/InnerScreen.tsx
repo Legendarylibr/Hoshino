@@ -36,9 +36,9 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
     onLeftButtonPress,
     onCenterButtonPress,
     onRightButtonPress,
-    leftButtonText = '←',
-    centerButtonText = '✓',
-    rightButtonText = '→',
+    leftButtonText = '',
+    centerButtonText = '',
+    rightButtonText = '',
     leftButtonDisabled = false,
     centerButtonDisabled = false,
     rightButtonDisabled = false,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     innerScreenWithKeyboard: {
-        height: isTablet ? '45%' : '40%',
+        height: isTablet ? '60%' : '80%',
     },
     innerScreenAllowOverflow: {
         overflow: 'visible',

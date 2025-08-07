@@ -538,9 +538,9 @@ const MoonlingInteraction: React.FC<Props> = ({
             onLeftButtonPress={onBack}
             onCenterButtonPress={() => onNotification?.('🎮 Moonling Interaction: Care for your character!', 'info')}
             onRightButtonPress={() => onNotification?.('🎮 Moonling Help: Feed, play, sleep, and care for your cosmic companion!', 'info')}
-            leftButtonText="←"
-            centerButtonText="🎮"
-            rightButtonText="?"
+            leftButtonText=""
+            centerButtonText=""
+            rightButtonText=""
         >
             {/* Main Display Area */}
             <View style={styles.mainDisplayArea}>
@@ -611,12 +611,16 @@ const styles = StyleSheet.create({
     },
     statItem: {
         alignItems: 'center',
+        justifyContent: 'center',
         flex: 1,
     },
     statLabel: {
         fontSize: 12,
-        fontWeight: 'bold',
         marginBottom: 2,
+        fontFamily: 'PressStart2P',
+        textAlign: 'center',
+        width: '100%',
+        paddingHorizontal: 2,
     },
     starRating: {
         fontSize: 16,

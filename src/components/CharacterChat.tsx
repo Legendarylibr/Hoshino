@@ -146,9 +146,9 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
             onLeftButtonPress={onExit}
             onCenterButtonPress={toggleChat}
             onRightButtonPress={() => onNotification?.('💬 Chat Tips: Ask questions, share thoughts, or just chat naturally!', 'info')}
-            leftButtonText="←"
-            centerButtonText={showChat ? "Hide" : "Chat"}
-            rightButtonText="?"
+            leftButtonText=""
+            centerButtonText=""
+            rightButtonText=""
             keyboardVisible={keyboardVisible}
         >
             {/* Main Display Area - Always show character, optionally overlay chat */}

@@ -29,8 +29,8 @@
   - Add "WAKE UP!" button at bottom
   
 - [ ] UI Improvements: Add shading to buttons and screen for depth
-- [ ] Layout: Divide interaction screen buttons into 2 rows (4 buttons each)
-- [ ] Fix Safe Area Bleeding: Adjust cosmic inventory, shop, and feeding screens
+- [x] Layout: Divide interaction screen buttons into 2 rows (4 buttons each)
+- [x] Fix Safe Area Bleeding: Adjust cosmic inventory, shop, and feeding screens
   - Move content away from safe zones (top/bottom edges)
   - Use inner screen view boundaries instead of full screen?
   - Prevent content from bleeding into status bar/navigation areas
@@ -43,7 +43,7 @@
   - Created shadow container structure to properly layer shadows outside the main screen
   - Result: Clean, modern look that matches reference image style
 
-- [ ] Consistent Border Scheme: Fix remaining dialog box framing
+- [x] Consistent Border Scheme: Fix remaining dialog box framing
   - Standardize border styles across remaining screens
   - Ensure consistent rounded border system
   - Match dialog boxes with inner screen border design
