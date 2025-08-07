@@ -66,6 +66,7 @@ interface Props {
     localGameEngine?: LocalGameEngine | null;
     // Transition animation control
     shouldFadeIn?: boolean;
+    onFadeInComplete?: () => void;
 }
 
 const MoonlingInteraction: React.FC<Props> = ({
@@ -87,7 +88,8 @@ const MoonlingInteraction: React.FC<Props> = ({
     onSettings,
     // ✅ New props
     localGameEngine,
-    shouldFadeIn = false
+    shouldFadeIn = false,
+    onFadeInComplete
 }) => {
     const { connected: walletConnected, publicKey, connect, disconnect } = useWallet();
     // ✅ Use GameStats from LocalGameEngine instead of simple stats
@@ -134,17 +136,21 @@ const MoonlingInteraction: React.FC<Props> = ({
             setIsTransitioning(true);
             
             // Choppy fade in animation (5-6 layers, 0.5s apart)
-            const fadeInSteps = [0.8, 0.6, 0.4, 0.2, 0.0];
+            const fadeInSteps = [1.0, 0.8, 0.6, 0.4, 0.2, 0.0];
             fadeInSteps.forEach((opacity, index) => {
                 setTimeout(() => {
                     setTransitionOpacity(opacity);
                 }, index * 500);
             });
             
-            // End transition after fade in
+            // End transition after fade in and reset the flag
             setTimeout(() => {
                 setIsTransitioning(false);
                 setTransitionOpacity(0);
+                // Reset the fade-in flag so it doesn't trigger on subsequent navigations
+                if (shouldFadeIn && onFadeInComplete) {
+                    onFadeInComplete();
+                }
             }, fadeInSteps.length * 500);
         } else {
             // No transition needed, start with normal opacity

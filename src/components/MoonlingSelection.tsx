@@ -465,7 +465,7 @@ const MoonlingSelection: React.FC<Props> = ({
                                     <Text style={styles.modalCloseText}>✕</Text>
                                 </TouchableOpacity>
                                 
-                                <Text style={styles.congratulationsTitle}>🎉 Congratulations! 🎉</Text>
+                                <Text style={styles.congratulationsTitle}>Congratulations!</Text>
                                 
                                 <Image
                                     source={getImageSource(congratulationsCharacter.image)}

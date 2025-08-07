@@ -685,6 +685,7 @@ function App() {
                         onSettings={() => setCurrentView('settings')}
                         localGameEngine={localGameEngine}
                         shouldFadeIn={shouldFadeInInteraction}
+                        onFadeInComplete={() => setShouldFadeInInteraction(false)}
                         onMintAchievements={mintAchievementNFTs}
                         onMint={() => {
                             console.log('🎫 Mint button clicked!', {
