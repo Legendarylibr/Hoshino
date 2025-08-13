@@ -4,9 +4,9 @@ import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '.
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
-import PinkSugar from '../../assets/images/Pink Sugar.png';
-import NovaEgg from '../../assets/images/Nova Egg.png';
-import MiraBerry from '../../assets/images/Mira Berry.png';
+import PinkSugar from '../../assets/ingredients/pink-sugar.png';
+import NovaEgg from '../../assets/ingredients/nova-egg.png';
+import MiraBerry from '../../assets/ingredients/mira-berry.png';
 
 interface ShopProps {
     connection: Connection;

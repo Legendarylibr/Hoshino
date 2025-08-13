@@ -60,17 +60,17 @@ const CharacterChat = ({ character, onExit, playerName, onNotification }: Props)
     const getImageSource = (imageName: string) => {
         switch (imageName) {
             case 'LYRA.gif':
-                return require('../../assets/images/LYRA.gif');
+                return require('../../assets/moonlings/LYRA.gif');
             case 'ORION.gif':
-                return require('../../assets/images/ORION.gif');
+                return require('../../assets/moonlings/ORION.gif');
             case 'ARO.gif':
-                return require('../../assets/images/ARO.gif');
+                return require('../../assets/moonlings/ARO.gif');
             case 'SIRIUS.gif':
-                return require('../../assets/images/SIRIUS.gif');
+                return require('../../assets/moonlings/SIRIUS.gif');
             case 'ZANIAH.gif':
-                return require('../../assets/images/ZANIAH.gif');
+                return require('../../assets/moonlings/ZANIAH.gif');
             default:
-                return require('../../assets/images/LYRA.gif'); // fallback
+                return require('../../assets/moonlings/LYRA.gif'); // fallback
         }
     };
 

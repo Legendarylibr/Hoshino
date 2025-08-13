@@ -21,7 +21,7 @@ const FOOD_ITEMS: FoodItem[] = [
     {
         id: 'sugar',
         name: 'Pink Sugar',
-        image: 'Pink Sugar.png',
+        image: 'pink-sugar.png',
         hungerBoost: 1,
         moodBoost: 1,
         description: 'Sweet crystalline sugar with a pink hue'
@@ -29,7 +29,7 @@ const FOOD_ITEMS: FoodItem[] = [
     {
         id: 'nova',
         name: 'Nova Egg',
-        image: 'Nova Egg.png',
+        image: 'nova-egg.png',
         hungerBoost: 2,
         moodBoost: 2,
         description: 'A mysterious egg that glows with stellar energy'
@@ -37,7 +37,7 @@ const FOOD_ITEMS: FoodItem[] = [
     {
         id: 'mira',
         name: 'Mira Berry',
-        image: 'Mira Berry.png',
+        image: 'mira-berry.png',
         hungerBoost: 3,
         moodBoost: 3,
         description: 'A rare berry with stellar properties'
@@ -47,14 +47,14 @@ const FOOD_ITEMS: FoodItem[] = [
 // Helper function to get image source based on food image name
 const getFoodImageSource = (imageName: string) => {
     switch (imageName) {
-        case 'Pink Sugar.png':
-            return require('../../assets/images/Pink Sugar.png');
-        case 'Nova Egg.png':
-            return require('../../assets/images/Nova Egg.png');
-        case 'Mira Berry.png':
-            return require('../../assets/images/Mira Berry.png');
+        case 'pink-sugar.png':
+            return require('../../assets/ingredients/pink-sugar.png');
+        case 'nova-egg.png':
+            return require('../../assets/ingredients/nova-egg.png');
+        case 'mira-berry.png':
+            return require('../../assets/ingredients/mira-berry.png');
         default:
-            return require('../../assets/images/Pink Sugar.png'); // fallback
+            return require('../../assets/ingredients/pink-sugar.png'); // fallback
     }
 };
 

@@ -60,7 +60,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
         <View style={styles.tamagotchiScreenContainer}>
             {/* Background casing image */}
             <Image
-                source={require('../../assets/images/casing.png')}
+                source={require('../../assets/ui/casing.png')}
                 style={[styles.mainBackground, overlayMode && styles.darkenedBackground]}
                 resizeMode="cover"
             />
@@ -96,7 +96,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                     {/* Screen background */}
                     {showBackgroundImage && (
                         <Image
-                            source={backgroundImageSource || require('../../assets/images/screen bg.png')}
+                            source={backgroundImageSource || require('../../assets/backgrounds/screen-bg.png')}
                             style={styles.innerBackground}
                             resizeMode="cover"
                         />
@@ -155,7 +155,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                     style={[styles.bottomButton, styles.left, leftButtonDisabled && styles.disabled]}
                     onPress={!leftButtonDisabled ? onLeftButtonPress : undefined}
                 >
-                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Image source={require('../../assets/ui/button.png')} style={styles.buttonImage} />
                     <Text style={[styles.buttonText, leftButtonText === 'YES' && styles.yesButtonText]}>{leftButtonText}</Text>
                 </TouchableOpacity>
 
@@ -163,7 +163,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                     style={[styles.bottomButton, styles.center, centerButtonDisabled && styles.disabled]}
                     onPress={!centerButtonDisabled ? onCenterButtonPress : undefined}
                 >
-                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Image source={require('../../assets/ui/button.png')} style={styles.buttonImage} />
                     <Text style={styles.buttonText}>{centerButtonText}</Text>
                 </TouchableOpacity>
 
@@ -171,7 +171,7 @@ const InnerScreen: React.FC<InnerScreenProps> = ({
                     style={[styles.bottomButton, styles.right, rightButtonDisabled && styles.disabled]}
                     onPress={!rightButtonDisabled ? onRightButtonPress : undefined}
                 >
-                    <Image source={require('../../assets/images/button.png')} style={styles.buttonImage} />
+                    <Image source={require('../../assets/ui/button.png')} style={styles.buttonImage} />
                     <Text style={[styles.buttonText, rightButtonText === 'NO' && styles.noButtonText]}>{rightButtonText}</Text>
                 </TouchableOpacity>
             </View>

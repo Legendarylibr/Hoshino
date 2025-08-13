@@ -23,17 +23,17 @@ const { height } = Dimensions.get('window');
 const getImageSource = (imageName: string) => {
     switch (imageName) {
         case 'LYRA.gif':
-            return require('../../assets/images/LYRA.gif');
+            return require('../../assets/moonlings/LYRA.gif');
         case 'ORION.gif':
-            return require('../../assets/images/ORION.gif');
+            return require('../../assets/moonlings/ORION.gif');
         case 'ARO.gif':
-            return require('../../assets/images/ARO.gif');
+            return require('../../assets/moonlings/ARO.gif');
         case 'SIRIUS.gif':
-            return require('../../assets/images/SIRIUS.gif');
+            return require('../../assets/moonlings/SIRIUS.gif');
         case 'ZANIAH.gif':
-            return require('../../assets/images/ZANIAH.gif');
+            return require('../../assets/moonlings/ZANIAH.gif');
         default:
-            return require('../../assets/images/LYRA.gif'); // fallback
+            return require('../../assets/moonlings/LYRA.gif'); // fallback
     }
 };
 
@@ -430,15 +430,15 @@ const MoonlingInteraction: React.FC<Props> = ({
     };
 
     const imageSources = {
-        background: require('../../assets/images/screen bg.png'),
-        feed: require('../../assets/images/feed.png'),
-        chat: require('../../assets/images/chat.png'),
-        games: require('../../assets/images/games.png'),
-        sleep: require('../../assets/images/sleepzzzz.png'),
-        shop: require('../../assets/images/shop.png'),
-        inventory: require('../../assets/images/backpack.png'),
-        gallery: require('../../assets/images/gallery.png'),
-        settings: require('../../assets/images/settings.png'),
+        background: require('../../assets/backgrounds/screen-bg.png'),
+        feed: require('../../assets/ui/feed.png'),
+        chat: require('../../assets/ui/chat.png'),
+        games: require('../../assets/ui/games.png'),
+        sleep: require('../../assets/ui/sleepzzzz.png'),
+        shop: require('../../assets/ui/shop.png'),
+        inventory: require('../../assets/ui/backpack.png'),
+        gallery: require('../../assets/ui/gallery.png'),
+        settings: require('../../assets/ui/settings.png'),
     };
 
     // Render menu button
@@ -503,7 +503,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                             {[...Array(5)].map((_, index) => (
                                 <Image
                                     key={`mood-${index}`}
-                                    source={index < currentStats.mood ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    source={index < currentStats.mood ? require('../../assets/backgrounds/star-life-3.png') : require('../../assets/backgrounds/star-life.png')}
                                     style={styles.starImage}
                                 />
                             ))}
@@ -515,7 +515,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                             {[...Array(5)].map((_, index) => (
                                 <Image
                                     key={`hunger-${index}`}
-                                    source={index < currentStats.hunger ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    source={index < currentStats.hunger ? require('../../assets/backgrounds/star-life-3.png') : require('../../assets/backgrounds/star-life.png')}
                                     style={styles.starImage}
                                 />
                             ))}
@@ -527,7 +527,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                             {[...Array(5)].map((_, index) => (
                                 <Image
                                     key={`sleep-${index}`}
-                                    source={index < currentStats.energy ? require('../../assets/images/star_life_3.png') : require('../../assets/images/star_life.png')}
+                                    source={index < currentStats.energy ? require('../../assets/backgrounds/star-life-3.png') : require('../../assets/backgrounds/star-life.png')}
                                     style={styles.starImage}
                                 />
                             ))}

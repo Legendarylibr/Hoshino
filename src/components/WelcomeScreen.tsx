@@ -594,7 +594,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                 <>
                     <View style={styles.storyCharacterCentered}>
                         <Image
-                            source={require('../../assets/images/hoshino star.gif')}
+                            source={require('../../assets/ui/hoshino-star.gif')}
                             style={styles.starCharacterImage}
                         />
                     </View>
@@ -641,7 +641,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                 <>
                     <View style={styles.eyesSection}>
                         <Image
-                            source={require('../../assets/images/eyes.png')}
+                            source={require('../../assets/ui/eyes.png')}
                             style={styles.eyesImage}
                         />
                     </View>
@@ -681,7 +681,7 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                 <View style={styles.completeSection}>
                     <View style={styles.starCharacterSection}>
                         <Image
-                            source={require('../../assets/images/hoshino star.png')}
+                            source={require('../../assets/ui/hoshino-star.png')}
                             style={styles.starCharacterImage}
                         />
                     </View>

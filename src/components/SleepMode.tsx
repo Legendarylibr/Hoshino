@@ -6,17 +6,17 @@ import LinearGradient from 'react-native-linear-gradient';
 const getImageSource = (imageName: string) => {
     switch (imageName) {
         case 'LYRA.png':
-            return require('../../assets/images/LYRA.png');
+            return require('../../assets/moonlings/LYRA.png');
         case 'ORION.png':
-            return require('../../assets/images/ORION.png');
+            return require('../../assets/moonlings/ORION.png');
         case 'ARO.png':
-            return require('../../assets/images/ARO.png');
+            return require('../../assets/moonlings/ARO.png');
         case 'SIRIUS.png':
-            return require('../../assets/images/SIRIUS.png');
+            return require('../../assets/moonlings/SIRIUS.png');
         case 'ZANIAH.png':
-            return require('../../assets/images/ZANIAH.png');
+            return require('../../assets/moonlings/ZANIAH.png');
         default:
-            return require('../../assets/images/LYRA.png'); // fallback
+            return require('../../assets/moonlings/LYRA.png'); // fallback
     }
 };
 

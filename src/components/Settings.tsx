@@ -29,15 +29,15 @@ const Settings: React.FC<Props> = ({ onBack, onNotification, onSettingsChanged }
     // Helper function to get image source based on icon name
     const getImageSource = (iconName: string) => {
         switch (iconName) {
-            case 'feed': return require('../../assets/images/feed.png');
-            case 'chat': return require('../../assets/images/chat.png');
-            case 'games': return require('../../assets/images/games.png');
-            case 'sleep': return require('../../assets/images/sleepzzzz.png');
-            case 'shop': return require('../../assets/images/shop.png');
-            case 'inventory': return require('../../assets/images/backpack.png');
-            case 'gallery': return require('../../assets/images/gallery.png');
-            case 'settings': return require('../../assets/images/settings.png');
-            default: return require('../../assets/images/settings.png');
+                    case 'feed': return require('../../assets/ui/feed.png');
+        case 'chat': return require('../../assets/ui/chat.png');
+        case 'games': return require('../../assets/ui/games.png');
+        case 'sleep': return require('../../assets/ui/sleepzzzz.png');
+        case 'shop': return require('../../assets/ui/shop.png');
+        case 'inventory': return require('../../assets/ui/backpack.png');
+        case 'gallery': return require('../../assets/ui/gallery.png');
+        case 'settings': return require('../../assets/ui/settings.png');
+        default: return require('../../assets/ui/settings.png');
         }
     };
 
