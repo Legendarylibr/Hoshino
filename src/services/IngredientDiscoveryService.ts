@@ -1,308 +1,197 @@
-import { Ingredient } from '../types/GameTypes';
-import { INGREDIENTS, getIngredientsByRarity } from '../data/ingredients';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { InventoryService } from './InventoryService';
 
-export interface IngredientDiscovery {
+export interface DiscoveryEvent {
     id: string;
     ingredientId: string;
     quantity: number;
-    discoveredAt: number;
-    rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-    message: string;
-}
-
-export interface DiscoverySettings {
-    enabled: boolean;
-    intervalHours: number; // How often the pet finds ingredients
-    lastDiscoveryTime: number;
-    discoveryChance: number; // 0-1, chance of finding something
-    maxDiscoveriesPerDay: number;
-    dailyDiscoveries: number;
-    lastDailyReset: string; // YYYY-MM-DD format
-}
-
-export interface DiscoveryNotification {
-    type: 'ingredient_found';
-    title: string;
-    message: string;
-    ingredient: Ingredient;
-    quantity: number;
     timestamp: number;
+    location?: string;
+    rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 }
 
 export class IngredientDiscoveryService {
-    private settings: DiscoverySettings;
-    private discoveries: IngredientDiscovery[] = [];
-    private readonly STORAGE_KEY = 'ingredient_discovery_settings';
-    private readonly DISCOVERIES_KEY = 'ingredient_discoveries';
+    private static instance: IngredientDiscoveryService;
+    private storageKey = 'ingredient_discoveries';
+    private lastDiscoveryCheck = 0;
+    private discoveryCooldown = 300000; // 5 minutes
+    private inventoryService: InventoryService;
 
-    constructor() {
-        this.settings = this.getDefaultSettings();
-        this.loadSettings();
-        this.loadDiscoveries();
-        this.checkDailyReset();
+    private constructor() {
+        this.inventoryService = InventoryService.getInstance();
     }
 
-    private getDefaultSettings(): DiscoverySettings {
-        return {
-            enabled: true,
-            intervalHours: 4, // Pet finds ingredients every 4 hours
-            lastDiscoveryTime: Date.now(),
-            discoveryChance: 0.8, // 80% chance of finding something
-            maxDiscoveriesPerDay: 6, // Max 6 discoveries per day
-            dailyDiscoveries: 0,
-            lastDailyReset: this.getTodayString()
-        };
+    static getInstance(): IngredientDiscoveryService {
+        if (!IngredientDiscoveryService.instance) {
+            IngredientDiscoveryService.instance = new IngredientDiscoveryService();
+        }
+        return IngredientDiscoveryService.instance;
     }
 
-    // Check if it's time for the pet to find ingredients
-    public shouldDiscoverIngredients(): boolean {
-        if (!this.settings.enabled) return false;
-        
+    // Check if enough time has passed for new discoveries
+    shouldDiscoverIngredients(): boolean {
         const now = Date.now();
-        const hoursSinceLastDiscovery = (now - this.settings.lastDiscoveryTime) / (1000 * 60 * 60);
-        
-        // Check if enough time has passed and we haven't hit daily limit
-        return hoursSinceLastDiscovery >= this.settings.intervalHours && 
-               this.settings.dailyDiscoveries < this.settings.maxDiscoveriesPerDay;
+        return now - this.lastDiscoveryCheck >= this.discoveryCooldown;
     }
 
-    // Pet discovers ingredients
-    public discoverIngredients(): IngredientDiscovery[] {
+    // Simulate ingredient discovery
+    async discoverIngredients(): Promise<DiscoveryEvent[]> {
         if (!this.shouldDiscoverIngredients()) {
             return [];
         }
 
-        const discoveries: IngredientDiscovery[] = [];
-        const now = Date.now();
-        
-        // Determine how many ingredients to find (1-3)
-        const numIngredients = Math.random() < 0.6 ? 1 : Math.random() < 0.8 ? 2 : 3;
-        
-        for (let i = 0; i < numIngredients; i++) {
-            if (Math.random() > this.settings.discoveryChance) continue;
-            
-            const discovery = this.generateRandomDiscovery(now);
-            if (discovery) {
-                discoveries.push(discovery);
-                this.discoveries.push(discovery);
-            }
-        }
+        this.lastDiscoveryCheck = Date.now();
+        const discoveries: DiscoveryEvent[] = [];
 
-        if (discoveries.length > 0) {
-            // Update settings
-            this.settings.lastDiscoveryTime = now;
-            this.settings.dailyDiscoveries += discoveries.length;
+        // Simulate random discoveries based on time and luck
+        const discoveryChance = Math.random();
+        
+        if (discoveryChance > 0.7) { // 30% chance
+            const discovery = this.generateRandomDiscovery();
+            discoveries.push(discovery);
             
-            // Save state
-            this.saveSettings();
-            this.saveDiscoveries();
+            // Add discovered ingredient to unified inventory
+            await this.inventoryService.addToInventory([{
+                id: discovery.ingredientId,
+                quantity: discovery.quantity,
+                source: 'discovery'
+            }]);
+
+            // Save discovery event
+            await this.saveDiscoveryEvent(discovery);
         }
 
         return discoveries;
     }
 
-    // Generate a random ingredient discovery
-    private generateRandomDiscovery(timestamp: number): IngredientDiscovery | null {
-        // Rarity distribution: 60% common, 25% uncommon, 10% rare, 4% epic, 1% legendary
-        const rarityRoll = Math.random();
-        let rarity: DiscoverySettings['rarity'];
-        
-        if (rarityRoll < 0.6) rarity = 'common';
-        else if (rarityRoll < 0.85) rarity = 'uncommon';
-        else if (rarityRoll < 0.95) rarity = 'rare';
-        else if (rarityRoll < 0.99) rarity = 'epic';
-        else rarity = 'legendary';
-
-        const availableIngredients = getIngredientsByRarity(rarity);
-        if (availableIngredients.length === 0) return null;
-
-        const ingredient = availableIngredients[Math.floor(Math.random() * availableIngredients.length)];
-        const quantity = this.calculateQuantity(rarity);
-        
-        const messages = this.getDiscoveryMessages(rarity, ingredient.name);
-        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    // Generate a random discovery event
+    private generateRandomDiscovery(): DiscoveryEvent {
+        const ingredients = ['pink-sugar', 'nova-egg', 'mira-berry'];
+        const ingredientId = ingredients[Math.floor(Math.random() * ingredients.length)];
+        const quantity = Math.floor(Math.random() * 2) + 1; // 1-2 items
+        const rarity = this.getRandomRarity();
 
         return {
-            id: `discovery_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
-            ingredientId: ingredient.id,
+            id: `discovery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            ingredientId,
             quantity,
-            discoveredAt: timestamp,
-            rarity,
-            message: randomMessage
+            timestamp: Date.now(),
+            location: 'Stellar Garden',
+            rarity
         };
     }
 
-    // Calculate quantity based on rarity
-    private calculateQuantity(rarity: DiscoverySettings['rarity']): number {
-        switch (rarity) {
-            case 'common':
-                return Math.floor(Math.random() * 3) + 1; // 1-3
-            case 'uncommon':
-                return Math.floor(Math.random() * 2) + 1; // 1-2
-            case 'rare':
-                return 1; // Always 1
-            case 'epic':
-                return 1; // Always 1
-            case 'legendary':
-                return 1; // Always 1
-            default:
-                return 1;
+    // Get random rarity with weighted distribution
+    private getRandomRarity(): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
+        const rand = Math.random();
+        if (rand < 0.6) return 'common';
+        if (rand < 0.8) return 'uncommon';
+        if (rand < 0.9) return 'rare';
+        if (rand < 0.95) return 'epic';
+        return 'legendary';
+    }
+
+    // Save discovery event to storage
+    private async saveDiscoveryEvent(discovery: DiscoveryEvent): Promise<void> {
+        try {
+            const existing = await this.getDiscoveryHistory();
+            existing.push(discovery);
+            
+            // Keep only last 100 discoveries
+            if (existing.length > 100) {
+                existing.splice(0, existing.length - 100);
+            }
+            
+            await AsyncStorage.setItem(this.storageKey, JSON.stringify(existing));
+        } catch (error) {
+            console.error('Failed to save discovery event:', error);
         }
     }
 
-    // Get discovery messages based on rarity and ingredient
-    private getDiscoveryMessages(rarity: DiscoverySettings['rarity'], ingredientName: string): string[] {
-        const baseMessages = {
-            common: [
-                `Hey! I found some ${ingredientName}!`,
-                `Look what I discovered - ${ingredientName}!`,
-                `I stumbled upon some ${ingredientName}!`,
-                `Found ${ingredientName} while exploring!`
-            ],
-            uncommon: [
-                `Wow! I found some rare ${ingredientName}!`,
-                `This is exciting - I discovered ${ingredientName}!`,
-                `I can't believe I found ${ingredientName}!`,
-                `What a lucky find - ${ingredientName}!`
-            ],
-            rare: [
-                `Incredible! I found legendary ${ingredientName}!`,
-                `This is amazing - I discovered ${ingredientName}!`,
-                `I'm so excited - I found ${ingredientName}!`,
-                `What a treasure - ${ingredientName}!`
-            ],
-            epic: [
-                `MAGNIFICENT! I found epic ${ingredientName}!`,
-                `This is extraordinary - ${ingredientName}!`,
-                `I'm speechless - I found ${ingredientName}!`,
-                `What an incredible discovery - ${ingredientName}!`
-            ],
-            legendary: [
-                `LEGENDARY DISCOVERY! I found ${ingredientName}!`,
-                `This is the find of a lifetime - ${ingredientName}!`,
-                `I'm in awe - I found ${ingredientName}!`,
-                `What a mythical discovery - ${ingredientName}!`
-            ]
+    // Get discovery history
+    async getDiscoveryHistory(): Promise<DiscoveryEvent[]> {
+        try {
+            const stored = await AsyncStorage.getItem(this.storageKey);
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Failed to load discovery history:', error);
+            return [];
+        }
+    }
+
+    // Get recent discoveries (last 24 hours)
+    async getRecentDiscoveries(): Promise<DiscoveryEvent[]> {
+        const history = await this.getDiscoveryHistory();
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        return history.filter(discovery => discovery.timestamp > oneDayAgo);
+    }
+
+    // Get discovery statistics
+    async getDiscoveryStats(): Promise<{
+        totalDiscoveries: number;
+        todayDiscoveries: number;
+        byRarity: Record<string, number>;
+        byIngredient: Record<string, number>;
+    }> {
+        const history = await this.getDiscoveryHistory();
+        const recent = await this.getRecentDiscoveries();
+        
+        const byRarity: Record<string, number> = {};
+        const byIngredient: Record<string, number> = {};
+        
+        history.forEach(discovery => {
+            byRarity[discovery.rarity] = (byRarity[discovery.rarity] || 0) + 1;
+            byIngredient[discovery.ingredientId] = (byIngredient[discovery.ingredientId] || 0) + 1;
+        });
+
+        return {
+            totalDiscoveries: history.length,
+            todayDiscoveries: recent.length,
+            byRarity,
+            byIngredient
+        };
+    }
+
+    // Force a discovery (for testing/debugging)
+    async forceDiscovery(ingredientId: string, quantity: number = 1): Promise<DiscoveryEvent> {
+        const discovery: DiscoveryEvent = {
+            id: `forced_discovery_${Date.now()}`,
+            ingredientId,
+            quantity,
+            timestamp: Date.now(),
+            location: 'Test Garden',
+            rarity: 'common'
         };
 
-        return baseMessages[rarity] || baseMessages.common;
-    }
+        // Add to unified inventory
+        await this.inventoryService.addToInventory([{
+            id: ingredientId,
+            quantity,
+            source: 'discovery'
+        }]);
 
-    // Get discovery notifications for UI
-    public getDiscoveryNotifications(): DiscoveryNotification[] {
-        const recentDiscoveries = this.discoveries.filter(d => 
-            Date.now() - d.discoveredAt < 24 * 60 * 60 * 1000 // Last 24 hours
-        );
-
-        return recentDiscoveries.map(discovery => {
-            const ingredient = INGREDIENTS.find(i => i.id === discovery.ingredientId);
-            if (!ingredient) return null;
-
-            return {
-                type: 'ingredient_found',
-                title: 'Ingredient Found!',
-                message: discovery.message,
-                ingredient,
-                quantity: discovery.quantity,
-                timestamp: discovery.discoveredAt
-            };
-        }).filter(Boolean) as DiscoveryNotification[];
-    }
-
-    // Get time until next discovery
-    public getTimeUntilNextDiscovery(): number {
-        if (!this.settings.enabled) return 0;
+        // Save discovery event
+        await this.saveDiscoveryEvent(discovery);
         
-        const now = Date.now();
-        const nextDiscoveryTime = this.settings.lastDiscoveryTime + (this.settings.intervalHours * 60 * 60 * 1000);
-        return Math.max(0, nextDiscoveryTime - now);
+        return discovery;
     }
 
-    // Get discovery progress for today
-    public getDailyProgress(): { current: number; max: number; percentage: number } {
-        const current = this.settings.dailyDiscoveries;
-        const max = this.settings.maxDiscoveriesPerDay;
-        const percentage = (current / max) * 100;
-        
-        return { current, max, percentage };
+    // Reset discovery cooldown (for testing)
+    resetDiscoveryCooldown(): void {
+        this.lastDiscoveryCheck = 0;
     }
 
-    // Update discovery settings
-    public updateSettings(newSettings: Partial<DiscoverySettings>): void {
-        this.settings = { ...this.settings, ...newSettings };
-        this.saveSettings();
+    // Set custom discovery cooldown
+    setDiscoveryCooldown(milliseconds: number): void {
+        this.discoveryCooldown = milliseconds;
     }
 
-    // Check if daily reset is needed
-    private checkDailyReset(): void {
-        const today = this.getTodayString();
-        if (this.settings.lastDailyReset !== today) {
-            this.settings.dailyDiscoveries = 0;
-            this.settings.lastDailyReset = today;
-            this.saveSettings();
-        }
-    }
-
-    // Get today's date string
-    private getTodayString(): string {
-        return new Date().toISOString().split('T')[0];
-    }
-
-    // Save/load methods
-    private saveSettings(): void {
+    // Clear discovery history
+    async clearDiscoveryHistory(): Promise<void> {
         try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings));
+            await AsyncStorage.removeItem(this.storageKey);
         } catch (error) {
-            console.error('Failed to save discovery settings:', error);
+            console.error('Failed to clear discovery history:', error);
         }
-    }
-
-    private loadSettings(): void {
-        try {
-            const saved = localStorage.getItem(this.STORAGE_KEY);
-            if (saved) {
-                this.settings = { ...this.settings, ...JSON.parse(saved) };
-            }
-        } catch (error) {
-            console.error('Failed to load discovery settings:', error);
-        }
-    }
-
-    private saveDiscoveries(): void {
-        try {
-            localStorage.setItem(this.DISCOVERIES_KEY, JSON.stringify(this.discoveries));
-        } catch (error) {
-            console.error('Failed to save discoveries:', error);
-        }
-    }
-
-    private loadDiscoveries(): void {
-        try {
-            const saved = localStorage.getItem(this.DISCOVERIES_KEY);
-            if (saved) {
-                this.discoveries = JSON.parse(saved);
-            }
-        } catch (error) {
-            console.error('Failed to load discoveries:', error);
-        }
-    }
-
-    // Public getters
-    public getSettings(): DiscoverySettings {
-        return { ...this.settings };
-    }
-
-    public getDiscoveries(): IngredientDiscovery[] {
-        return [...this.discoveries];
-    }
-
-    // Clear old discoveries (keep only last 7 days)
-    public cleanupOldDiscoveries(): void {
-        const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-        this.discoveries = this.discoveries.filter(d => d.discoveredAt > weekAgo);
-        this.saveDiscoveries();
     }
 }
-
-// Export singleton instance
-export const ingredientDiscoveryService = new IngredientDiscoveryService();

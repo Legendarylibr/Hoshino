@@ -1,5 +1,5 @@
 // Save this as: src/components/GameContainer.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Connection } from '@solana/web3.js';
 import Shop from './Shop';
@@ -14,17 +14,51 @@ interface GameContainerProps {
 
 const GameContainer: React.FC<GameContainerProps> = ({ connection, onNotification }) => {
     const [currentView, setCurrentView] = useState<'shop' | 'ingredients'>('shop');
+    const [purchasedIngredients, setPurchasedIngredients] = useState<any[]>([]);
     const inventory = useInventory();
 
-    const handleItemsPurchased = (items: MarketplaceItem[]) => {
-        inventory.addItemsToInventory(items);
-        const itemNames = items.map(item => item.name).join(', ');
-        onNotification?.(`🛒 ${itemNames} added to your ingredient inventory!`, 'success');
+    // Load purchased ingredients when inventory changes
+    useEffect(() => {
+        const loadIngredients = async () => {
+            try {
+                const ingredients = await inventory.getInventoryAsIngredients();
+                setPurchasedIngredients(ingredients);
+            } catch (error) {
+                console.error('Failed to load ingredients:', error);
+                onNotification?.('Failed to load inventory', 'error');
+            }
+        };
+
+        loadIngredients();
+    }, [inventory.inventory, inventory.getInventoryAsIngredients, onNotification]);
+
+    const handleItemsPurchased = async (items: MarketplaceItem[]) => {
+        try {
+            await inventory.addItemsToInventory(items);
+            const itemNames = items.map(item => item.name).join(', ');
+            onNotification?.(`🛒 ${itemNames} added to your ingredient inventory!`, 'success');
+            
+            // Reload ingredients after purchase
+            const ingredients = await inventory.getInventoryAsIngredients();
+            setPurchasedIngredients(ingredients);
+        } catch (error) {
+            console.error('Failed to add items to inventory:', error);
+            onNotification?.('Failed to add items to inventory', 'error');
+        }
     };
 
-    const handleCraftFood = (foodId: string, foodName: string) => {
-        // You can implement recipe logic here to remove used ingredients
-        onNotification?.(`🍳 Successfully crafted ${foodName}!`, 'success');
+    const handleCraftFood = async (foodId: string, foodName: string) => {
+        try {
+            // You can implement recipe logic here to remove used ingredients
+            onNotification?.(`🍳 Successfully crafted ${foodName}!`, 'success');
+            
+            // Reload ingredients after crafting
+            const ingredients = await inventory.getInventoryAsIngredients();
+            setPurchasedIngredients(ingredients);
+        } catch (error) {
+            console.error('Failed to craft food:', error);
+            onNotification?.('Failed to craft food', 'error');
+        }
     };
 
     const handleClose = () => {
@@ -71,7 +105,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ connection, onNotificatio
                     onNotification={onNotification}
                     walletAddress="demo-wallet"
                     // Pass the inventory as additional ingredients
-                    purchasedIngredients={inventory.getInventoryAsIngredients()}
+                    purchasedIngredients={purchasedIngredients}
                 />
             )}
         </View>
