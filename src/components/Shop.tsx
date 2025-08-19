@@ -20,6 +20,7 @@ interface ShopProps {
 }
 
 const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItemsPurchased }) => {
+    const { wallet } = useWallet();
     const [selectedCategory, setSelectedCategory] = useState<string>('food');
     const [items, setItems] = useState<MarketplaceItem[]>([]);
     const [dust, setDust] = useState<number>(100);
@@ -113,7 +114,6 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
 
     const handleStarDustPurchase = async (packageId: string, priceSOL: number) => {
         try {
-            const { wallet } = useWallet();
             if (!wallet) {
                 onNotification?.('Please connect your wallet first', 'error');
                 return;
@@ -274,6 +274,11 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                     style={styles.starDustPackage}
                     onPress={() => handleStarDustPurchase(pkg.id, pkg.price)}
                 >
+                    <Image
+                        source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                        style={styles.packageBackgroundImage}
+                        resizeMode="contain"
+                    />
                     <Text style={styles.packageName}>{pkg.name}</Text>
                     <Text style={styles.packageDescription}>{pkg.description}</Text>
                     <Text style={styles.packagePrice}>{pkg.price} SOL</Text>
@@ -1130,6 +1135,19 @@ const styles = StyleSheet.create({
         borderLeftColor: '#006600',
         borderRightColor: '#001100',
         borderBottomColor: '#001100',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    packageBackgroundImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        opacity: 0.15,
+        zIndex: -1,
     },
     packageName: {
         fontSize: 11,
@@ -1137,18 +1155,21 @@ const styles = StyleSheet.create({
         marginBottom: 4,
         textAlign: 'center',
         color: '#003300',
+        zIndex: 1,
     },
     packageDescription: {
         fontSize: 9,
         color: '#666',
         marginBottom: 4,
         textAlign: 'center',
+        zIndex: 1,
     },
     packagePrice: {
         fontSize: 10,
         fontWeight: 'bold',
         color: '#006600',
         textAlign: 'center',
+        zIndex: 1,
     },
 
     // Food tab styles
