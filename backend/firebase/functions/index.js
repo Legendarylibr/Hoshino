@@ -27,6 +27,7 @@ exports.updateUserProgress = globalDataFunctions.updateUserProgress;
 exports.unlockAchievement = globalDataFunctions.unlockAchievement;
 exports.addMilestone = globalDataFunctions.addMilestone;
 exports.addMemory = globalDataFunctions.addMemory;
+exports.getGlobalDataHealth = globalDataFunctions.getGlobalDataHealth;
 
 // Health check
 exports.health = onRequest({

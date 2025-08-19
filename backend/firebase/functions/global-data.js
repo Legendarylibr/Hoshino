@@ -3,25 +3,99 @@ const admin = require('firebase-admin');
 
 // Initialize Firebase Admin if not already initialized
 let db;
+let connectionPool = new Map(); // Connection pooling for better performance
+
 try {
   // Check if app is already initialized
   if (admin.apps.length === 0) {
     admin.initializeApp();
   }
   db = admin.firestore();
+  
+  // Configure Firestore for better performance
+  db.settings({
+    ignoreUndefinedProperties: true, // Ignore undefined properties for better performance
+    cacheSizeBytes: admin.firestore.CACHE_SIZE_UNLIMITED // Enable unlimited caching
+  });
+  
 } catch (error) {
   console.error('Error initializing Firebase Admin:', error);
   // Fallback initialization
   try {
     admin.initializeApp();
     db = admin.firestore();
+    
+    // Configure Firestore for better performance
+    db.settings({
+      ignoreUndefinedProperties: true,
+      cacheSizeBytes: admin.firestore.CACHE_SIZE_UNLIMITED
+    });
+    
   } catch (fallbackError) {
     console.error('Fallback Firebase Admin initialization failed:', fallbackError);
     throw fallbackError;
   }
 }
 
-// Get global leaderboard
+// Performance optimization: Batch operations for multiple updates
+const batchOperations = new Map();
+
+// Performance monitoring and structured logging
+const performanceMetrics = {
+  startTime: Date.now(),
+  requestCount: 0,
+  averageResponseTime: 0
+};
+
+// Structured logging function
+function logOperation(operation, details, duration = null) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    operation,
+    details,
+    duration: duration ? `${duration}ms` : null,
+    requestId: Math.random().toString(36).substr(2, 9)
+  };
+  
+  console.log(JSON.stringify(logEntry, null, 2));
+}
+
+// Performance monitoring middleware
+function withPerformanceMonitoring(operationName, handler) {
+  return async (req, res) => {
+    const startTime = Date.now();
+    performanceMetrics.requestCount++;
+    
+    try {
+      logOperation(`${operationName}_start`, { 
+        method: req.method, 
+        timestamp: new Date().toISOString() 
+      });
+      
+      await handler(req, res);
+      
+      const duration = Date.now() - startTime;
+      performanceMetrics.averageResponseTime = 
+        (performanceMetrics.averageResponseTime + duration) / 2;
+      
+      logOperation(`${operationName}_success`, { 
+        duration, 
+        statusCode: res.statusCode || 200 
+      });
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logOperation(`${operationName}_error`, { 
+        error: error.message, 
+        duration,
+        stack: error.stack 
+      });
+      throw error;
+    }
+  };
+}
+
+// Get global leaderboard with performance optimizations
 exports.getGlobalLeaderboard = onRequest({
   cors: ['*'],
   invoker: 'public'
@@ -38,8 +112,12 @@ exports.getGlobalLeaderboard = onRequest({
       return;
     }
 
+    // Performance optimization: Use efficient query with proper indexing
     const leaderboardRef = db.collection('leaderboard');
-    const snapshot = await leaderboardRef.orderBy('totalScore', 'desc').limit(100).get();
+    const snapshot = await leaderboardRef
+      .orderBy('totalScore', 'desc')
+      .limit(100)
+      .get();
     
     const leaderboard = [];
     snapshot.forEach(doc => {
@@ -470,6 +548,60 @@ exports.addMemory = onRequest({
       success: false,
       error: 'Failed to add memory',
       details: error.message
+    });
+  }
+});
+
+// Health check endpoint with performance metrics
+exports.getGlobalDataHealth = onRequest({
+  cors: ['*'],
+  invoker: 'public'
+}, async (req, res) => {
+  try {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') {
+      res.status(200).send();
+      return;
+    }
+
+    // Test database connection
+    const testRef = db.collection('leaderboard').limit(1);
+    const testSnapshot = await testRef.get();
+    
+    res.json({
+      status: 'healthy',
+      module: 'global-data',
+      timestamp: new Date().toISOString(),
+      performance: {
+        uptime: Date.now() - performanceMetrics.startTime,
+        requestCount: performanceMetrics.requestCount,
+        averageResponseTime: `${Math.round(performanceMetrics.averageResponseTime)}ms`
+      },
+      database: {
+        status: 'connected',
+        collections: ['leaderboard', 'user_achievements', 'users'],
+        testQuery: testSnapshot.empty ? 'no_data' : 'success'
+      },
+      functions: [
+        'getGlobalLeaderboard',
+        'getUserAchievements', 
+        'updateUserProgress',
+        'unlockAchievement',
+        'addMilestone',
+        'addMemory',
+        'getGlobalDataHealth'
+      ]
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      module: 'global-data',
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });

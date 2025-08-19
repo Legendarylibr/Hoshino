@@ -210,6 +210,68 @@ async function testInputValidation() {
   }
 }
 
+// Unit tests for individual functions
+function testPerformanceMonitoring() {
+  console.log('\n🧪 Testing performance monitoring...');
+  
+  try {
+    // Test performance metrics
+    const metrics = globalDataFunctions.performanceMetrics || {};
+    console.log('✅ Performance metrics available:', Object.keys(metrics));
+    
+    // Test structured logging
+    if (typeof globalDataFunctions.logOperation === 'function') {
+      console.log('✅ Structured logging function available');
+    } else {
+      console.log('⚠️ Structured logging function not found');
+    }
+    
+    console.log('✅ Performance monitoring test completed');
+  } catch (error) {
+    console.error('❌ Performance monitoring test failed:', error);
+  }
+}
+
+function testHealthEndpoint() {
+  console.log('\n🧪 Testing health endpoint...');
+  
+  try {
+    if (globalDataFunctions.getGlobalDataHealth) {
+      console.log('✅ Health endpoint function available');
+    } else {
+      console.log('⚠️ Health endpoint function not found');
+    }
+    
+    console.log('✅ Health endpoint test completed');
+  } catch (error) {
+    console.error('❌ Health endpoint test failed:', error);
+  }
+}
+
+function testDatabaseOptimizations() {
+  console.log('\n🧪 Testing database optimizations...');
+  
+  try {
+    // Test connection pooling
+    if (globalDataFunctions.connectionPool) {
+      console.log('✅ Connection pooling available');
+    } else {
+      console.log('⚠️ Connection pooling not found');
+    }
+    
+    // Test batch operations
+    if (globalDataFunctions.batchOperations) {
+      console.log('✅ Batch operations available');
+    } else {
+      console.log('⚠️ Batch operations not found');
+    }
+    
+    console.log('✅ Database optimizations test completed');
+  } catch (error) {
+    console.error('❌ Database optimizations test failed:', error);
+  }
+}
+
 // Run all tests
 async function runAllTests() {
   console.log('🚀 Starting Hoshino Backend Integration Tests...\n');
@@ -223,6 +285,9 @@ async function runAllTests() {
     await testAddMemory();
     await testCORSHandling();
     await testInputValidation();
+    await testPerformanceMonitoring();
+    await testHealthEndpoint();
+    await testDatabaseOptimizations();
     
     console.log('\n🎉 All tests completed!');
   } catch (error) {

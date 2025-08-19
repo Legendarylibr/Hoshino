@@ -12,8 +12,11 @@
     "test": "node test-integration.js",
     "test:integration": "node test-integration.js",
     "test:unit": "jest",
+    "test:performance": "node test-integration.js --performance",
+    "test:coverage": "jest --coverage",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "health": "curl https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalDataHealth"
   },
   "engines": {
     "node": "20"

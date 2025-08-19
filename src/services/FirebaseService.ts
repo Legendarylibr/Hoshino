@@ -93,9 +93,34 @@ export interface UserProgressData {
 
 class FirebaseService {
   private baseUrl: string;
+  private performanceMetrics: {
+    requestCount: number;
+    averageResponseTime: number;
+    lastRequestTime: number;
+  } = {
+    requestCount: 0,
+    averageResponseTime: 0,
+    lastRequestTime: 0
+  };
 
   constructor() {
     this.baseUrl = FIREBASE_FUNCTIONS_BASE_URL;
+  }
+
+  // Performance monitoring
+  private trackRequest(duration: number) {
+    this.performanceMetrics.requestCount++;
+    this.performanceMetrics.lastRequestTime = Date.now();
+    this.performanceMetrics.averageResponseTime = 
+      (this.performanceMetrics.averageResponseTime + duration) / 2;
+  }
+
+  // Get performance metrics
+  getPerformanceMetrics() {
+    return {
+      ...this.performanceMetrics,
+      uptime: Date.now() - this.performanceMetrics.lastRequestTime
+    };
   }
 
   // Send chat message to Firebase Functions
@@ -105,6 +130,7 @@ class FirebaseService {
     userId: string,
     conversationId?: string
   ): Promise<ChatResponse> {
+    const startTime = Date.now();
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/chat`, {
         method: 'POST',
@@ -124,8 +150,10 @@ class FirebaseService {
       }
 
       const data = await response.json();
+      this.trackRequest(Date.now() - startTime);
       return data;
     } catch (error) {
+      this.trackRequest(Date.now() - startTime);
       console.error('Error sending chat message:', error);
       throw error;
     }
