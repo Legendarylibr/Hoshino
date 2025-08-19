@@ -10,6 +10,7 @@ import { INGREDIENTS } from '../data/ingredients';
 import PinkSugar from '../../assets/ingredients/pink-sugar.png';
 import NovaEgg from '../../assets/ingredients/nova-egg.png';
 import MiraBerry from '../../assets/ingredients/mira-berry.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Food items for feeding moonlings (not ingredients for crafting)
 
 interface ShopProps {
@@ -33,6 +34,57 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
     });
     const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
 
+    // Load crafting inventory from AsyncStorage on component mount
+    useEffect(() => {
+        const loadCraftingInventory = async () => {
+            try {
+                const stored = await AsyncStorage.getItem('crafting_inventory');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setCraftingInventory(parsed);
+                }
+            } catch (error) {
+                console.error('Failed to load crafting inventory:', error);
+            }
+        };
+
+        loadCraftingInventory();
+    }, []);
+
+    // Load star dust balance from AsyncStorage on component mount
+    useEffect(() => {
+        const loadStarDustBalance = async () => {
+            try {
+                const stored = await AsyncStorage.getItem('star_dust_balance');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setDust(parsed);
+                }
+            } catch (error) {
+                console.error('Failed to load star dust balance:', error);
+            }
+        };
+
+        loadStarDustBalance();
+    }, []);
+
+    // Load cart items from AsyncStorage on component mount
+    useEffect(() => {
+        const loadCartItems = async () => {
+            try {
+                const stored = await AsyncStorage.getItem('cart_items');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setCart(parsed);
+                }
+            } catch (error) {
+                console.error('Failed to load cart items:', error);
+            }
+        };
+
+        loadCartItems();
+    }, []);
+
     const getTotalPrice = () => {
         return cart.reduce((total, cartItem) => total + (cartItem.item.priceStarFragments * cartItem.quantity), 0);
     };
@@ -48,27 +100,44 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         }
     };
 
-    const addToCart = (item: MarketplaceItem) => {
+    const addToCart = async (item: MarketplaceItem) => {
         const totalCostAfterAdd = getTotalPrice() + item.priceStarFragments;
         if (totalCostAfterAdd > dust) {
             onNotification?.(`Not enough Star Dust! You need ${totalCostAfterAdd} but only have ${dust}.`, 'error');
             return;
         }
 
-        setCart(prevCart => {
-            const existingItem = prevCart.find(cartItem => cartItem.item.id === item.id);
+        const newCart = (() => {
+            const existingItem = cart.find(cartItem => cartItem.item.id === item.id);
             if (existingItem) {
-                return prevCart.map(cartItem =>
+                return cart.map(cartItem =>
                     cartItem.item.id === item.id
                         ? { ...cartItem, quantity: cartItem.quantity + 1 }
                         : cartItem
                 );
             } else {
-                return [...prevCart, { item, quantity: 1 }];
+                return [...cart, { item, quantity: 1 }];
             }
-        });
+        })();
 
-        setDust(prevDust => prevDust - item.priceStarFragments);
+        setCart(newCart);
+        
+        // Save cart to AsyncStorage
+        try {
+            await AsyncStorage.setItem('cart_items', JSON.stringify(newCart));
+        } catch (error) {
+            console.error('Failed to save cart items:', error);
+        }
+
+        const newDust = dust - item.priceStarFragments;
+        setDust(newDust);
+        
+        // Save to AsyncStorage
+        try {
+            await AsyncStorage.setItem('star_dust_balance', JSON.stringify(newDust));
+        } catch (error) {
+            console.error('Failed to save star dust balance:', error);
+        }
 
         setFlashingItem(item.id);
         setTimeout(() => setFlashingItem(null), 300);
@@ -76,26 +145,52 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         onNotification?.(`Added ${item.name} to cart! ${item.priceStarFragments} Star Dust deducted.`, 'success');
     };
 
-    const removeFromCart = (itemId: string) => {
+    const removeFromCart = async (itemId: string) => {
         const itemToRemove = cart.find(cartItem => cartItem.item.id === itemId);
         if (itemToRemove) {
             const refundAmount = itemToRemove.item.priceStarFragments * itemToRemove.quantity;
-            setDust(prevDust => prevDust + refundAmount);
+            const newDust = dust + refundAmount;
+            setDust(newDust);
+            
+            // Save to AsyncStorage
+            try {
+                await AsyncStorage.setItem('star_dust_balance', JSON.stringify(newDust));
+            } catch (error) {
+                console.error('Failed to save star dust balance:', error);
+            }
+            
             onNotification?.(`Removed ${itemToRemove.item.name} from cart. ${refundAmount} Star Dust refunded.`, 'info');
         }
-        setCart(prevCart => prevCart.filter(cartItem => cartItem.item.id !== itemId));
+        const newCart = cart.filter(cartItem => cartItem.item.id !== itemId);
+        setCart(newCart);
+        
+        // Save cart to AsyncStorage
+        try {
+            await AsyncStorage.setItem('cart_items', JSON.stringify(newCart));
+        } catch (error) {
+            console.error('Failed to save cart items:', error);
+        }
     };
 
-    const clearCart = () => {
+    const clearCart = async () => {
         if (cart.length === 0) return;
 
         const totalRefund = getTotalPrice();
-        setDust(prevDust => prevDust + totalRefund);
+        const newDust = dust + totalRefund;
+        setDust(newDust);
         setCart([]);
+        
+        // Save to AsyncStorage
+        try {
+            await AsyncStorage.setItem('star_dust_balance', JSON.stringify(newDust));
+        } catch (error) {
+            console.error('Failed to save star dust balance:', error);
+        }
+        
         onNotification?.(`Cart cleared! ${totalRefund} Star Dust refunded.`, 'info');
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (cart.length === 0) {
             onNotification?.('Your cart is empty!', 'warning');
             return;
@@ -108,6 +203,13 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         }
 
         setCart([]);
+        
+        // Save empty cart to AsyncStorage
+        try {
+            await AsyncStorage.setItem('cart_items', JSON.stringify([]));
+        } catch (error) {
+            console.error('Failed to save cart items:', error);
+        }
 
         onNotification?.(`Purchase complete! ${purchasedItems.length} items added to your ingredient inventory.`, 'success');
     };
@@ -151,7 +253,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         );
     };
 
-    const craftRecipe = (recipe: any) => {
+    const craftRecipe = async (recipe: any) => {
         if (!canCraftRecipe(recipe)) {
             onNotification?.('Not enough ingredients to craft this recipe!', 'error');
             return;
@@ -164,15 +266,33 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         });
 
         setCraftingInventory(newInventory);
+        
+        // Save to AsyncStorage
+        try {
+            await AsyncStorage.setItem('crafting_inventory', JSON.stringify(newInventory));
+        } catch (error) {
+            console.error('Failed to save crafting inventory:', error);
+        }
+        
         onNotification?.(`🍳 Successfully crafted ${recipe.name}!`, 'success');
         setSelectedRecipe(null);
     };
 
-    const addIngredientToInventory = (ingredientId: string) => {
-        setCraftingInventory(prev => ({
-            ...prev,
-            [ingredientId]: (prev[ingredientId] || 0) + 1
-        }));
+    const addIngredientToInventory = async (ingredientId: string) => {
+        const newInventory = {
+            ...craftingInventory,
+            [ingredientId]: (craftingInventory[ingredientId] || 0) + 1
+        };
+        
+        setCraftingInventory(newInventory);
+        
+        // Save to AsyncStorage
+        try {
+            await AsyncStorage.setItem('crafting_inventory', JSON.stringify(newInventory));
+        } catch (error) {
+            console.error('Failed to save crafting inventory:', error);
+        }
+        
         onNotification?.(`Added ${ingredientId} to crafting inventory!`, 'success');
     };
 
@@ -316,7 +436,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.addIngredientButton}
-                                    onPress={() => addIngredientToInventory(ingredient.id)}
+                                    onPress={async () => await addIngredientToInventory(ingredient.id)}
                                 >
                                     <Text style={styles.addIngredientText}>+</Text>
                                 </TouchableOpacity>
@@ -364,7 +484,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                     styles.craftButton,
                                     canCraftRecipe(recipe) ? styles.craftButtonEnabled : styles.craftButtonDisabled
                                 ]}
-                                onPress={() => craftRecipe(recipe)}
+                                onPress={async () => await craftRecipe(recipe)}
                                 disabled={!canCraftRecipe(recipe)}
                             >
                                 <Text style={styles.craftButtonText}>
@@ -436,14 +556,14 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                         ]}>
                                             {item ? (
                                                 <>
-                                                    <TouchableOpacity
-                                                        style={[
-                                                            styles.itemClickArea,
-                                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
-                                                        ]}
-                                                        onPress={() => addToCart(item)}
-                                                        disabled={getTotalPrice() + item.priceStarFragments > dust}
-                                                    >
+                                                                                            <TouchableOpacity
+                                            style={[
+                                                styles.itemClickArea,
+                                                (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
+                                            ]}
+                                            onPress={async () => await addToCart(item)}
+                                            disabled={getTotalPrice() + item.priceStarFragments > dust}
+                                        >
                                                         <Image
                                                             source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
                                                             style={styles.itemImage}
@@ -505,7 +625,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                                 styles.itemClickArea,
                                                 (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
                                             ]}
-                                            onPress={() => addToCart(item)}
+                                            onPress={async () => await addToCart(item)}
                                             disabled={getTotalPrice() + item.priceStarFragments > dust}
                                         >
                                             <Image
@@ -565,7 +685,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                         {cart.length > 0 && (
                             <TouchableOpacity
                                 style={styles.clearCartButton}
-                                onPress={clearCart}
+                                onPress={async () => await clearCart()}
                             >
                                 <Text style={styles.clearCartText}>CLEAR</Text>
                             </TouchableOpacity>
@@ -580,7 +700,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                 <View key={cartItem.item.id} style={styles.cartItem}>
                                     <TouchableOpacity
                                         style={styles.removeButton}
-                                        onPress={() => removeFromCart(cartItem.item.id)}
+                                        onPress={async () => await removeFromCart(cartItem.item.id)}
                                     >
                                         <Text style={styles.removeButtonText}>×</Text>
                                     </TouchableOpacity>
@@ -595,7 +715,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                         </View>
                         <TouchableOpacity
                             style={styles.checkoutButton}
-                            onPress={handleCheckout}
+                            onPress={async () => await handleCheckout()}
                         >
                             <Text style={styles.checkoutButtonText}>CHECKOUT</Text>
                         </TouchableOpacity>

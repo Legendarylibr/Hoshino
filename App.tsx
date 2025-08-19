@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     PressStart2P_400Regular,
 } from '@expo-google-fonts/press-start-2p';
@@ -437,68 +438,77 @@ function App() {
 
     const [playerName, setPlayerName] = useState<string>('');
 
-    const savePlayerName = (name: string, walletAddress: string) => {
+    const savePlayerName = async (name: string, walletAddress: string) => {
         try {
             const nameData = {
                 name,
                 walletAddress,
                 timestamp: Date.now()
             };
-            // TODO: Use React Native AsyncStorage instead of localStorage
+            await AsyncStorage.setItem(`player_name_${walletAddress}`, JSON.stringify(nameData));
             console.log('💾 Saved player name:', { name, walletAddress: walletAddress.slice(0, 8) + '...' });
         } catch (error) {
             console.error('❌ Error saving player name:', error);
         }
     };
 
-    const getStoredPlayerName = (walletAddress: string): string | null => {
+    const getStoredPlayerName = async (walletAddress: string): Promise<string | null> => {
         try {
-            // TODO: Use React Native AsyncStorage instead of localStorage
-            console.log('🔍 Checking for stored name for wallet:', walletAddress.slice(0, 8) + '...');
-            return null; // For now, return null
+            const stored = await AsyncStorage.getItem(`player_name_${walletAddress}`);
+            if (stored) {
+                const nameData = JSON.parse(stored);
+                console.log('🔍 Found stored name for wallet:', walletAddress.slice(0, 8) + '...');
+                return nameData.name;
+            }
+            console.log('🔍 No stored name found for wallet:', walletAddress.slice(0, 8) + '...');
+            return null;
         } catch (error) {
             console.error('❌ Error retrieving stored name:', error);
+            return null;
         }
-        return null;
     };
 
     useEffect(() => {
         if (connected && publicKey) {
-            const storedName = getStoredPlayerName(publicKey.toString());
-            console.log('🔍 Checking for stored name:', { walletAddress: publicKey.toString(), storedName });
-            if (storedName) {
-                console.log('✅ Found stored name, setting player name:', storedName);
-                setPlayerName(storedName);
-                if (currentView === 'welcome') {
-                    console.log('📱 Skipping welcome screen, going to selection');
-                    setCurrentView('selection');
-                    addNotification(`🌟 Welcome back, ${storedName}!`, 'success');
+            const loadStoredName = async () => {
+                const storedName = await getStoredPlayerName(publicKey.toString());
+                console.log('🔍 Checking for stored name:', { walletAddress: publicKey.toString(), storedName });
+                if (storedName) {
+                    console.log('✅ Found stored name, setting player name:', storedName);
+                    setPlayerName(storedName);
+                    if (currentView === 'welcome') {
+                        console.log('📱 Skipping welcome screen, going to selection');
+                        setCurrentView('selection');
+                        addNotification(`🌟 Welcome back, ${storedName}!`, 'success');
+                    } else {
+                        console.log('📱 Not on welcome screen, name set but view unchanged. Current view:', currentView);
+                        addNotification(`🌟 Welcome back, ${storedName}!`, 'success');
+                    }
                 } else {
-                    console.log('📱 Not on welcome screen, name set but view unchanged. Current view:', currentView);
-                    addNotification(`🌟 Welcome back, ${storedName}!`, 'success');
+                    console.log('❌ No stored name found for wallet:', publicKey.toString().slice(0, 8) + '...');
                 }
-            } else {
-                console.log('❌ No stored name found for wallet:', publicKey.toString().slice(0, 8) + '...');
-            }
+            };
+            
+            loadStoredName();
         } else {
             console.log('🔌 Wallet disconnected, clearing player name');
             setPlayerName('');
         }
     }, [connected, publicKey]);
 
-    const handleContinueFromWelcome = (name?: string) => {
+    const handleContinueFromWelcome = async (name?: string) => {
         if (name && publicKey) {
             setPlayerName(name);
-            savePlayerName(name, publicKey.toString());
+            await savePlayerName(name, publicKey.toString());
             addNotification(`✨ Welcome, ${name}! Ready to start your stellar adventure!`, 'success');
         }
         setCurrentView('selection');
     };
 
-    const handleGoToInteraction = (name?: string) => {
+    const handleGoToInteraction = async (name?: string) => {
         if (name && publicKey) {
             setPlayerName(name);
-            savePlayerName(name, publicKey.toString());
+            await savePlayerName(name, publicKey.toString());
         }
         setShouldFadeInInteraction(true);
         setCurrentView('interaction');
