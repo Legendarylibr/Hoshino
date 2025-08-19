@@ -8,17 +8,53 @@ export const usePerformanceMonitoring = () => {
     uptime: 0
   });
 
+  const [backendMetrics, setBackendMetrics] = useState({
+    status: 'unknown',
+    performance: {},
+    database: {},
+    optimizations: {}
+  });
+
   const [isMonitoring, setIsMonitoring] = useState(false);
 
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
     if (isMonitoring) {
-      const interval = setInterval(() => {
-        const performanceMetrics = FirebaseService.getPerformanceMetrics();
-        setMetrics(performanceMetrics);
+      interval = setInterval(async () => {
+        try {
+          // Get frontend metrics
+          const performanceMetrics = FirebaseService.getPerformanceMetrics();
+          setMetrics(performanceMetrics);
+          
+          // Get backend metrics
+          const backendData = await FirebaseService.getBackendPerformanceMetrics();
+          setBackendMetrics(backendData);
+        } catch (error) {
+          console.warn('Failed to fetch backend metrics:', error);
+        }
       }, 5000); // Update every 5 seconds
-
-      return () => clearInterval(interval);
     }
+
+    // Cleanup function to clear interval and reset state
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+      // Reset metrics when monitoring stops
+      setMetrics({
+        requestCount: 0,
+        averageResponseTime: 0,
+        uptime: 0
+      });
+      setBackendMetrics({
+        status: 'unknown',
+        performance: {},
+        database: {},
+        optimizations: {}
+      });
+    };
   }, [isMonitoring]);
 
   const startMonitoring = () => {
@@ -37,10 +73,17 @@ export const usePerformanceMonitoring = () => {
       averageResponseTime: 0,
       uptime: 0
     });
+    setBackendMetrics({
+      status: 'unknown',
+      performance: {},
+      database: {},
+      optimizations: {}
+    });
   };
 
   return {
     metrics,
+    backendMetrics,
     isMonitoring,
     startMonitoring,
     stopMonitoring,

@@ -199,11 +199,35 @@ export const useGalleryData = ({ walletAddress }: UseGalleryDataProps): UseGalle
     
     // Load data on mount and when wallet address changes
     useEffect(() => {
-        loadLeaderboardData();
+        let isMounted = true;
+        
+        const loadData = async () => {
+            if (isMounted) {
+                await loadLeaderboardData();
+            }
+        };
+        
+        loadData();
+        
+        return () => {
+            isMounted = false;
+        };
     }, [loadLeaderboardData]);
     
     useEffect(() => {
-        loadUserProgress();
+        let isMounted = true;
+        
+        const loadData = async () => {
+            if (isMounted) {
+                await loadUserProgress();
+            }
+        };
+        
+        loadData();
+        
+        return () => {
+            isMounted = false;
+        };
     }, [loadUserProgress]);
     
     return {

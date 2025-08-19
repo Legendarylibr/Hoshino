@@ -123,6 +123,28 @@ class FirebaseService {
     };
   }
 
+  // Get backend performance metrics
+  async getBackendPerformanceMetrics(): Promise<any> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/getGlobalDataHealth`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching backend performance metrics:', error);
+      throw error;
+    }
+  }
+
   // Send chat message to Firebase Functions
   async sendChatMessage(
     message: string,

@@ -38,5 +38,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false; // Only admins can modify global milestones
     }
+    
+    // Allow backend to read and write performance metrics
+    match /performance_metrics/{metricId} {
+      allow read: if true; // Public read access for monitoring
+      allow write: if false; // Only backend functions can write (via admin SDK)
+    }
   }
 } 

@@ -37,8 +37,86 @@ try {
   }
 }
 
+// Connection pool management functions
+function getConnection(connectionId = 'default') {
+  const connection = connectionPool.get(connectionId);
+  if (connection && connection.status === 'active') {
+    connection.lastUsed = Date.now();
+    return connection.db;
+  }
+  return db; // Fallback to default connection
+}
+
+function addConnection(connectionId, dbInstance) {
+  connectionPool.set(connectionId, {
+    db: dbInstance,
+    lastUsed: Date.now(),
+    status: 'active'
+  });
+}
+
+function removeConnection(connectionId) {
+  connectionPool.delete(connectionId);
+}
+
+function getConnectionStatus() {
+  const status = {};
+  connectionPool.forEach((conn, id) => {
+    status[id] = {
+      status: conn.status,
+      lastUsed: conn.lastUsed,
+      uptime: Date.now() - conn.lastUsed
+    };
+  });
+  return status;
+}
+
 // Performance optimization: Batch operations for multiple updates
 const batchOperations = new Map();
+
+// Batch operations utility functions
+function createBatch() {
+  return db.batch();
+}
+
+function addToBatch(batch, ref, data, options = {}) {
+  batch.set(ref, data, options);
+}
+
+function commitBatch(batch) {
+  return batch.commit();
+}
+
+// Batch update utility for multiple user updates
+async function batchUpdateUsers(updates) {
+  if (!updates || updates.length === 0) return;
+  
+  const batch = createBatch();
+  const maxBatchSize = 500; // Firestore batch limit
+  
+  for (let i = 0; i < updates.length; i += maxBatchSize) {
+    const batchUpdates = updates.slice(i, i + maxBatchSize);
+    const currentBatch = createBatch();
+    
+    batchUpdates.forEach(({ ref, data, options }) => {
+      addToBatch(currentBatch, ref, data, options);
+    });
+    
+    try {
+      await commitBatch(currentBatch);
+      logOperation('batch_update_success', { 
+        batchSize: batchUpdates.length, 
+        batchNumber: Math.floor(i / maxBatchSize) + 1 
+      });
+    } catch (error) {
+      logOperation('batch_update_error', { 
+        error: error.message, 
+        batchNumber: Math.floor(i / maxBatchSize) + 1 
+      });
+      throw error;
+    }
+  }
+}
 
 // Performance monitoring and structured logging
 const performanceMetrics = {
@@ -78,6 +156,18 @@ function withPerformanceMonitoring(operationName, handler) {
       performanceMetrics.averageResponseTime = 
         (performanceMetrics.averageResponseTime + duration) / 2;
       
+      // Persist metrics to Firestore for long-term storage
+      try {
+        await db.collection('performance_metrics').doc('global_data').set({
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          requestCount: performanceMetrics.requestCount,
+          averageResponseTime: performanceMetrics.averageResponseTime,
+          uptime: Date.now() - performanceMetrics.startTime
+        }, { merge: true });
+      } catch (persistError) {
+        console.warn('Failed to persist performance metrics:', persistError);
+      }
+      
       logOperation(`${operationName}_success`, { 
         duration, 
         statusCode: res.statusCode || 200 
@@ -99,7 +189,7 @@ function withPerformanceMonitoring(operationName, handler) {
 exports.getGlobalLeaderboard = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('getGlobalLeaderboard', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -151,13 +241,13 @@ exports.getGlobalLeaderboard = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Get user achievements
 exports.getUserAchievements = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('getUserAchievements', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -226,13 +316,13 @@ exports.getUserAchievements = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Update user progress
 exports.updateUserProgress = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('updateUserProgress', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -274,16 +364,19 @@ exports.updateUserProgress = onRequest({
     const userAchievementsRef = db.collection('user_achievements').doc(walletAddress);
     const leaderboardRef = db.collection('leaderboard').doc(walletAddress);
 
-    // Update user data
-    await userRef.set({
+    // Use batch operations for better performance
+    const batch = createBatch();
+    
+    // Add user data update to batch
+    addToBatch(batch, userRef, {
       walletAddress,
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
       ...progressData
     }, { merge: true });
 
-    // Update leaderboard if score changed
+    // Add leaderboard update to batch if score changed
     if (progressData.totalScore !== undefined) {
-      await leaderboardRef.set({
+      addToBatch(batch, leaderboardRef, {
         walletAddress,
         totalScore: progressData.totalScore,
         achievements: progressData.achievements || 0,
@@ -293,6 +386,9 @@ exports.updateUserProgress = onRequest({
         currentStreak: progressData.currentStreak || 0
       }, { merge: true });
     }
+
+    // Commit all updates in a single batch
+    await commitBatch(batch);
 
     res.json({
       success: true,
@@ -306,13 +402,13 @@ exports.updateUserProgress = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Unlock achievement
 exports.unlockAchievement = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('unlockAchievement', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -392,13 +488,13 @@ exports.unlockAchievement = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Add milestone
 exports.addMilestone = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('addMilestone', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -471,13 +567,13 @@ exports.addMilestone = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Add memory
 exports.addMemory = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('addMemory', async (req, res) => {
   try {
     // Set CORS headers
     res.set('Access-Control-Allow-Origin', '*');
@@ -550,13 +646,13 @@ exports.addMemory = onRequest({
       details: error.message
     });
   }
-});
+}));
 
 // Health check endpoint with performance metrics
 exports.getGlobalDataHealth = onRequest({
   cors: ['*'],
   invoker: 'public'
-}, async (req, res) => {
+}, withPerformanceMonitoring('getGlobalDataHealth', async (req, res) => {
   try {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -582,8 +678,15 @@ exports.getGlobalDataHealth = onRequest({
       },
       database: {
         status: 'connected',
-        collections: ['leaderboard', 'user_achievements', 'users'],
-        testQuery: testSnapshot.empty ? 'no_data' : 'success'
+        collections: ['leaderboard', 'user_achievements', 'users', 'performance_metrics'],
+        testQuery: testSnapshot.empty ? 'no_data' : 'success',
+        connectionPool: getConnectionStatus()
+      },
+      optimizations: {
+        batchOperations: 'enabled',
+        connectionPooling: 'enabled',
+        firestoreCaching: 'enabled',
+        structuredLogging: 'enabled'
       },
       functions: [
         'getGlobalLeaderboard',
@@ -604,7 +707,7 @@ exports.getGlobalDataHealth = onRequest({
       timestamp: new Date().toISOString()
     });
   }
-});
+}));
 
 // Helper functions for default data
 function generateDefaultAchievements() {
