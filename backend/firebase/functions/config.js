@@ -1,12 +1,12 @@
 // Firebase Functions Configuration
-// Environment variables and security settings
+// Production-ready configuration with secure defaults
 
 const config = {
   // Firebase Project Configuration
   projectId: process.env.FIREBASE_PROJECT_ID || 'hoshino-996d0',
   region: process.env.FIREBASE_REGION || 'us-central1',
   
-  // Security Configuration
+  // Security Configuration (CRITICAL - Set JWT_SECRET in .env.production!)
   jwtSecret: process.env.JWT_SECRET || (() => { 
     throw new Error('JWT_SECRET must be set in production! Please create .env.production file.') 
   })(),

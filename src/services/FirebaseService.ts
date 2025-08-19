@@ -147,9 +147,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/getGlobalDataHealth`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
       });
 
       if (!response.ok) {

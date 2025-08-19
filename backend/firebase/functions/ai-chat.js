@@ -1,7 +1,8 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/genai');
 const OpenAI = require('openai');
+const config = require('./config');
 
 // Initialize Grok API using OpenAI-compatible format
 const grokConfig = {
@@ -101,7 +102,7 @@ const openai = new OpenAI({
 });
 
 // Initialize Google Generative AI (Gemini)
-const genAI = new GoogleGenAI({
+const genAI = new GoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY || ''
 });
 
@@ -136,13 +137,22 @@ const MOONLING_PERSONALITIES = {
 
 // AI Chat Function
 exports.chat = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   let moonlingId; // Declare at function level for catch block access
   let moonling; // Declare at function level for catch block access
   
   try {
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
+    }
+
     // Validate request
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -151,9 +161,21 @@ exports.chat = onRequest({
     const { message, moonlingId: reqMoonlingId, userId, conversationId } = req.body;
     moonlingId = reqMoonlingId; // Assign to function-level variable
 
+    // Security: Input validation and sanitization
     if (!message || !moonlingId || !userId) {
       return res.status(400).json({ 
-        error: 'Missing required fields: message, moonlingId, userId' 
+        success: false,
+        error: 'Missing required fields: message, moonlingId, userId',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    // Security: Verify the authenticated user matches the requested userId
+    if (req.user.uid !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: User ID mismatch',
+        code: 'UNAUTHORIZED'
       });
     }
 
@@ -320,15 +342,36 @@ Keep responses under 50 words.`;
 
 // Get conversation history
 exports.getConversation = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   try {
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
+    }
+
     const { conversationId, userId } = req.query;
 
+    // Security: Input validation and sanitization
     if (!conversationId || !userId) {
       return res.status(400).json({ 
-        error: 'Missing required fields: conversationId, userId' 
+        success: false,
+        error: 'Missing required fields: conversationId, userId',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    // Security: Verify the authenticated user matches the requested userId
+    if (req.user.uid !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: User ID mismatch',
+        code: 'UNAUTHORIZED'
       });
     }
 
@@ -343,6 +386,10 @@ exports.getConversation = onRequest({
 
   } catch (error) {
     console.error('Get conversation error:', error);
-    res.status(500).json({ error: 'Failed to fetch conversation' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch conversation',
+      details: error.message
+    });
   }
 }); 

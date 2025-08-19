@@ -1,4 +1,5 @@
 const { onRequest } = require('firebase-functions/v2/https');
+const config = require('./config');
 
 // Import AI chat functions from separate file
 const aiChatFunctions = require('./ai-chat');
@@ -31,8 +32,8 @@ exports.getGlobalDataHealth = globalDataFunctions.getGlobalDataHealth;
 
 // Health check
 exports.health = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'public' // Health checks can be public but with CORS protection
 }, async (req, res) => {
   res.json({
     status: 'healthy',

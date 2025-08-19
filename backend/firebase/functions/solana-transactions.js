@@ -1,5 +1,6 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { Connection, PublicKey, Keypair, Transaction, SystemProgram } = require('@solana/web3.js');
+const config = require('./config');
 
 // Initialize Solana connection
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
@@ -9,14 +10,23 @@ const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
  * Creates a programmable NFT transaction on the server side
  */
 exports.generateNFTTransaction = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   try {
     console.log('🔥 Generating NFT transaction...');
     
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
     }
 
     const { 
@@ -27,9 +37,21 @@ exports.generateNFTTransaction = onRequest({
       tokenStandard = 'pNFT' // 'pNFT' or 'NFT'
     } = req.body;
 
+    // Security: Input validation and sanitization
     if (!character || !userPublicKey || !metadataUri) {
       return res.status(400).json({ 
-        error: 'Missing required fields: character, userPublicKey, metadataUri' 
+        success: false,
+        error: 'Missing required fields: character, userPublicKey, metadataUri',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    // Security: Verify the authenticated user matches the requested public key
+    if (req.user.uid !== userPublicKey) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: Public key mismatch',
+        code: 'UNAUTHORIZED'
       });
     }
 
@@ -38,7 +60,8 @@ exports.generateNFTTransaction = onRequest({
       element: character.element,
       rarity: character.rarity,
       userPublicKey,
-      recipient
+      recipient,
+      authenticatedUser: req.user.uid
     });
 
     // Generate mint keypair
@@ -114,14 +137,23 @@ exports.generateNFTTransaction = onRequest({
  * Creates a simple SOL transfer transaction for purchasing in-game currency
  */
 exports.generateCurrencyPurchaseTransaction = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   try {
     console.log('💰 Generating currency purchase transaction...');
     
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
     }
 
     const { 
@@ -131,9 +163,21 @@ exports.generateCurrencyPurchaseTransaction = onRequest({
       purchaseType = 'coins' // 'coins', 'gems', 'energy', etc.
     } = req.body;
 
+    // Security: Input validation and sanitization
     if (!userPublicKey || !amount || !recipientAddress) {
       return res.status(400).json({ 
-        error: 'Missing required fields: userPublicKey, amount, recipientAddress' 
+        success: false,
+        error: 'Missing required fields: userPublicKey, amount, recipientAddress',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    // Security: Verify the authenticated user matches the requested public key
+    if (req.user.uid !== userPublicKey) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: Public key mismatch',
+        code: 'UNAUTHORIZED'
       });
     }
 
@@ -141,7 +185,8 @@ exports.generateCurrencyPurchaseTransaction = onRequest({
       userPublicKey,
       amount,
       recipientAddress,
-      purchaseType
+      purchaseType,
+      authenticatedUser: req.user.uid
     });
 
     // Validate amount (minimum 0.001 SOL)
@@ -210,14 +255,23 @@ exports.generateCurrencyPurchaseTransaction = onRequest({
  * Handles the complete purchase flow for star dust packages
  */
 exports.processStarDustPurchase = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   try {
     console.log('⭐ Processing star dust package purchase...');
     
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
     }
 
     const { 
@@ -230,9 +284,21 @@ exports.processStarDustPurchase = onRequest({
       status
     } = req.body;
 
+    // Security: Input validation and sanitization
     if (!transactionSignature || !packageName || !solAmount || !userId || !fromAddress || !toAddress) {
       return res.status(400).json({ 
-        error: 'Missing required fields: transactionSignature, packageName, solAmount, userId, fromAddress, toAddress' 
+        success: false,
+        error: 'Missing required fields: transactionSignature, packageName, solAmount, userId, fromAddress, toAddress',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    // Security: Verify the authenticated user matches the requested userId
+    if (req.user.uid !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: User ID mismatch',
+        code: 'UNAUTHORIZED'
       });
     }
 
@@ -243,7 +309,8 @@ exports.processStarDustPurchase = onRequest({
       transactionSignature,
       fromAddress,
       toAddress,
-      status
+      status,
+      authenticatedUser: req.user.uid
     });
 
     // Validate SOL amount (minimum 0.001 SOL)
@@ -339,8 +406,8 @@ exports.processStarDustPurchase = onRequest({
  * Retrieves NFT metadata from the blockchain
  */
 exports.fetchNFTMetadata = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'private' // Require authentication
 }, async (req, res) => {
   try {
     console.log('🔍 Fetching NFT metadata...');
@@ -349,15 +416,27 @@ exports.fetchNFTMetadata = onRequest({
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { mintAddress } = req.query;
-
-    if (!mintAddress) {
-      return res.status(400).json({ 
-        error: 'Missing required field: mintAddress' 
+    // Security: Verify user is authenticated
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
       });
     }
 
-    console.log('🔍 Fetching metadata for mint:', mintAddress);
+    const { mintAddress } = req.query;
+
+    // Security: Input validation and sanitization
+    if (!mintAddress) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required field: mintAddress',
+        code: 'INVALID_INPUT'
+      });
+    }
+
+    console.log('🔍 Fetching metadata for mint:', mintAddress, 'by user:', req.user.uid);
 
     // For now, return a mock response since we're not using Metaplex
     res.json({
@@ -392,8 +471,8 @@ exports.fetchNFTMetadata = onRequest({
  * Health check for Solana transactions module
  */
 exports.solanaHealth = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: config.allowedOrigins,
+  invoker: 'public' // Health checks can be public but with CORS protection
 }, async (req, res) => {
   try {
     // Test connection to Solana
@@ -409,7 +488,7 @@ exports.solanaHealth = onRequest({
       },
       functions: [
         'generateNFTTransaction',
-        'generateCurrencyPurchaseTransaction', 
+        'generateCurrencyPurchaseTransaction',
         'fetchNFTMetadata',
         'solanaHealth'
       ]
