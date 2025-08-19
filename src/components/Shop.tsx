@@ -5,6 +5,8 @@ import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '.
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
+import { RECIPES } from '../data/recipes';
+import { INGREDIENTS } from '../data/ingredients';
 // Food items for feeding moonlings (not ingredients for crafting)
 
 interface ShopProps {
@@ -20,6 +22,12 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
     const [dust, setDust] = useState<number>(100);
     const [cart, setCart] = useState<{ item: MarketplaceItem, quantity: number }[]>([]);
     const [flashingItem, setFlashingItem] = useState<string | null>(null);
+    const [craftingInventory, setCraftingInventory] = useState<{ [key: string]: number }>({
+        'pink-sugar': 5,
+        'nova-egg': 3,
+        'mira-berry': 4
+    });
+    const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
 
     const getTotalPrice = () => {
         return cart.reduce((total, cartItem) => total + (cartItem.item.priceStarFragments * cartItem.quantity), 0);
@@ -134,6 +142,37 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         }
     };
 
+    const canCraftRecipe = (recipe: any): boolean => {
+        return recipe.ingredients.every((ingredient: any) => 
+            craftingInventory[ingredient.id] >= ingredient.quantity
+        );
+    };
+
+    const craftRecipe = (recipe: any) => {
+        if (!canCraftRecipe(recipe)) {
+            onNotification?.('Not enough ingredients to craft this recipe!', 'error');
+            return;
+        }
+
+        // Deduct ingredients
+        const newInventory = { ...craftingInventory };
+        recipe.ingredients.forEach((ingredient: any) => {
+            newInventory[ingredient.id] -= ingredient.quantity;
+        });
+
+        setCraftingInventory(newInventory);
+        onNotification?.(`🍳 Successfully crafted ${recipe.name}!`, 'success');
+        setSelectedRecipe(null);
+    };
+
+    const addIngredientToInventory = (ingredientId: string) => {
+        setCraftingInventory(prev => ({
+            ...prev,
+            [ingredientId]: (prev[ingredientId] || 0) + 1
+        }));
+        onNotification?.(`Added ${ingredientId} to crafting inventory!`, 'success');
+    };
+
     useEffect(() => {
         const itemsData = [
             {
@@ -240,6 +279,97 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         </View>
     );
 
+    const renderCraftingTab = () => (
+        <View style={styles.craftingContainer}>
+            {/* Ingredient Inventory */}
+            <View style={styles.ingredientInventory}>
+                <Text style={styles.sectionTitle}>🧪 Ingredient Inventory</Text>
+                <View style={styles.ingredientGrid}>
+                    {INGREDIENTS.map(ingredient => {
+                        const getIngredientImage = (id: string) => {
+                            switch (id) {
+                                case 'pink-sugar': return 'https://via.placeholder.com/32/FF69B4/000000?text=🍬';
+                                case 'nova-egg': return 'https://via.placeholder.com/32/FFD700/000000?text=🥚';
+                                case 'mira-berry': return 'https://via.placeholder.com/32/FF6347/000000?text=🫐';
+                                default: return 'https://via.placeholder.com/32/87CEEB/000000?text=?';
+                            }
+                        };
+                        
+                        return (
+                            <View key={ingredient.id} style={styles.ingredientSlot}>
+                                <Image
+                                    source={{ uri: getIngredientImage(ingredient.id) }}
+                                    style={styles.ingredientImage}
+                                    resizeMode="contain"
+                                />
+                                <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                                <Text style={styles.ingredientCount}>
+                                    {craftingInventory[ingredient.id] || 0}
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.addIngredientButton}
+                                    onPress={() => addIngredientToInventory(ingredient.id)}
+                                >
+                                    <Text style={styles.addIngredientText}>+</Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })}
+                </View>
+            </View>
+
+            {/* Recipe List */}
+            <View style={styles.recipeSection}>
+                <Text style={styles.sectionTitle}>📖 Available Recipes</Text>
+                <ScrollView style={styles.recipeList}>
+                    {RECIPES.map(recipe => (
+                        <View key={recipe.id} style={styles.recipeCard}>
+                            <View style={styles.recipeHeader}>
+                                <Text style={styles.recipeName}>{recipe.name}</Text>
+                                <Text style={styles.recipeStars}>{'⭐'.repeat(recipe.starRating)}</Text>
+                            </View>
+                            <Text style={styles.recipeDescription}>{recipe.description}</Text>
+                            
+                            {/* Recipe Ingredients */}
+                            <View style={styles.recipeIngredients}>
+                                <Text style={styles.ingredientsLabel}>Ingredients:</Text>
+                                {recipe.ingredients.map((ingredient, index) => (
+                                    <View key={index} style={styles.ingredientRequirement}>
+                                        <Text style={styles.ingredientText}>
+                                            {ingredient.quantity}x {ingredient.id}
+                                        </Text>
+                                        <Text style={[
+                                            styles.ingredientStatus,
+                                            craftingInventory[ingredient.id] >= ingredient.quantity 
+                                                ? styles.ingredientAvailable 
+                                                : styles.ingredientMissing
+                                        ]}>
+                                            {craftingInventory[ingredient.id] || 0}/{ingredient.quantity}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* Craft Button */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.craftButton,
+                                    canCraftRecipe(recipe) ? styles.craftButtonEnabled : styles.craftButtonDisabled
+                                ]}
+                                onPress={() => craftRecipe(recipe)}
+                                disabled={!canCraftRecipe(recipe)}
+                            >
+                                <Text style={styles.craftButtonText}>
+                                    {canCraftRecipe(recipe) ? '🍳 Craft Recipe' : '❌ Cannot Craft'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                </ScrollView>
+            </View>
+        </View>
+    );
+
     return (
         <View style={styles.outerContainer}>
             <View style={styles.headerBox}>
@@ -282,6 +412,75 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
             <View style={styles.itemsContainer}>
                 {selectedCategory === 'currency' ? (
                     renderCurrencyTab()
+                ) : selectedCategory === 'food' ? (
+                    <View style={styles.foodTabContainer}>
+                        {/* Shop Food Items */}
+                        <View style={styles.shopItemsSection}>
+                            <Text style={styles.sectionTitle}>🛒 Buy Food Items</Text>
+                            <View style={styles.shopItemsGrid}>
+                                {Array.from({ length: 6 }).map((_, index) => {
+                                    const item = filteredItems[index];
+                                    return (
+                                        <View key={index} style={[
+                                            styles.itemCard,
+                                            item && { borderColor: getRarityBorderColor(item.rarity) },
+                                            item && flashingItem === item.id && styles.flashingCard
+                                        ]}>
+                                            {item ? (
+                                                <>
+                                                    <TouchableOpacity
+                                                        style={[
+                                                            styles.itemClickArea,
+                                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
+                                                        ]}
+                                                        onPress={() => addToCart(item)}
+                                                        disabled={getTotalPrice() + item.priceStarFragments > dust}
+                                                    >
+                                                        <Image
+                                                            source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
+                                                            style={styles.itemImage}
+                                                            resizeMode="contain"
+                                                            onError={(error) => console.log('Image failed to load:', item.name, error)}
+                                                            onLoad={() => console.log('Image loaded successfully:', item.name)}
+                                                        />
+                                                        <Text style={[
+                                                            styles.itemName,
+                                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                                        ]}>
+                                                            {item.name}
+                                                        </Text>
+                                                        <View style={styles.priceContainer}>
+                                                            <Image
+                                                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                                                style={styles.priceIcon}
+                                                                resizeMode="contain"
+                                                            />
+                                                            <Text style={[
+                                                                styles.itemPrice,
+                                                                (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                                            ]}>
+                                                                {item.priceStarFragments}
+                                                            </Text>
+                                                        </View>
+                                                        {getTotalPrice() + item.priceStarFragments > dust && (
+                                                            <Text style={styles.insufficientText}>INSUFFICIENT</Text>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                </>
+                                            ) : (
+                                                <View style={styles.placeholderBox}>
+                                                    <Text style={styles.placeholderText}>+</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+
+                        {/* Crafting Interface */}
+                        {renderCraftingTab()}
+                    </View>
                 ) : (
                     Array.from({ length: 6 }).map((_, index) => {
                         const item = filteredItems[index];
@@ -947,6 +1146,202 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#006600',
         textAlign: 'center',
+    },
+
+    // Food tab styles
+    foodTabContainer: {
+        width: '100%',
+        padding: 8,
+    },
+    shopItemsSection: {
+        marginBottom: 16,
+    },
+    shopItemsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-evenly',
+        marginBottom: 12,
+    },
+    // Crafting tab styles
+    craftingContainer: {
+        width: '100%',
+        padding: 8,
+    },
+    ingredientInventory: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#003300',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    ingredientGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-around',
+        marginBottom: 12,
+    },
+    ingredientSlot: {
+        width: 80,
+        height: 100,
+        borderWidth: 2,
+        borderColor: '#003300',
+        backgroundColor: '#f0fff0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 4,
+        margin: 4,
+        borderRadius: 0,
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+    },
+    ingredientImage: {
+        width: 32,
+        height: 32,
+        marginBottom: 4,
+    },
+    ingredientName: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: '#003300',
+        textAlign: 'center',
+        marginBottom: 2,
+    },
+    ingredientCount: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#006600',
+        marginBottom: 4,
+    },
+    addIngredientButton: {
+        backgroundColor: '#4CAF50',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#003300',
+    },
+    addIngredientText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    recipeSection: {
+        flex: 1,
+    },
+    recipeList: {
+        maxHeight: 400,
+    },
+    recipeCard: {
+        borderWidth: 2,
+        borderColor: '#003300',
+        backgroundColor: '#f6fff6',
+        padding: 12,
+        marginBottom: 8,
+        borderRadius: 0,
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+    },
+    recipeHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    recipeName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#003300',
+        flex: 1,
+    },
+    recipeStars: {
+        fontSize: 12,
+        color: '#FFD700',
+    },
+    recipeDescription: {
+        fontSize: 11,
+        color: '#666',
+        marginBottom: 8,
+        fontStyle: 'italic',
+    },
+    recipeIngredients: {
+        marginBottom: 12,
+    },
+    ingredientsLabel: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#003300',
+        marginBottom: 4,
+    },
+    ingredientRequirement: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 2,
+    },
+    ingredientText: {
+        fontSize: 10,
+        color: '#003300',
+    },
+    ingredientStatus: {
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    ingredientAvailable: {
+        color: '#4CAF50',
+    },
+    ingredientMissing: {
+        color: '#F44336',
+    },
+    craftButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        borderRadius: 0,
+        borderWidth: 2,
+        borderColor: '#003300',
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    craftButtonEnabled: {
+        backgroundColor: '#4CAF50',
+        borderTopColor: '#001100',
+        borderLeftColor: '#001100',
+        borderRightColor: '#006600',
+        borderBottomColor: '#006600',
+    },
+    craftButtonDisabled: {
+        backgroundColor: '#ccc',
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+    },
+    craftButtonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: 'white',
     },
 });
 
