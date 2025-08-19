@@ -17,15 +17,8 @@ Your pet automatically finds ingredients every X hours while you're away! The sy
 
 ### **1. Add the Notification Component**
 ```tsx
-import { IngredientDiscoveryNotification } from './components/IngredientDiscoveryNotification';
-
-// In your main app component
-<IngredientDiscoveryNotification 
-    onIngredientCollected={(ingredientId, quantity) => {
-        // Add to inventory here
-        console.log(`Found ${quantity}x ${ingredientId}!`);
-    }}
-/>
+// Note: IngredientDiscoveryNotification component has been removed
+// Use the built-in notification system instead
 ```
 
 ### **2. Check for Discoveries**
@@ -55,20 +48,11 @@ const discoveries = ingredientDiscoveryService.getDiscoveries();
 
 ## 🧩 **Components Overview**
 
-### **IngredientDiscoveryNotification**
-- **Purpose**: Displays animated notifications when ingredients are found
-- **Features**: Slide-in animation, auto-hide, collect/dismiss buttons
-- **Props**: `onIngredientCollected` callback for inventory integration
-
-### **DiscoverySettings**
-- **Purpose**: Configure discovery timing, chances, and limits
-- **Features**: Interval selection, success rate adjustment, daily limits
-- **Usage**: Include in your settings screen
-
-### **IngredientDiscoveryDemo**
-- **Purpose**: Complete demo showing all features
-- **Features**: Status display, force discovery, settings integration
-- **Usage**: Reference for implementation or include as-is
+### **Note: Demo Components Removed**
+- **IngredientDiscoveryNotification**: Component has been removed
+- **DiscoverySettings**: Component has been removed  
+- **IngredientDiscoveryDemo**: Component has been removed
+- **Usage**: These were demo components and are no longer needed
 
 ---
 
@@ -102,7 +86,7 @@ const discoveries = ingredientDiscoveryService.getDiscoveries();
 ```tsx
 import React, { useEffect } from 'react';
 import { ingredientDiscoveryService } from './services/IngredientDiscoveryService';
-import { IngredientDiscoveryNotification } from './components/IngredientDiscoveryNotification';
+// Note: IngredientDiscoveryNotification component has been removed
 
 const MyGameComponent = () => {
     useEffect(() => {
@@ -124,9 +108,7 @@ const MyGameComponent = () => {
 
     return (
         <View>
-            <IngredientDiscoveryNotification 
-                onIngredientCollected={handleIngredientCollected}
-            />
+            {/* Note: IngredientDiscoveryNotification component has been removed */}
             {/* Your game content */}
         </View>
     );
@@ -172,21 +154,23 @@ const GameWithInventory = () => {
     }, []);
 
     return (
-        <IngredientDiscoveryNotification 
-            onIngredientCollected={handleIngredientCollected}
-        />
+        <View>
+            {/* Note: IngredientDiscoveryNotification component has been removed */}
+            {/* Use built-in notification system instead */}
+        </View>
     );
 };
 ```
 
 ### **Settings Integration**
 ```tsx
-import { DiscoverySettings } from './components/DiscoverySettings';
+// Note: DiscoverySettings component has been removed
+// Use the built-in settings system instead
 
 const GameSettings = () => {
     return (
         <ScrollView>
-            <DiscoverySettings />
+            {/* Note: DiscoverySettings component has been removed */}
             {/* Other settings */}
         </ScrollView>
     );
