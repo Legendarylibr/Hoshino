@@ -7,6 +7,9 @@ import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
 import { RECIPES } from '../data/recipes';
 import { INGREDIENTS } from '../data/ingredients';
+import PinkSugar from '../../assets/ingredients/pink-sugar.png';
+import NovaEgg from '../../assets/ingredients/nova-egg.png';
+import MiraBerry from '../../assets/ingredients/mira-berry.png';
 // Food items for feeding moonlings (not ingredients for crafting)
 
 interface ShopProps {
@@ -179,7 +182,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 id: 'sugar',
                 name: 'Pink Sugar',
                 description: 'Sweet crystalline sugar with a pink hue',
-                imageUrl: 'https://via.placeholder.com/48/FF69B4/000000?text=🍬',
+                imageUrl: PinkSugar,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.COMMON,
                 priceSOL: 0,
@@ -190,7 +193,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 id: 'nova',
                 name: 'Nova Egg',
                 description: 'A mysterious egg that glows with stellar energy',
-                imageUrl: 'https://via.placeholder.com/48/FFD700/000000?text=🥚',
+                imageUrl: NovaEgg,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.UNCOMMON,
                 priceSOL: 0,
@@ -201,7 +204,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 id: 'mira',
                 name: 'Mira Berry',
                 description: 'A rare berry with stellar properties',
-                imageUrl: 'https://via.placeholder.com/48/FF6347/000000?text=🫐',
+                imageUrl: MiraBerry,
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.RARE,
                 priceSOL: 0,
@@ -288,17 +291,17 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                     {INGREDIENTS.map(ingredient => {
                         const getIngredientImage = (id: string) => {
                             switch (id) {
-                                case 'pink-sugar': return 'https://via.placeholder.com/32/FF69B4/000000?text=🍬';
-                                case 'nova-egg': return 'https://via.placeholder.com/32/FFD700/000000?text=🥚';
-                                case 'mira-berry': return 'https://via.placeholder.com/32/FF6347/000000?text=🫐';
-                                default: return 'https://via.placeholder.com/32/87CEEB/000000?text=?';
+                                case 'pink-sugar': return PinkSugar;
+                                case 'nova-egg': return NovaEgg;
+                                case 'mira-berry': return MiraBerry;
+                                default: return PinkSugar; // fallback
                             }
                         };
                         
                         return (
                             <View key={ingredient.id} style={styles.ingredientSlot}>
                                 <Image
-                                    source={{ uri: getIngredientImage(ingredient.id) }}
+                                    source={getIngredientImage(ingredient.id)}
                                     style={styles.ingredientImage}
                                     resizeMode="contain"
                                 />
@@ -751,11 +754,11 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#f6fff6',
-        padding: 6,
+        padding: 4,
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-evenly',
-        paddingBottom: 12,
+        paddingBottom: 8,
         borderRadius: 0,
         borderTopColor: '#001100',
         borderLeftColor: '#001100',
@@ -769,14 +772,14 @@ const styles = StyleSheet.create({
     },
     itemCard: {
         width: '30%',
-        height: 120,
+        height: 110,
         borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#f0fff0',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 6,
-        marginBottom: 8,
+        padding: 4,
+        marginBottom: 6,
         borderRadius: 0,
         shadowColor: '#001100',
         shadowOffset: { width: 1, height: 1 },
@@ -791,14 +794,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     itemImage: {
-        width: 50,
-        height: 50,
-        marginBottom: 6,
+        width: 45,
+        height: 45,
+        marginBottom: 4,
     },
     itemName: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: 3,
         textAlign: 'center',
         color: '#003300',
     },
@@ -902,7 +905,7 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: '#003300',
         backgroundColor: '#f6fff6',
-        marginBottom: 8,
+        marginBottom: 6,
         borderRadius: 0,
         borderTopColor: '#001100',
         borderLeftColor: '#001100',
@@ -918,7 +921,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 8,
+        padding: 6,
         borderBottomWidth: 2,
         borderBottomColor: '#003300',
         backgroundColor: '#e9f5e9',
@@ -973,19 +976,19 @@ const styles = StyleSheet.create({
         textShadowRadius: 0,
     },
     cartItems: {
-        padding: 8,
+        padding: 6,
     },
     cartItemsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'flex-start',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     cartItem: {
         alignItems: 'center',
-        marginRight: 12,
-        marginBottom: 8,
+        marginRight: 8,
+        marginBottom: 6,
         position: 'relative',
     },
     cartItemImage: {
@@ -1151,48 +1154,48 @@ const styles = StyleSheet.create({
     // Food tab styles
     foodTabContainer: {
         width: '100%',
-        padding: 8,
+        padding: 4,
     },
     shopItemsSection: {
-        marginBottom: 16,
+        marginBottom: 12,
     },
     shopItemsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-evenly',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     // Crafting tab styles
     craftingContainer: {
         width: '100%',
-        padding: 8,
+        padding: 4,
     },
     ingredientInventory: {
-        marginBottom: 16,
+        marginBottom: 12,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#003300',
-        marginBottom: 8,
+        marginBottom: 6,
         textAlign: 'center',
     },
     ingredientGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-around',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     ingredientSlot: {
-        width: 80,
-        height: 100,
+        width: 70,
+        height: 85,
         borderWidth: 2,
         borderColor: '#003300',
         backgroundColor: '#f0fff0',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 4,
-        margin: 4,
+        padding: 3,
+        margin: 2,
         borderRadius: 0,
         shadowColor: '#001100',
         shadowOffset: { width: 1, height: 1 },
@@ -1205,28 +1208,28 @@ const styles = StyleSheet.create({
         borderBottomColor: '#001100',
     },
     ingredientImage: {
-        width: 32,
-        height: 32,
-        marginBottom: 4,
+        width: 28,
+        height: 28,
+        marginBottom: 3,
     },
     ingredientName: {
-        fontSize: 8,
+        fontSize: 7,
         fontWeight: 'bold',
         color: '#003300',
         textAlign: 'center',
-        marginBottom: 2,
+        marginBottom: 1,
     },
     ingredientCount: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
         color: '#006600',
-        marginBottom: 4,
+        marginBottom: 3,
     },
     addIngredientButton: {
         backgroundColor: '#4CAF50',
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
@@ -1234,21 +1237,21 @@ const styles = StyleSheet.create({
     },
     addIngredientText: {
         color: 'white',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
     },
     recipeSection: {
         flex: 1,
     },
     recipeList: {
-        maxHeight: 400,
+        maxHeight: 300,
     },
     recipeCard: {
         borderWidth: 2,
         borderColor: '#003300',
         backgroundColor: '#f6fff6',
-        padding: 12,
-        marginBottom: 8,
+        padding: 8,
+        marginBottom: 6,
         borderRadius: 0,
         shadowColor: '#001100',
         shadowOffset: { width: 1, height: 1 },
@@ -1264,45 +1267,45 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     recipeName: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         color: '#003300',
         flex: 1,
     },
     recipeStars: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#FFD700',
     },
     recipeDescription: {
-        fontSize: 11,
+        fontSize: 9,
         color: '#666',
-        marginBottom: 8,
+        marginBottom: 6,
         fontStyle: 'italic',
     },
     recipeIngredients: {
-        marginBottom: 12,
+        marginBottom: 8,
     },
     ingredientsLabel: {
-        fontSize: 11,
+        fontSize: 9,
         fontWeight: 'bold',
         color: '#003300',
-        marginBottom: 4,
+        marginBottom: 3,
     },
     ingredientRequirement: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 2,
+        marginBottom: 1,
     },
     ingredientText: {
-        fontSize: 10,
+        fontSize: 8,
         color: '#003300',
     },
     ingredientStatus: {
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: 'bold',
     },
     ingredientAvailable: {
@@ -1312,8 +1315,8 @@ const styles = StyleSheet.create({
         color: '#F44336',
     },
     craftButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
         alignItems: 'center',
         borderRadius: 0,
         borderWidth: 2,
@@ -1339,7 +1342,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#001100',
     },
     craftButtonText: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
         color: 'white',
     },
