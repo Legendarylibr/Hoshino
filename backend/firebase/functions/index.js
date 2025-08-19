@@ -6,6 +6,9 @@ const aiChatFunctions = require('./ai-chat');
 // Import Solana transaction functions from separate file
 const solanaTransactionFunctions = require('./solana-transactions');
 
+// Import global data functions from separate file
+const globalDataFunctions = require('./global-data');
+
 // Export all functions
 exports.chat = aiChatFunctions.chat;
 exports.getConversation = aiChatFunctions.getConversation;
@@ -16,6 +19,14 @@ exports.generateCurrencyPurchaseTransaction = solanaTransactionFunctions.generat
 exports.processStarDustPurchase = solanaTransactionFunctions.processStarDustPurchase;
 exports.fetchNFTMetadata = solanaTransactionFunctions.fetchNFTMetadata;
 exports.solanaHealth = solanaTransactionFunctions.solanaHealth;
+
+// Export global data functions
+exports.getGlobalLeaderboard = globalDataFunctions.getGlobalLeaderboard;
+exports.getUserAchievements = globalDataFunctions.getUserAchievements;
+exports.updateUserProgress = globalDataFunctions.updateUserProgress;
+exports.unlockAchievement = globalDataFunctions.unlockAchievement;
+exports.addMilestone = globalDataFunctions.addMilestone;
+exports.addMemory = globalDataFunctions.addMemory;
 
 // Health check
 exports.health = onRequest({
@@ -33,8 +44,14 @@ exports.health = onRequest({
       'processStarDustPurchase',
       'fetchNFTMetadata',
       'solanaHealth',
+      'getGlobalLeaderboard',
+      'getUserAchievements',
+      'updateUserProgress',
+      'unlockAchievement',
+      'addMilestone',
+      'addMemory',
       'health'
     ],
-    modules: ['ai-chat', 'solana-transactions']
+    modules: ['ai-chat', 'solana-transactions', 'global-data']
   });
 }); 

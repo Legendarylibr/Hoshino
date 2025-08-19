@@ -7,9 +7,7 @@ import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
 import { RECIPES } from '../data/recipes';
 import { INGREDIENTS } from '../data/ingredients';
-import PinkSugar from '../../assets/ingredients/pink-sugar.png';
-import NovaEgg from '../../assets/ingredients/nova-egg.png';
-import MiraBerry from '../../assets/ingredients/mira-berry.png';
+// Images are now loaded directly with require() where needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Food items for feeding moonlings (not ingredients for crafting)
 
@@ -299,10 +297,10 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
     useEffect(() => {
         const itemsData = [
             {
-                id: 'sugar',
+                id: 'pink-sugar',
                 name: 'Pink Sugar',
                 description: 'Sweet crystalline sugar with a pink hue',
-                imageUrl: PinkSugar,
+                imageUrl: require('../../assets/ingredients/pink-sugar.png'),
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.COMMON,
                 priceSOL: 0,
@@ -310,10 +308,10 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 inStock: true,
             },
             {
-                id: 'nova',
+                id: 'nova-egg',
                 name: 'Nova Egg',
                 description: 'A mysterious egg that glows with stellar energy',
-                imageUrl: NovaEgg,
+                imageUrl: require('../../assets/ingredients/nova-egg.png'),
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.UNCOMMON,
                 priceSOL: 0,
@@ -321,10 +319,10 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 inStock: true,
             },
             {
-                id: 'mira',
+                id: 'mira-berry',
                 name: 'Mira Berry',
                 description: 'A rare berry with stellar properties',
-                imageUrl: MiraBerry,
+                imageUrl: require('../../assets/ingredients/mira-berry.png'),
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.RARE,
                 priceSOL: 0,
@@ -356,6 +354,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         ];
 
         console.log('Loading shop catalog (no wallet needed)');
+        console.log('Shop items data:', itemsData);
         setItems(itemsData);
     }, []);
 
@@ -416,10 +415,10 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                     {INGREDIENTS.map(ingredient => {
                         const getIngredientImage = (id: string) => {
                             switch (id) {
-                                case 'pink-sugar': return PinkSugar;
-                                case 'nova-egg': return NovaEgg;
-                                case 'mira-berry': return MiraBerry;
-                                default: return PinkSugar; // fallback
+                                case 'pink-sugar': return { uri: 'https://via.placeholder.com/48/FF69B4/000000?text=🍬' };
+                                case 'nova-egg': return { uri: 'https://via.placeholder.com/48/FFD700/000000?text=🥚' };
+                                case 'mira-berry': return { uri: 'https://via.placeholder.com/48/FF1493/000000?text=🫐' };
+                                default: return { uri: 'https://via.placeholder.com/48/FF69B4/000000?text=🍬' }; // fallback
                             }
                         };
                         
@@ -429,6 +428,8 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                     source={getIngredientImage(ingredient.id)}
                                     style={styles.ingredientImage}
                                     resizeMode="contain"
+                                    onError={(error) => console.log('Crafting image failed to load:', ingredient.name, error, 'id:', ingredient.id)}
+                                    onLoad={() => console.log('Crafting image loaded successfully:', ingredient.name, 'id:', ingredient.id)}
                                 />
                                 <Text style={styles.ingredientName}>{ingredient.name}</Text>
                                 <Text style={styles.ingredientCount}>
@@ -568,8 +569,8 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                                                             source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
                                                             style={styles.itemImage}
                                                             resizeMode="contain"
-                                                            onError={(error) => console.log('Image failed to load:', item.name, error)}
-                                                            onLoad={() => console.log('Image loaded successfully:', item.name)}
+                                                            onError={(error) => console.log('Image failed to load:', item.name, error, 'imageUrl:', item.imageUrl)}
+                                                            onLoad={() => console.log('Image loaded successfully:', item.name, 'imageUrl:', item.imageUrl)}
                                                         />
                                                         <Text style={[
                                                             styles.itemName,

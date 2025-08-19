@@ -109,6 +109,11 @@ const MoonlingInteraction: React.FC<Props> = ({
 
     const [showShop, setShowShop] = useState(false);
     const [showGallery, setShowGallery] = useState(false);
+    
+    // Debug logging for showGallery state changes
+    useEffect(() => {
+        console.log('showGallery state changed to:', showGallery);
+    }, [showGallery]);
     const [isTransitioning, setIsTransitioning] = useState(true);
     const [transitionOpacity, setTransitionOpacity] = useState(1);
 
@@ -420,6 +425,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                 break;
 
             case 'gallery':
+                console.log('Gallery button clicked! Setting showGallery to true');
                 setShowGallery(true);
                 break;
 
@@ -496,7 +502,15 @@ const MoonlingInteraction: React.FC<Props> = ({
                 onConnect={connect}
                 onDisconnect={disconnect}
             />
-            <InnerScreen
+
+            {showGallery && (
+                <Gallery
+                    onBack={() => setShowGallery(false)}
+                />
+            )}
+
+            {!showGallery && (
+                <InnerScreen
             showStatsBar={true}
             isTransitioning={isTransitioning}
             transitionOpacity={transitionOpacity}
@@ -562,6 +576,8 @@ const MoonlingInteraction: React.FC<Props> = ({
                 )}
             </View>
 
+
+
             {/* Navigation Menu - Inside Main Screen */}
             {/* Menu Bar at Bottom */}
             <View style={styles.integratedMenuBar}>
@@ -597,12 +613,16 @@ const MoonlingInteraction: React.FC<Props> = ({
             </Frame>
 
             </InnerScreen>
+            )}
+
             {showSleepMode && (
                 <SleepOverlay
                     visible={showSleepMode}
                     onDismiss={() => setShowSleepMode(false)}
                 />
             )}
+
+
             
 
         </>
@@ -715,9 +735,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 12,
     },
-    galleryOverlay: {
-        flex: 1,
-        backgroundColor: '#fff',
+    galleryContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#000',
+        zIndex: 1000,
     },
     settingsOverlay: {
         position: 'absolute',

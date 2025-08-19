@@ -1,20 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Conversations collection - users can only access their own conversations
+    // Allow users to read their own conversations
     match /conversations/{conversationId} {
       allow read, write: if request.auth != null && 
-        (resource == null || resource.data.userId == request.auth.uid);
+        (request.auth.token.wallet_address == resource.data.userId || 
+         request.auth.token.wallet_address == request.resource.data.userId);
     }
     
-    // User profiles - users can only access their own profile
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Allow users to read and write their own user data
+    match /users/{walletAddress} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.wallet_address == walletAddress;
     }
     
-    // Game data - users can only access their own game data
-    match /gameData/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Allow users to read and write their own achievements
+    match /user_achievements/{walletAddress} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.wallet_address == walletAddress;
+    }
+    
+    // Allow public read access to leaderboard
+    match /leaderboard/{walletAddress} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.wallet_address == walletAddress;
+    }
+    
+    // Allow public read access to global achievements
+    match /achievements/{achievementId} {
+      allow read: if true;
+      allow write: if false; // Only admins can modify global achievements
+    }
+    
+    // Allow public read access to global milestones
+    match /milestones/{milestoneId} {
+      allow read: if true;
+      allow write: if false; // Only admins can modify global milestones
     }
   }
 } 

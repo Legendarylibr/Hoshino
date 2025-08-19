@@ -51,14 +51,18 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
         owned: item.quantity
     }));
 
-    // Helper function to get ingredient images (React Native requires static require statements)
-    const getIngredientImage = (imageName: string) => {
-        switch (imageName) {
-            case 'pink-sugar.png':
+    // Debug logging
+    console.log('IngredientSelection - purchasedIngredients:', purchasedIngredients);
+    console.log('IngredientSelection - converted ingredients:', ingredients);
+
+    // Helper function to get ingredient images
+    const getIngredientImage = (id: string) => {
+        switch (id) {
+            case 'pink-sugar':
                 return require('../../assets/ingredients/pink-sugar.png');
-            case 'nova-egg.png':
+            case 'nova-egg':
                 return require('../../assets/ingredients/nova-egg.png');
-            case 'mira-berry.png':
+            case 'mira-berry':
                 return require('../../assets/ingredients/mira-berry.png');
             default:
                 return require('../../assets/ingredients/pink-sugar.png'); // fallback
@@ -73,7 +77,7 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
             description: 'A sweet treat that makes moonlings happy',
             ingredients: [
                 { id: 'dream-bean', quantity: 2 },
-                { id: 'moon-sugar', quantity: 1 }
+                { id: 'pink-sugar', quantity: 1 }
             ],
             result: {
                 id: 'dream-dessert',
@@ -210,9 +214,11 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
                                     onPress={() => toggleIngredient(ingredient.id)}
                                 >
                                     <Image
-                                        source={getIngredientImage(ingredient.image)}
+                                        source={getIngredientImage(ingredient.id)}
                                         style={styles.ingredientImage}
                                         resizeMode="contain"
+                                        onLoad={() => console.log('Image loaded successfully for:', ingredient.id)}
+                                        onError={(error) => console.log('Image load error for:', ingredient.id, error)}
                                     />
                                     <Text style={styles.ingredientName}>{ingredient.name}</Text>
                                     <Text style={styles.ingredientDescription}>{ingredient.description}</Text>

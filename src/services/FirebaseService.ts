@@ -29,6 +29,68 @@ export interface ChatResponse {
   timestamp: string;
 }
 
+// New interfaces for global data
+export interface LeaderboardUser {
+  id: string;
+  username: string;
+  walletAddress: string;
+  totalScore: number;
+  achievements: number;
+  moonlings: number;
+  rank: number;
+  avatar: string;
+  lastActive: Date;
+  starFragments: number;
+  currentStreak: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'feeding' | 'sleep' | 'play' | 'chat' | 'crafting' | 'collection';
+  unlockedAt: Date;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  type: 'days' | 'feedings' | 'sleeps' | 'crafts' | 'ingredients';
+  value: number;
+  achievedAt: Date;
+}
+
+export interface Memory {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  type: 'daily' | 'special' | 'achievement';
+  date: Date;
+  mood: number;
+  energy: number;
+  hunger: number;
+}
+
+export interface UserStats {
+  totalAchievements: number;
+  totalMilestones: number;
+  totalMemories: number;
+  completionRate: number;
+}
+
+export interface UserProgressData {
+  totalScore?: number;
+  achievements?: number;
+  moonlings?: number;
+  starFragments?: number;
+  currentStreak?: number;
+}
+
 class FirebaseService {
   private baseUrl: string;
 
@@ -111,6 +173,207 @@ class FirebaseService {
       return await response.json();
     } catch (error) {
       console.error('Error checking health:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Get global leaderboard
+  async getGlobalLeaderboard(): Promise<LeaderboardUser[]> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/getGlobalLeaderboard`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        return data.leaderboard.map((user: any) => ({
+          ...user,
+          lastActive: new Date(user.lastActive)
+        }));
+      } else {
+        throw new Error(data.error || 'Failed to fetch leaderboard');
+      }
+    } catch (error) {
+      console.error('Error fetching global leaderboard:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Get user achievements, milestones, and memories
+  async getUserProgress(walletAddress: string): Promise<{
+    achievements: Achievement[];
+    milestones: Milestone[];
+    memories: Memory[];
+    stats: UserStats;
+  }> {
+    try {
+      const response = await fetch(
+        `${FIREBASE_FUNCTIONS_BASE_URL}/getUserAchievements?walletAddress=${walletAddress}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        return {
+          achievements: data.achievements.map((a: any) => ({
+            ...a,
+            unlockedAt: new Date(a.unlockedAt)
+          })),
+          milestones: data.milestones.map((m: any) => ({
+            ...m,
+            achievedAt: new Date(m.achievedAt)
+          })),
+          memories: data.memories.map((m: any) => ({
+            ...m,
+            date: new Date(m.date)
+          })),
+          stats: data.stats
+        };
+      } else {
+        throw new Error(data.error || 'Failed to fetch user progress');
+      }
+    } catch (error) {
+      console.error('Error fetching user progress:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Update user progress
+  async updateUserProgress(
+    walletAddress: string,
+    type: string,
+    progressData: UserProgressData
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/updateUserProgress`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress,
+          type,
+          data: progressData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error updating user progress:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Unlock achievement
+  async unlockAchievement(
+    walletAddress: string,
+    achievementId: string,
+    achievementData: Partial<Achievement>
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/unlockAchievement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress,
+          achievementId,
+          achievementData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error unlocking achievement:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Add milestone
+  async addMilestone(
+    walletAddress: string,
+    milestoneId: string,
+    milestoneData: Partial<Milestone>
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/addMilestone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress,
+          milestoneId,
+          milestoneData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error adding milestone:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Add memory
+  async addMemory(
+    walletAddress: string,
+    memoryId: string,
+    memoryData: Partial<Memory>
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/addMemory`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress,
+          memoryId,
+          memoryData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error adding memory:', error);
       throw error;
     }
   }
