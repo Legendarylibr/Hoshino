@@ -7,6 +7,7 @@ interface IngredientSelectionProps {
     onCraftFood: (foodId: string, foodName: string) => void;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     walletAddress?: string;
+    purchasedIngredients: any[]; // Add this prop
 }
 
 interface Ingredient {
@@ -32,21 +33,37 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
     onBack,
     onCraftFood,
     onNotification,
-    walletAddress
+    walletAddress,
+    purchasedIngredients
 }) => {
     const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
     const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([]);
     const [currentTab, setCurrentTab] = useState<'ingredients' | 'recipes'>('ingredients');
 
-    // Mock ingredients data
-    const ingredients: Ingredient[] = [
-        { id: 'dream-bean', name: 'Dream Bean', description: 'A magical bean that grows in moonlight', image: 'dream-bean.png', rarity: 'Common', cost: 5, owned: 3 },
-        { id: 'nebula-plum', name: 'Nebula Plum', description: 'A fruit that tastes like stardust', image: 'nebula-plum.png', rarity: 'Uncommon', cost: 10, owned: 2 },
-        { id: 'cloud-cake', name: 'Cloud Cake', description: 'A fluffy cake made from cloud essence', image: 'cloud-cake.png', rarity: 'Rare', cost: 15, owned: 1 },
-        { id: 'starberry', name: 'Starberry', description: 'A berry that glows like a tiny star', image: 'starberry.png', rarity: 'Epic', cost: 25, owned: 1 },
-        { id: 'moon-sugar', name: 'Moon Sugar', description: 'Crystalline sugar harvested from moonbeams', image: 'moon-sugar.png', rarity: 'Common', cost: 8, owned: 5 },
-        { id: 'cosmic-honey', name: 'Cosmic Honey', description: 'Honey collected from space bees', image: 'cosmic-honey.png', rarity: 'Uncommon', cost: 12, owned: 2 },
-    ];
+    // Convert purchasedIngredients to the format expected by this component
+    const ingredients: Ingredient[] = purchasedIngredients.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        image: item.image,
+        rarity: item.rarity === 'common' ? 'Common' : item.rarity === 'uncommon' ? 'Uncommon' : item.rarity === 'rare' ? 'Rare' : 'Epic',
+        cost: item.cost,
+        owned: item.quantity
+    }));
+
+    // Helper function to get ingredient images (React Native requires static require statements)
+    const getIngredientImage = (imageName: string) => {
+        switch (imageName) {
+            case 'pink-sugar.png':
+                return require('../../assets/ingredients/pink-sugar.png');
+            case 'nova-egg.png':
+                return require('../../assets/ingredients/nova-egg.png');
+            case 'mira-berry.png':
+                return require('../../assets/ingredients/mira-berry.png');
+            default:
+                return require('../../assets/ingredients/pink-sugar.png'); // fallback
+        }
+    };
 
     // Mock recipes data
     const recipes: Recipe[] = [
@@ -192,7 +209,11 @@ const IngredientSelection: React.FC<IngredientSelectionProps> = ({
                                     ]}
                                     onPress={() => toggleIngredient(ingredient.id)}
                                 >
-                                    <Text style={styles.ingredientIcon}>🍎</Text>
+                                    <Image
+                                        source={getIngredientImage(ingredient.image)}
+                                        style={styles.ingredientImage}
+                                        resizeMode="contain"
+                                    />
                                     <Text style={styles.ingredientName}>{ingredient.name}</Text>
                                     <Text style={styles.ingredientDescription}>{ingredient.description}</Text>
                                     <Text style={[styles.ingredientRarity, { color: getRarityColor(ingredient.rarity) }]}>
@@ -310,6 +331,11 @@ const styles = StyleSheet.create({
     },
     ingredientIcon: {
         fontSize: 24,
+        marginBottom: 5,
+    },
+    ingredientImage: {
+        width: 40,
+        height: 40,
         marginBottom: 5,
     },
     ingredientName: {

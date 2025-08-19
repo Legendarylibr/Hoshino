@@ -38,7 +38,7 @@ export class InventoryService {
     }
 
     // Subscribe to inventory changes
-    subscribe(listener: (inventory: UnifiedInventoryItem[]) => void): () => void {
+    public subscribe(listener: (inventory: UnifiedInventoryItem[]) => void): () => void {
         this.listeners.push(listener);
         return () => {
             const index = this.listeners.indexOf(listener);
@@ -54,7 +54,7 @@ export class InventoryService {
     }
 
     // Add items to inventory (unified method)
-    async addToInventory(
+    public async addToInventory(
         items: Array<{
             id: string;
             quantity: number;
@@ -85,7 +85,7 @@ export class InventoryService {
     }
 
     // Remove items from inventory
-    async removeFromInventory(itemId: string, quantity: number = 1): Promise<boolean> {
+    public async removeFromInventory(itemId: string, quantity: number = 1): Promise<boolean> {
         const currentInventory = await this.getInventory();
         const itemIndex = currentInventory.findIndex(item => item.id === itemId);
 
@@ -110,7 +110,7 @@ export class InventoryService {
     }
 
     // Get inventory as ingredients (for IngredientSelection component)
-    async getInventoryAsIngredients(): Promise<Array<{
+    public async getInventoryAsIngredients(): Promise<Array<{
         id: string;
         name: string;
         description: string;
@@ -134,10 +134,10 @@ export class InventoryService {
     }
 
     // Get inventory as marketplace items (for Shop component)
-    async getInventoryAsMarketplaceItems(): Promise<MarketplaceItem[]> {
+    public async getInventoryAsMarketplaceItems(): Promise<MarketplaceItem[]> {
         const inventory = await this.getInventory();
         return inventory
-            .filter(item => item.type === 'marketplace')
+            .filter(item => item.type === 'ingredient')
             .map(item => ({
                 id: item.id,
                 name: item.name,
@@ -152,7 +152,7 @@ export class InventoryService {
     }
 
     // Get inventory as GameTypes InventoryItem (for compatibility)
-    async getInventoryAsGameTypes(): Promise<InventoryItem[]> {
+    public async getInventoryAsGameTypes(): Promise<InventoryItem[]> {
         const inventory = await this.getInventory();
         return inventory
             .filter(item => item.type === 'ingredient')
@@ -178,25 +178,25 @@ export class InventoryService {
     }
 
     // Get total item count
-    async getTotalItemCount(): Promise<number> {
+    public async getTotalItemCount(): Promise<number> {
         const inventory = await this.getInventory();
         return inventory.reduce((total, item) => total + item.quantity, 0);
     }
 
     // Get items by type
-    async getItemsByType(type: 'ingredient' | 'marketplace' | 'crafted'): Promise<UnifiedInventoryItem[]> {
+    public async getItemsByType(type: 'ingredient' | 'marketplace' | 'crafted'): Promise<UnifiedInventoryItem[]> {
         const inventory = await this.getInventory();
         return inventory.filter(item => item.type === type);
     }
 
     // Get items by rarity
-    async getItemsByRarity(rarity: string): Promise<UnifiedInventoryItem[]> {
+    public async getItemsByRarity(rarity: string): Promise<UnifiedInventoryItem[]> {
         const inventory = await this.getInventory();
         return inventory.filter(item => item.rarity === rarity);
     }
 
     // Check if recipe can be crafted
-    async canCraftRecipe(recipe: Recipe): Promise<boolean> {
+    public async canCraftRecipe(recipe: Recipe): Promise<boolean> {
         const inventory = await this.getInventory();
         const availableIngredients = inventory
             .filter(item => item.type === 'ingredient')
@@ -206,7 +206,7 @@ export class InventoryService {
     }
 
     // Get craftable recipes
-    async getCraftableRecipes(): Promise<Recipe[]> {
+    public async getCraftableRecipes(): Promise<Recipe[]> {
         const inventory = await this.getInventory();
         const availableIngredients = inventory
             .filter(item => item.type === 'ingredient')
@@ -216,7 +216,7 @@ export class InventoryService {
     }
 
     // Craft a recipe (consumes ingredients)
-    async craftRecipe(recipe: Recipe): Promise<boolean> {
+    public async craftRecipe(recipe: Recipe): Promise<boolean> {
         if (!(await this.canCraftRecipe(recipe))) {
             return false;
         }
@@ -240,7 +240,7 @@ export class InventoryService {
     }
 
     // Search inventory
-    async searchInventory(query: string): Promise<UnifiedInventoryItem[]> {
+    public async searchInventory(query: string): Promise<UnifiedInventoryItem[]> {
         const inventory = await this.getInventory();
         const lowerQuery = query.toLowerCase();
         
@@ -252,7 +252,7 @@ export class InventoryService {
     }
 
     // Get inventory statistics
-    async getInventoryStats(): Promise<{
+    public async getInventoryStats(): Promise<{
         totalItems: number;
         uniqueItems: number;
         byType: Record<string, number>;
@@ -321,7 +321,7 @@ export class InventoryService {
         };
     }
 
-    private async getInventory(): Promise<UnifiedInventoryItem[]> {
+    public async getInventory(): Promise<UnifiedInventoryItem[]> {
         try {
             const stored = await AsyncStorage.getItem(this.storageKey);
             return stored ? JSON.parse(stored) : [];
@@ -340,7 +340,7 @@ export class InventoryService {
     }
 
     // Initialize with default ingredients (for testing/demo)
-    async initializeWithDefaultIngredients(): Promise<void> {
+    public async initializeWithDefaultIngredients(): Promise<void> {
         const currentInventory = await this.getInventory();
         if (currentInventory.length === 0) {
             const defaultItems = INGREDIENTS.map(ingredient => ({
@@ -354,8 +354,18 @@ export class InventoryService {
     }
 
     // Clear inventory (for testing/reset)
-    async clearInventory(): Promise<void> {
+    public async clearInventory(): Promise<void> {
         await this.saveInventory([]);
         this.notifyListeners([]);
+    }
+
+    // Public method to get current inventory state (for hooks)
+    public async getCurrentInventory(): Promise<UnifiedInventoryItem[]> {
+        return await this.getInventory();
+    }
+
+    // Public method to get inventory for external services
+    public async getInventoryForServices(): Promise<UnifiedInventoryItem[]> {
+        return await this.getInventory();
     }
 }

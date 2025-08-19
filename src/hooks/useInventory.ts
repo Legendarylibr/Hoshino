@@ -29,7 +29,7 @@ export const useInventory = () => {
                 await inventoryService.initializeWithDefaultIngredients();
                 
                 // Get current inventory
-                const currentInventory = await inventoryService.getInventory();
+                const currentInventory = await inventoryService.getCurrentInventory();
                 setInventory(currentInventory);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load inventory');

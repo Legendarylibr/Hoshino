@@ -9,6 +9,7 @@ interface WalletContextType {
     publicKey: string | null;
     connect: () => Promise<void>;
     disconnect: () => void;
+    signAndSendTransaction: (transaction: any) => Promise<{ signature: string }>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -84,12 +85,24 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         }
     }, []);
 
+    const signAndSendTransaction = useCallback(async (transaction: any) => {
+        try {
+            console.log('📱 Signing and sending transaction...');
+            const result = await mobileWalletService.signAndSendSolanaTransaction(transaction);
+            return result;
+        } catch (error) {
+            console.error('📱 Failed to sign and send transaction:', error);
+            throw error;
+        }
+    }, []);
+
     return (
         <WalletContext.Provider value={{ 
             connected, 
             publicKey, 
             connect, 
-            disconnect
+            disconnect,
+            signAndSendTransaction
         }}>
             {children}
         </WalletContext.Provider>

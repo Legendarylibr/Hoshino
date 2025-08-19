@@ -1,133 +1,115 @@
 import { Recipe } from '../types/GameTypes';
 
-// Centralized recipe data with star rating system
-// Only includes recipes that use ingredients we actually have
+// New recipe system using only actual ingredients with image assets
 export const RECIPES: Recipe[] = [
-    // 1-Star Recipes (Simple - 2-3 common ingredients only)
+    // 2-Star Recipes (Common - 2-3 common ingredients only)
     {
-        id: 'basic-soup',
-        name: 'Basic Soup',
-        description: 'Simple soup made with basic ingredients',
+        id: 'sweet-berry-delight',
+        name: 'Sweet Berry Delight',
+        description: 'A delightful treat combining pink sugar and mira berries',
         ingredients: [
-            { id: 'pink-sugar', quantity: 1 },
-            { id: 'nova-egg', quantity: 1 },
+            { id: 'pink-sugar', quantity: 2 },
             { id: 'mira-berry', quantity: 1 }
         ],
         result: {
-            id: 'basic-soup',
-            name: 'Basic Soup',
-            description: 'A simple soup that provides basic nutrition',
-            image: 'basic-soup.png'
+            id: 'sweet-berry-delight',
+            name: 'Sweet Berry Delight',
+            description: 'A sweet and nutritious treat that boosts mood and energy',
+            image: 'sweet-berry-delight.png'
         },
-        starRating: 1,
+        starRating: 2,
         difficulty: 'easy'
     },
     {
-        id: 'sweet-treat',
-        name: 'Sweet Treat',
-        description: 'A sweet treat made with pink sugar',
+        id: 'stellar-egg-bowl',
+        name: 'Stellar Egg Bowl',
+        description: 'A nutritious bowl with nova eggs and berries',
         ingredients: [
-            { id: 'pink-sugar', quantity: 2 }
+            { id: 'nova-egg', quantity: 2 },
+            { id: 'mira-berry', quantity: 1 },
+            { id: 'pink-sugar', quantity: 1 }
         ],
         result: {
-            id: 'sweet-treat',
-            name: 'Sweet Treat',
-            description: 'A sweet treat that provides basic mood boost',
-            image: 'sweet-treat.png'
+            id: 'stellar-egg-bowl',
+            name: 'Stellar Egg Bowl',
+            description: 'A cosmic breakfast bowl that provides balanced nutrition',
+            image: 'stellar-egg-bowl.png'
         },
-        starRating: 1,
-        difficulty: 'easy'
-    },
-    {
-        id: 'berry-egg-bowl',
-        name: 'Berry Egg Bowl',
-        description: 'A nutritious bowl with berries and eggs',
-        ingredients: [
-            { id: 'mira-berry', quantity: 2 },
-            { id: 'nova-egg', quantity: 1 }
-        ],
-        result: {
-            id: 'berry-egg-bowl',
-            name: 'Berry Egg Bowl',
-            description: 'A nutritious bowl that provides balanced nutrition',
-            image: 'berry-egg-bowl.png'
-        },
-        starRating: 1,
+        starRating: 2,
         difficulty: 'easy'
     },
 
-    // 2-Star Recipes (Mix of common ingredients with higher quantities)
+    // 3-Star Recipes (Uncommon - 3 ingredients, mix of common ingredients with higher quantities)
     {
-        id: 'deluxe-soup',
-        name: 'Deluxe Soup',
-        description: 'An enhanced soup with premium ingredients',
+        id: 'cosmic-sugar-feast',
+        name: 'Cosmic Sugar Feast',
+        description: 'A luxurious treat made with premium quantities of pink sugar',
         ingredients: [
-            { id: 'pink-sugar', quantity: 2 },
+            { id: 'pink-sugar', quantity: 3 },
+            { id: 'mira-berry', quantity: 1 },
+            { id: 'nova-egg', quantity: 1 }
+        ],
+        result: {
+            id: 'cosmic-sugar-feast',
+            name: 'Cosmic Sugar Feast',
+            description: 'An exquisite treat that provides exceptional mood and energy boosts',
+            image: 'cosmic-sugar-feast.png'
+        },
+        starRating: 3,
+        difficulty: 'medium'
+    },
+    {
+        id: 'nova-berry-soup',
+        name: 'Nova Berry Soup',
+        description: 'A magical soup enhanced with nova eggs and berries',
+        ingredients: [
+            { id: 'nova-egg', quantity: 2 },
+            { id: 'mira-berry', quantity: 2 },
+            { id: 'pink-sugar', quantity: 1 }
+        ],
+        result: {
+            id: 'nova-berry-soup',
+            name: 'Nova Berry Soup',
+            description: 'A mystical soup that provides incredible energy and satisfaction',
+            image: 'nova-berry-soup.png'
+        },
+        starRating: 3,
+        difficulty: 'medium'
+    },
+
+    // 4-Star Recipes (Rare - 4-5 ingredients, high quantities of common ingredients)
+    {
+        id: 'stellar-mega-feast',
+        name: 'Stellar Mega Feast',
+        description: 'A legendary feast requiring maximum quantities of all ingredients',
+        ingredients: [
+            { id: 'pink-sugar', quantity: 3 },
+            { id: 'nova-egg', quantity: 3 },
+            { id: 'mira-berry', quantity: 3 }
+        ],
+        result: {
+            id: 'stellar-mega-feast',
+            name: 'Stellar Mega Feast',
+            description: 'A legendary feast that provides maximum satisfaction and rare bonuses',
+            image: 'stellar-mega-feast.png'
+        },
+        starRating: 4,
+        difficulty: 'expert'
+    },
+    {
+        id: 'cosmic-ultimate-elixir',
+        name: 'Cosmic Ultimate Elixir',
+        description: 'A mystical elixir powered by all ingredients in perfect balance',
+        ingredients: [
+            { id: 'pink-sugar', quantity: 3 },
             { id: 'nova-egg', quantity: 2 },
             { id: 'mira-berry', quantity: 2 }
         ],
         result: {
-            id: 'deluxe-soup',
-            name: 'Deluxe Soup',
-            description: 'An enhanced soup that provides better nutrition',
-            image: 'deluxe-soup.png'
-        },
-        starRating: 2,
-        difficulty: 'medium'
-    },
-    {
-        id: 'sugar-berry-feast',
-        name: 'Sugar Berry Feast',
-        description: 'A feast combining sugar and berries',
-        ingredients: [
-            { id: 'pink-sugar', quantity: 3 },
-            { id: 'mira-berry', quantity: 3 }
-        ],
-        result: {
-            id: 'sugar-berry-feast',
-            name: 'Sugar Berry Feast',
-            description: 'A feast that provides excellent mood boost',
-            image: 'sugar-berry-feast.png'
-        },
-        starRating: 2,
-        difficulty: 'medium'
-    },
-
-    // 3-Star Recipes (High quantities of common ingredients)
-    {
-        id: 'mega-feast',
-        name: 'Mega Feast',
-        description: 'A massive feast with all ingredients',
-        ingredients: [
-            { id: 'pink-sugar', quantity: 4 },
-            { id: 'nova-egg', quantity: 4 },
-            { id: 'mira-berry', quantity: 4 }
-        ],
-        result: {
-            id: 'mega-feast',
-            name: 'Mega Feast',
-            description: 'A massive feast that provides maximum satisfaction',
-            image: 'mega-feast.png'
-        },
-        starRating: 3,
-        difficulty: 'hard'
-    },
-
-    // 4-Star Recipes (Maximum quantities for legendary status)
-    {
-        id: 'legendary-feast',
-        name: 'Legendary Feast',
-        description: 'The ultimate feast requiring maximum ingredients',
-        ingredients: [
-            { id: 'pink-sugar', quantity: 5 },
-            { id: 'nova-egg', quantity: 5 },
-            { id: 'mira-berry', quantity: 5 }
-        ],
-        result: {
-            id: 'legendary-feast',
-            name: 'Legendary Feast',
-            description: 'The ultimate feast that provides legendary satisfaction',
-            image: 'legendary-feast.png'
+            id: 'cosmic-ultimate-elixir',
+            name: 'Cosmic Ultimate Elixir',
+            description: 'A powerful elixir that provides legendary energy and hunger satisfaction',
+            image: 'cosmic-ultimate-elixir.png'
         },
         starRating: 4,
         difficulty: 'expert'
@@ -145,10 +127,6 @@ export const getRecipesByStarRating = (starRating: Recipe['starRating']): Recipe
 
 export const getRecipesByDifficulty = (difficulty: Recipe['difficulty']): Recipe[] => {
     return RECIPES.filter(recipe => recipe.difficulty === difficulty);
-};
-
-export const getOneStarRecipes = (): Recipe[] => {
-    return getRecipesByStarRating(1);
 };
 
 export const getTwoStarRecipes = (): Recipe[] => {
@@ -171,10 +149,6 @@ export const getMediumRecipes = (): Recipe[] => {
     return getRecipesByDifficulty('medium');
 };
 
-export const getHardRecipes = (): Recipe[] => {
-    return getRecipesByDifficulty('hard');
-};
-
 export const getExpertRecipes = (): Recipe[] => {
     return getRecipesByDifficulty('expert');
 };
@@ -190,4 +164,17 @@ export const canCraftRecipe = (recipe: Recipe, availableIngredients: { id: strin
 // Get recipes that can be crafted with available ingredients
 export const getCraftableRecipes = (availableIngredients: { id: string; quantity: number }[]): Recipe[] => {
     return RECIPES.filter(recipe => canCraftRecipe(recipe, availableIngredients));
+};
+
+// Get recipes by rarity tier
+export const getCommonRecipes = (): Recipe[] => {
+    return getTwoStarRecipes();
+};
+
+export const getUncommonRecipes = (): Recipe[] => {
+    return getThreeStarRecipes();
+};
+
+export const getRareRecipes = (): Recipe[] => {
+    return getFourStarRecipes();
 };

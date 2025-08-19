@@ -338,13 +338,18 @@ const MoonlingInteraction: React.FC<Props> = ({
         switch (action) {
             case 'feed':
                 if (localGameEngine) {
-                    const newStats = await localGameEngine.feedMoonling();
                     const result = await statDecayService.recordAction(
                         selectedCharacter!.id,
                         'feed',
                         { hunger: 2, mood: 1 }
                     );
 
+                    if (!result.success) {
+                        onNotification?.(result.message, 'warning');
+                        return;
+                    }
+
+                    const newStats = await localGameEngine.feedMoonling();
                     const syncedStats = {
                         ...newStats,
                         mood: result.newStats.mood,

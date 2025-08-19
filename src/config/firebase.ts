@@ -16,6 +16,7 @@ export const FIREBASE_CONFIG = {
   functions: {
     generateNFTTransaction: 'https://us-central1-hoshino-996d0.cloudfunctions.net/generateNFTTransaction',
     generateCurrencyPurchaseTransaction: 'https://us-central1-hoshino-996d0.cloudfunctions.net/generateCurrencyPurchaseTransaction',
+    processStarDustPurchase: 'https://us-central1-hoshino-996d0.cloudfunctions.net/processStarDustPurchase',
     fetchNFTMetadata: 'https://us-central1-hoshino-996d0.cloudfunctions.net/fetchNFTMetadata',
     chat: 'https://us-central1-hoshino-996d0.cloudfunctions.net/chat',
     getConversation: 'https://us-central1-hoshino-996d0.cloudfunctions.net/getConversation',

@@ -1,12 +1,11 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '../services/MarketplaceService';
+
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
 import { Connection } from '@solana/web3.js';
-import PinkSugar from '../../assets/ingredients/pink-sugar.png';
-import NovaEgg from '../../assets/ingredients/nova-egg.png';
-import MiraBerry from '../../assets/ingredients/mira-berry.png';
+// Food items for feeding moonlings (not ingredients for crafting)
 
 interface ShopProps {
     connection: Connection;
@@ -101,13 +100,47 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         onNotification?.(`Purchase complete! ${purchasedItems.length} items added to your ingredient inventory.`, 'success');
     };
 
+    const handleStarDustPurchase = async (packageId: string, priceSOL: number) => {
+        try {
+            const { wallet } = useWallet();
+            if (!wallet) {
+                onNotification?.('Please connect your wallet first', 'error');
+                return;
+            }
+
+            // Store purchase intent server-side (off-chain)
+            const response = await fetch('https://your-backend-url/processStarDustPurchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    packageId,
+                    priceSOL,
+                    walletAddress: wallet.publicKey.toString(),
+                    timestamp: Date.now(),
+                    status: 'pending'
+                })
+            });
+
+            if (response.ok) {
+                onNotification?.(`Star Dust package purchased successfully!`, 'success');
+                setFlashingItem(packageId);
+                setTimeout(() => setFlashingItem(null), 300);
+            } else {
+                onNotification?.('Purchase completed but backend processing failed', 'warning');
+            }
+        } catch (error) {
+            console.error('Star dust purchase error:', error);
+            onNotification?.('Purchase failed. Please try again.', 'error');
+        }
+    };
+
     useEffect(() => {
         const itemsData = [
             {
                 id: 'sugar',
                 name: 'Pink Sugar',
                 description: 'Sweet crystalline sugar with a pink hue',
-                imageUrl: PinkSugar,
+                imageUrl: 'https://via.placeholder.com/48/FF69B4/000000?text=🍬',
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.COMMON,
                 priceSOL: 0,
@@ -118,7 +151,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 id: 'nova',
                 name: 'Nova Egg',
                 description: 'A mysterious egg that glows with stellar energy',
-                imageUrl: NovaEgg,
+                imageUrl: 'https://via.placeholder.com/48/FFD700/000000?text=🥚',
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.UNCOMMON,
                 priceSOL: 0,
@@ -129,7 +162,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 id: 'mira',
                 name: 'Mira Berry',
                 description: 'A rare berry with stellar properties',
-                imageUrl: MiraBerry,
+                imageUrl: 'https://via.placeholder.com/48/FF6347/000000?text=🫐',
                 category: ItemCategory.FOOD,
                 rarity: ItemRarity.RARE,
                 priceSOL: 0,
@@ -177,6 +210,36 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
         });
     }, [items, selectedCategory]);
 
+    const renderCurrencyTab = () => (
+        <View style={styles.currencyContainer}>
+            <View style={styles.starDustLogoBackground}>
+                <Image
+                    source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                    style={styles.starDustBackgroundImage}
+                    resizeMode="contain"
+                />
+            </View>
+            {[
+                { id: 'star-dust-1', name: '100 Star Dust', price: 0.01, description: 'Small package' },
+                { id: 'star-dust-2', name: '250 Star Dust', price: 0.025, description: 'Medium package' },
+                { id: 'star-dust-3', name: '500 Star Dust', price: 0.05, description: 'Large package' },
+                { id: 'star-dust-4', name: '1000 Star Dust', price: 0.1, description: 'Extra large package' },
+                { id: 'star-dust-5', name: '2500 Star Dust', price: 0.25, description: 'Mega package' },
+                { id: 'star-dust-6', name: '5000 Star Dust', price: 0.5, description: 'Ultra package' },
+            ].map((pkg) => (
+                <TouchableOpacity
+                    key={pkg.id}
+                    style={styles.starDustPackage}
+                    onPress={() => handleStarDustPurchase(pkg.id, pkg.price)}
+                >
+                    <Text style={styles.packageName}>{pkg.name}</Text>
+                    <Text style={styles.packageDescription}>{pkg.description}</Text>
+                    <Text style={styles.packagePrice}>{pkg.price} SOL</Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
+
     return (
         <View style={styles.outerContainer}>
             <View style={styles.headerBox}>
@@ -217,63 +280,67 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
             </View>
 
             <View style={styles.itemsContainer}>
-                {Array.from({ length: 6 }).map((_, index) => {
-                    const item = filteredItems[index];
-                    return (
-                        <View key={index} style={[
-                            styles.itemCard,
-                            item && { borderColor: getRarityBorderColor(item.rarity) },
-                            item && flashingItem === item.id && styles.flashingCard
-                        ]}>
-                            {item ? (
-                                <>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.itemClickArea,
-                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
-                                        ]}
-                                        onPress={() => addToCart(item)}
-                                        disabled={getTotalPrice() + item.priceStarFragments > dust}
-                                    >
-                                        <Image
-                                            source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
-                                            style={styles.itemImage}
-                                            resizeMode="contain"
-                                            onError={(error) => console.log('Image failed to load:', item.name, error)}
-                                            onLoad={() => console.log('Image loaded successfully:', item.name)}
-                                        />
-                                        <Text style={[
-                                            styles.itemName,
-                                            (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
-                                        ]}>
-                                            {item.name}
-                                        </Text>
-                                        <View style={styles.priceContainer}>
+                {selectedCategory === 'currency' ? (
+                    renderCurrencyTab()
+                ) : (
+                    Array.from({ length: 6 }).map((_, index) => {
+                        const item = filteredItems[index];
+                        return (
+                            <View key={index} style={[
+                                styles.itemCard,
+                                item && { borderColor: getRarityBorderColor(item.rarity) },
+                                item && flashingItem === item.id && styles.flashingCard
+                            ]}>
+                                {item ? (
+                                    <>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.itemClickArea,
+                                                (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledItem
+                                            ]}
+                                            onPress={() => addToCart(item)}
+                                            disabled={getTotalPrice() + item.priceStarFragments > dust}
+                                        >
                                             <Image
-                                                source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
-                                                style={styles.priceIcon}
+                                                source={typeof item.imageUrl === 'string' ? { uri: item.imageUrl } : item.imageUrl}
+                                                style={styles.itemImage}
                                                 resizeMode="contain"
+                                                onError={(error) => console.log('Image failed to load:', item.name, error)}
+                                                onLoad={() => console.log('Image loaded successfully:', item.name)}
                                             />
                                             <Text style={[
-                                                styles.itemPrice,
+                                                styles.itemName,
                                                 (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
                                             ]}>
-                                                {item.priceStarFragments}
+                                                {item.name}
                                             </Text>
-                                        </View>
-                                        {getTotalPrice() + item.priceStarFragments > dust && (
-                                            <Text style={styles.insufficientText}>INSUFFICIENT</Text>
-                                        )}
-                                    </TouchableOpacity>
-                                </>
-                            ) : (
-                                <View style={styles.placeholderBox}>
-                                    <Text style={styles.placeholderText}>+</Text>
-                                </View>
-                            )}
-                        </View>
-                    );
-                })}
+                                            <View style={styles.priceContainer}>
+                                                <Image
+                                                    source={{ uri: 'https://drive.google.com/uc?export=view&id=1bxf-gZ9VjrwtKr5K8A5A7pbHFyQGXACU' }}
+                                                    style={styles.priceIcon}
+                                                    resizeMode="contain"
+                                                />
+                                                <Text style={[
+                                                    styles.itemPrice,
+                                                    (getTotalPrice() + item.priceStarFragments > dust) && styles.disabledText
+                                                ]}>
+                                                    {item.priceStarFragments}
+                                                </Text>
+                                            </View>
+                                            {getTotalPrice() + item.priceStarFragments > dust && (
+                                                <Text style={styles.insufficientText}>INSUFFICIENT</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </>
+                                ) : (
+                                    <View style={styles.placeholderBox}>
+                                        <Text style={styles.placeholderText}>+</Text>
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })
+                )}
             </View>
 
             <View style={styles.cartContainer}>
@@ -757,11 +824,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         lineHeight: 10,
     },
-    removeButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
     emptyCart: {
         padding: 20,
         alignItems: 'center',
@@ -820,6 +882,71 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         color: '#003300',
+    },
+    // Currency tab styles
+    currencyContainer: {
+        width: '100%',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-evenly',
+        position: 'relative',
+    },
+    starDustLogoBackground: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: 0.3,
+        zIndex: -1,
+        transform: [{ translateY: -47.5 }],
+    },
+    starDustBackgroundImage: {
+        width: 200,
+        height: 200,
+        opacity: 0.3,
+    },
+    starDustPackage: {
+        width: '30%',
+        height: 120,
+        borderWidth: 3,
+        borderColor: '#003300',
+        backgroundColor: '#f0fff0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 6,
+        marginBottom: 8,
+        borderRadius: 0,
+        shadowColor: '#001100',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 0,
+        elevation: 0,
+        borderTopColor: '#006600',
+        borderLeftColor: '#006600',
+        borderRightColor: '#001100',
+        borderBottomColor: '#001100',
+    },
+    packageName: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginBottom: 4,
+        textAlign: 'center',
+        color: '#003300',
+    },
+    packageDescription: {
+        fontSize: 9,
+        color: '#666',
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    packagePrice: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#006600',
+        textAlign: 'center',
     },
 });
 

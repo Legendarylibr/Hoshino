@@ -10,11 +10,23 @@ export interface DiscoveryEvent {
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 }
 
+export interface DiscoverySettings {
+    enabled: boolean;
+    intervalHours: number;
+    successRate: number;
+    maxDiscoveriesPerDay: number;
+    lastDiscoveryTime: number;
+    dailyDiscoveries: number;
+    lastDailyReset: string;
+}
+
 export class IngredientDiscoveryService {
     private static instance: IngredientDiscoveryService;
     private storageKey = 'ingredient_discoveries';
+    private settingsKey = 'ingredient_discovery_settings';
     private lastDiscoveryCheck = 0;
     private discoveryCooldown = 300000; // 5 minutes
+    private defaultIntervalHours = 6; // Default to 6 hours between discoveries
     private inventoryService: InventoryService;
 
     private constructor() {
@@ -193,5 +205,75 @@ export class IngredientDiscoveryService {
         } catch (error) {
             console.error('Failed to clear discovery history:', error);
         }
+    }
+
+    // Get current settings
+    async getSettings(): Promise<DiscoverySettings> {
+        try {
+            const stored = await AsyncStorage.getItem(this.settingsKey);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (error) {
+            console.error('Failed to load discovery settings:', error);
+        }
+
+        // Return default settings
+        return {
+            enabled: true,
+            intervalHours: 6, // 6 hours between discoveries
+            successRate: 75,
+            maxDiscoveriesPerDay: 4, // 4 discoveries per day
+            lastDiscoveryTime: 0,
+            dailyDiscoveries: 0,
+            lastDailyReset: new Date().toISOString().split('T')[0]
+        };
+    }
+
+    // Update settings
+    async updateSettings(newSettings: Partial<DiscoverySettings>): Promise<void> {
+        try {
+            const current = await this.getSettings();
+            const updated = { ...current, ...newSettings };
+            await AsyncStorage.setItem(this.settingsKey, JSON.stringify(updated));
+        } catch (error) {
+            console.error('Failed to update discovery settings:', error);
+        }
+    }
+
+    // Get daily progress
+    async getDailyProgress(): Promise<{ current: number; max: number; percentage: number }> {
+        const settings = await this.getSettings();
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Reset daily count if it's a new day
+        if (settings.lastDailyReset !== today) {
+            await this.updateSettings({
+                dailyDiscoveries: 0,
+                lastDailyReset: today
+            });
+            return { current: 0, max: settings.maxDiscoveriesPerDay, percentage: 0 };
+        }
+
+        const percentage = Math.round((settings.dailyDiscoveries / settings.maxDiscoveriesPerDay) * 100);
+        return {
+            current: settings.dailyDiscoveries,
+            max: settings.maxDiscoveriesPerDay,
+            percentage: Math.min(percentage, 100)
+        };
+    }
+
+    // Get time until next discovery
+    async getTimeUntilNextDiscovery(): Promise<number> {
+        const settings = await this.getSettings();
+        const now = Date.now();
+        const timeSinceLast = settings.lastDiscoveryTime;
+        const intervalMs = settings.intervalHours * 60 * 60 * 1000;
+        
+        if (now - timeSinceLast >= intervalMs) {
+            return 0; // Ready for discovery
+        }
+        
+        return intervalMs - (now - timeSinceLast);
     }
 }

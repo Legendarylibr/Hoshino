@@ -23,7 +23,7 @@ export const INGREDIENTS: Ingredient[] = [
         rarity: 'common',
         cost: 20,
         moodBonus: 1,
-        hungerBoost: 2,
+        hungerBonus: 2,
         energyBonus: 1
     },
     {

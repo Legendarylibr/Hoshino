@@ -16,6 +16,7 @@ export interface DailyStats {
     feedActions: number // Number of feed actions today
     sleepActions: number // Number of sleep actions today
     chatActions: number // Number of chat actions today
+    sleepCarryoverStars: number // Stars carried over from previous night's sleep
 }
 
 export interface MoonCycle {
@@ -115,9 +116,24 @@ export class MoonCycleService {
         let todayStats = cycle.dailyStats.find(s => s.date === today)
 
         if (!todayStats) {
+            // Calculate sleep carryover from previous day
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStats = cycle.dailyStats.find(s => s.date === yesterdayStr);
+            
+            let sleepCarryoverStars = 0;
+            if (yesterdayStats?.sleepDuration) {
+                if (yesterdayStats.sleepDuration >= 10) {
+                    sleepCarryoverStars = 2; // 10+ hours = 2 stars carryover
+                } else if (yesterdayStats.sleepDuration >= 8) {
+                    sleepCarryoverStars = 1; // 8+ hours = 1 star carryover
+                }
+            }
+
             todayStats = {
                 date: today,
-                mood,
+                mood: Math.max(mood, sleepCarryoverStars), // Start with carryover stars
                 hunger,
                 energy,
                 feedCompleted: false,
@@ -126,7 +142,8 @@ export class MoonCycleService {
                 moodBonusEarned: false,
                 feedActions: 0,
                 sleepActions: 0,
-                chatActions: 0
+                chatActions: 0,
+                sleepCarryoverStars
             }
             cycle.dailyStats.push(todayStats)
         }
@@ -193,7 +210,7 @@ export class MoonCycleService {
                 (actionType === 'sleep' && todayStats.sleepCompleted) ||
                 (actionType === 'chat' && todayStats.chatCompleted)
 
-            pointsReward = this.globalPointSystem.awardInteractionPoints(
+            pointsReward = await this.globalPointSystem.awardInteractionPoints(
                 characterMint,
                 characterName,
                 actionType,
@@ -277,7 +294,8 @@ export class MoonCycleService {
                 moodBonusEarned: false,
                 feedActions: 0,
                 sleepActions: 0,
-                chatActions: 0
+                chatActions: 0,
+                sleepCarryoverStars: 0
             }
             cycle.dailyStats.push(todayStats)
         }

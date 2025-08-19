@@ -358,7 +358,7 @@ export class GameIntegrationService {
     async exportGameData(): Promise<any> {
         try {
             const [inventory, achievements, discoveries, starFragments] = await Promise.all([
-                this.inventoryService.getInventory(),
+                this.inventoryService.getInventoryForServices(),
                 this.achievementService.getAllAchievements(),
                 this.discoveryService.getDiscoveryHistory(),
                 this.starFragmentService.getTransactionHistory()

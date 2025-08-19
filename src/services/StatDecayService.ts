@@ -11,7 +11,9 @@ export interface CharacterTimers {
     currentHunger: number;
     currentEnergy: number;
     moodActionsToday: number; // Track daily mood actions (max 1 per day)
+    feedActionsToday: number; // Track daily feed actions (max 3-4 per day)
     lastMoodActionDate: string; // YYYY-MM-DD format
+    lastFeedActionDate: string; // YYYY-MM-DD format
     energyDecayTimestamp: number; // For 6-hour energy decay
 }
 
@@ -194,6 +196,12 @@ export class StatDecayService {
             timers.lastMoodActionDate = today;
         }
 
+        // Reset daily feed counter if it's a new day
+        if (timers.lastFeedActionDate !== today) {
+            timers.feedActionsToday = 0;
+            timers.lastFeedActionDate = today;
+        }
+
         // Check if user can gain mood today (max 1 per day per action type)
         const canGainMood = timers.moodActionsToday < 1;
         let moodGained = 0;
@@ -203,12 +211,24 @@ export class StatDecayService {
             timers.moodActionsToday++;
         }
 
+        // Check feeding limit (max 4 feeds per day)
+        const canFeed = actionType !== 'feed' || timers.feedActionsToday < 4;
+
         // Update timers and stats
         timers.lastInteraction = now;
 
         switch (actionType) {
             case 'feed':
+                if (!canFeed) {
+                    return {
+                        success: false,
+                        canGainMood: false,
+                        message: 'Daily feeding limit reached (4 feeds per day)',
+                        newStats: { mood: timers.currentMood, hunger: timers.currentHunger, energy: timers.currentEnergy }
+                    };
+                }
                 timers.lastFeed = now;
+                timers.feedActionsToday++;
                 timers.currentHunger = Math.min(5, timers.currentHunger + (statBoost?.hunger || 0));
                 break;
             case 'sleep':
@@ -275,7 +295,9 @@ export class StatDecayService {
             currentHunger: baseStats.hunger,
             currentEnergy: baseStats.energy,
             moodActionsToday: 0,
+            feedActionsToday: 0,
             lastMoodActionDate: today,
+            lastFeedActionDate: today,
             energyDecayTimestamp: now
         };
 

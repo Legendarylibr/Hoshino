@@ -310,7 +310,7 @@ export class AchievementService {
     // Check inventory-related achievements
     async checkInventoryAchievements(): Promise<void> {
         try {
-            const inventory = await this.inventoryService.getInventory();
+            const inventory = await this.inventoryService.getInventoryForServices();
             const totalItems = inventory.reduce((total, item) => total + item.quantity, 0);
             
             // Check item count achievements

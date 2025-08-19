@@ -13,6 +13,7 @@ exports.getConversation = aiChatFunctions.getConversation;
 // Export Solana transaction functions
 exports.generateNFTTransaction = solanaTransactionFunctions.generateNFTTransaction;
 exports.generateCurrencyPurchaseTransaction = solanaTransactionFunctions.generateCurrencyPurchaseTransaction;
+exports.processStarDustPurchase = solanaTransactionFunctions.processStarDustPurchase;
 exports.fetchNFTMetadata = solanaTransactionFunctions.fetchNFTMetadata;
 exports.solanaHealth = solanaTransactionFunctions.solanaHealth;
 
@@ -29,6 +30,7 @@ exports.health = onRequest({
       'getConversation', 
       'generateNFTTransaction',
       'generateCurrencyPurchaseTransaction',
+      'processStarDustPurchase',
       'fetchNFTMetadata',
       'solanaHealth',
       'health'

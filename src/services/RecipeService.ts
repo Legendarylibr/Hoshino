@@ -82,7 +82,7 @@ export class RecipeService {
             throw new Error(`Recipe not found: ${recipeId}`);
         }
 
-        const inventory = await this.inventoryService.getInventory();
+        const inventory = await this.inventoryService.getInventoryForServices();
         const requirements = recipe.ingredients.map(required => {
             const available = inventory.find(item => item.id === required.id);
             const availableQuantity = available ? available.quantity : 0;
