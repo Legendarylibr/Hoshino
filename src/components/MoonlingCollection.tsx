@@ -19,28 +19,15 @@ const getImageSource = (imageName: string) => {
     }
 };
 
-interface Character {
-    id: string;
-    name: string;
-    description: string;
-    image: string;
-    element: string;
-    baseStats: {
-        mood: number;
-        hunger: number;
-        energy: number;
-    };
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-    specialAbility: string;
-    nftMint?: string | null;
-}
+// Using Character interface from GameTypes.ts
+import { Character, ItemRarity } from '../types/GameTypes';
 
 interface InventoryItem {
     id: string;
     name: string;
     description: string;
     type: 'ingredient' | 'accessory' | 'special' | 'casing';
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+    rarity: ItemRarity;
     quantity: number;
     icon: string;
 }
@@ -69,25 +56,25 @@ const MoonlingCollection: React.FC<Props> = ({
     // Sample inventory data with actual images
     const inventoryData: Record<string, InventoryItem[]> = {
         'Ingredients': [
-            { id: 'star_dust', name: 'Star Dust', description: 'Magical dust from distant stars. Boosts mood when used in food.', type: 'ingredient', rarity: 'Common', quantity: 5, icon: '/glitter.png' },
-            { id: 'moon_berries', name: 'Moon Berries', description: 'Sweet berries that glow in the dark. Increases energy significantly.', type: 'ingredient', rarity: 'Rare', quantity: 3, icon: '/apple_collour_.webp' },
-            { id: 'stellar_honey', name: 'Stellar Honey', description: 'Golden honey infused with stellar energy. Restores all stats.', type: 'ingredient', rarity: 'Epic', quantity: 1, icon: '/chunky_bubbly_2.webp' },
-            { id: 'nebula_spice', name: 'Nebula Spice', description: 'Exotic spice that adds flavor and magic to any dish.', type: 'ingredient', rarity: 'Legendary', quantity: 1, icon: '/miau.webp' }
+            { id: 'star_dust', name: 'Star Dust', description: 'Magical dust from distant stars. Boosts mood when used in food.', type: 'ingredient', rarity: 'common', quantity: 5, icon: '/glitter.png' },
+            { id: 'moon_berries', name: 'Moon Berries', description: 'Sweet berries that glow in the dark. Increases energy significantly.', type: 'ingredient', rarity: 'rare', quantity: 3, icon: '/apple_collour_.webp' },
+            { id: 'stellar_honey', name: 'Stellar Honey', description: 'Golden honey infused with stellar energy. Restores all stats.', type: 'ingredient', rarity: 'epic', quantity: 1, icon: '/chunky_bubbly_2.webp' },
+            { id: 'nebula_spice', name: 'Nebula Spice', description: 'Exotic spice that adds flavor and magic to any dish.', type: 'ingredient', rarity: 'legendary', quantity: 1, icon: '/miau.webp' }
         ],
         'Accessories': [
-            { id: 'star_crown', name: 'Star Crown', description: 'A beautiful crown that makes your moonling sparkle in the moonlight.', type: 'accessory', rarity: 'Rare', quantity: 1, icon: '/hoshino star.png' },
-            { id: 'stellar_scarf', name: 'Stellar Scarf', description: 'A warm scarf woven from stardust threads.', type: 'accessory', rarity: 'Common', quantity: 2, icon: '/backpack_.webp' },
-            { id: 'galaxy_collar', name: 'Galaxy Collar', description: 'A collar that shows swirling galaxies within.', type: 'accessory', rarity: 'Epic', quantity: 1, icon: '/io.webp' }
+            { id: 'star_crown', name: 'Star Crown', description: 'A beautiful crown that makes your moonling sparkle in the moonlight.', type: 'accessory', rarity: 'rare', quantity: 1, icon: '/hoshino star.png' },
+            { id: 'stellar_scarf', name: 'Stellar Scarf', description: 'A warm scarf woven from stardust threads.', type: 'accessory', rarity: 'common', quantity: 2, icon: '/backpack_.webp' },
+            { id: 'galaxy_collar', name: 'Galaxy Collar', description: 'A collar that shows swirling galaxies within.', type: 'accessory', rarity: 'epic', quantity: 1, icon: '/io.webp' }
         ],
         'Special Items': [
-            { id: 'moon_crystal', name: 'Moon Crystal', description: 'A rare crystal that can reset your moonling\'s evolution path.', type: 'special', rarity: 'Legendary', quantity: 1, icon: '/null-11.webp' },
-            { id: 'star_fragment', name: 'Star Fragment', description: 'A piece of a fallen star. Can be used for special rituals.', type: 'special', rarity: 'Epic', quantity: 2, icon: '/games.webp' },
-            { id: 'stellar_potion', name: 'Stellar Potion', description: 'A mysterious potion with unknown effects.', type: 'special', rarity: 'Rare', quantity: 1, icon: '/sleepzzzz.webp' }
+            { id: 'moon_crystal', name: 'Moon Crystal', description: 'A rare crystal that can reset your moonling\'s evolution path.', type: 'special', rarity: 'legendary', quantity: 1, icon: '/null-11.webp' },
+            { id: 'star_fragment', name: 'Star Fragment', description: 'A piece of a fallen star. Can be used for special rituals.', type: 'special', rarity: 'epic', quantity: 2, icon: '/games.webp' },
+            { id: 'stellar_potion', name: 'Stellar Potion', description: 'A mysterious potion with unknown effects.', type: 'special', rarity: 'rare', quantity: 1, icon: '/sleepzzzz.webp' }
         ],
         'Casing': [
-            { id: 'galaxy_shell', name: 'Galaxy Shell', description: 'A beautiful shell that changes your device\'s appearance to show galaxies.', type: 'casing', rarity: 'Epic', quantity: 1, icon: '/shop.webp' },
-            { id: 'star_frame', name: 'Star Frame', description: 'A golden frame decorated with tiny stars.', type: 'casing', rarity: 'Rare', quantity: 1, icon: '/gallery_.png' },
-            { id: 'stellar_border', name: 'Stellar Border', description: 'A shimmering border that pulses with stellar energy.', type: 'casing', rarity: 'Common', quantity: 3, icon: '/chat.webp' }
+            { id: 'galaxy_shell', name: 'Galaxy Shell', description: 'A beautiful shell that changes your device\'s appearance to show galaxies.', type: 'casing', rarity: 'epic', quantity: 1, icon: '/shop.webp' },
+            { id: 'star_frame', name: 'Star Frame', description: 'A golden frame decorated with tiny stars.', type: 'casing', rarity: 'rare', quantity: 1, icon: '/gallery_.png' },
+            { id: 'stellar_border', name: 'Stellar Border', description: 'A shimmering border that pulses with stellar energy.', type: 'casing', rarity: 'common', quantity: 3, icon: '/chat.webp' }
         ]
     };
 
@@ -440,7 +427,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
         backgroundColor: '#d4f5c4', // Light minty green
         borderWidth: 0, // Remove CSS border
         borderRadius: 0, // Remove smooth corners
@@ -490,7 +476,6 @@ const styles = StyleSheet.create({
     statsBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginBottom: 12,
         backgroundColor: '#d4f5c4',
         borderRadius: 0, // No smooth corners
         paddingVertical: 8,
@@ -943,15 +928,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#b8d4b8', // Light shadow
         zIndex: -1,
     },
-    containerShadow: {
-        position: 'absolute',
-        top: 2,
-        right: -2,
-        bottom: -2,
-        width: 2,
-        backgroundColor: '#c8e4c8', // Very light shadow
-        zIndex: -1,
-    },
+    // Removed duplicate containerShadow
     slotWrapper: {
         position: 'relative',
     },

@@ -96,7 +96,8 @@ export interface Character {
     name: string;
     description: string;
     image: string;
-    rarity?: ItemRarity;
+    element: string; // Required element property
+    rarity: ItemRarity; // Make rarity required
     nftMint?: string | null;
     baseStats?: {
         mood: number;

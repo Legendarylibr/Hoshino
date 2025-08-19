@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import MarketplaceService, { MarketplaceItem, ItemCategory, ItemRarity } from '../services/MarketplaceService';
+import { MarketplaceService, MarketplaceItem, ItemCategory, ItemRarity } from '../services/MarketplaceService';
 
 import { GlobalPointSystem } from '../services/GlobalPointSystem';
 import { useWallet } from '../contexts/WalletContext';
@@ -19,7 +19,7 @@ interface ShopProps {
 }
 
 const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItemsPurchased }) => {
-    const { wallet } = useWallet();
+    const { connected, publicKey } = useWallet();
     const [selectedCategory, setSelectedCategory] = useState<string>('food');
     const [items, setItems] = useState<MarketplaceItem[]>([]);
     const [dust, setDust] = useState<number>(100);
@@ -214,7 +214,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
 
     const handleStarDustPurchase = async (packageId: string, priceSOL: number) => {
         try {
-            if (!wallet) {
+            if (!connected || !publicKey) {
                 onNotification?.('Please connect your wallet first', 'error');
                 return;
             }
@@ -226,7 +226,7 @@ const Shop: React.FC<ShopProps> = ({ connection, onNotification, onClose, onItem
                 body: JSON.stringify({
                     packageId,
                     priceSOL,
-                    walletAddress: wallet.publicKey.toString(),
+                    walletAddress: publicKey.toString(),
                     timestamp: Date.now(),
                     status: 'pending'
                 })

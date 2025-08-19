@@ -1,255 +1,284 @@
-# Hoshino Backend Deployment Guide
+# 🚀 Hoshino Backend Deployment Guide
 
-This guide covers deploying the enhanced Hoshino backend with global data functionality.
+## Overview
+This guide covers deploying the secured Hoshino Firebase Functions backend to production.
 
-## Prerequisites
+## 🔒 Pre-Deployment Security Checklist
 
-- Firebase CLI installed and authenticated
-- Node.js 18+ installed
-- Firebase project created
+### 1. Environment Variables
+Set these environment variables in Firebase Functions:
 
-## Quick Deployment
+```bash
+# Required for production
+NODE_ENV=production
+JWT_SECRET=your-super-secure-jwt-secret-here
+SHOW_ERROR_DETAILS=false
+ENABLE_STACK_TRACES=false
 
-### 1. Install Dependencies
+# Security configuration
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_WINDOW_MS=60000
+
+# CORS configuration
+ALLOWED_ORIGINS=https://hoshino-996d0.web.app,https://hoshino-996d0.firebaseapp.com
+
+# Performance configuration
+MAX_BATCH_SIZE=500
+CONNECTION_POOL_SIZE=10
+```
+
+### 2. Firebase Project Configuration
+```bash
+# Set your project
+firebase use hoshino-996d0
+
+# Verify project settings
+firebase projects:list
+```
+
+### 3. Security Rules Verification
+Ensure Firestore rules are properly configured:
+```javascript
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User data isolation
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Public leaderboard (read-only)
+    match /leaderboard/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Performance metrics (backend only)
+    match /performance_metrics/{metricId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+```
+
+## 🚀 Deployment Steps
+
+### Step 1: Build and Deploy Functions
 ```bash
 cd backend/firebase/functions
+
+# Install dependencies
 npm install
-```
 
-### 2. Deploy Functions
-```bash
-cd backend/firebase
+# Build TypeScript (if using)
+npm run build
+
+# Deploy to Firebase
 firebase deploy --only functions
 ```
 
-### 3. Deploy Firestore Rules
-```bash
-firebase deploy --only firestore:rules
-```
-
-### 4. Deploy Firestore Indexes
-```bash
-firebase deploy --only firestore:indexes
-```
-
-## Detailed Deployment Steps
-
-### Step 1: Environment Setup
-```bash
-# Set OpenAI API key
-firebase functions:config:set openai.key="your_openai_api_key_here"
-
-# Set OpenAI model
-firebase functions:config:set openai.model="gpt-4"
-
-# Set OpenAI max tokens
-firebase functions:config:set openai.max_tokens="150"
-```
-
-### Step 2: Install Dependencies
-```bash
-cd backend/firebase/functions
-npm install firebase-admin firebase-functions
-```
-
-### Step 3: Deploy Functions
-```bash
-cd backend/firebase
-firebase deploy --only functions
-```
-
-### Step 4: Verify Deployment
+### Step 2: Verify Deployment
 ```bash
 # Check function status
 firebase functions:list
 
 # Test health endpoint
-curl https://us-central1-your-project.cloudfunctions.net/health
+curl -H "Authorization: Bearer YOUR_TEST_TOKEN" \
+  https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalDataHealth
 ```
 
-## New Backend Functions
+### Step 3: Update Frontend Configuration
+Ensure your frontend is using the correct Firebase Functions URLs:
 
-The following new functions are now available:
+```typescript
+// src/config/firebase.ts
+export const getFunctionUrl = (functionName: string) => {
+  const projectId = 'hoshino-996d0';
+  const region = 'us-central1';
+  return `https://${region}-${projectId}.cloudfunctions.net/${functionName}`;
+};
+```
 
-### Global Data Functions
-- `getGlobalLeaderboard` - Fetch global player rankings
-- `getUserAchievements` - Get user progress data
-- `updateUserProgress` - Update user statistics
-- `unlockAchievement` - Unlock new achievements
-- `addMilestone` - Add user milestones
-- `addMemory` - Add user memories
+## 🔍 Post-Deployment Testing
 
-### Existing Functions
-- `chat` - AI chat with moonlings
-- `getConversation` - Get chat history
-- `generateNFTTransaction` - Solana NFT operations
-- `processStarDustPurchase` - Currency transactions
-
-## Firestore Collections
-
-The following collections will be created automatically:
-
-### `users/{walletAddress}`
-- User profiles and progress data
-- Total scores, achievements, moonlings
-- Star fragments and streak information
-
-### `user_achievements/{walletAddress}`
-- Individual user achievements
-- Milestones and memories
-- Progress statistics
-
-### `leaderboard/{walletAddress}`
-- Global leaderboard entries
-- Publicly readable rankings
-- User-writable own data
-
-### `conversations/{conversationId}`
-- Chat conversation history
-- User-specific access control
-
-## Security Rules
-
-Updated Firestore rules provide:
-- Public read access to leaderboards
-- User-specific write access to own data
-- Secure conversation storage
-- Achievement data protection
-
-## Testing the Backend
-
-### 1. Test Health Endpoint
+### 1. Security Tests
 ```bash
-curl https://us-central1-your-project.cloudfunctions.net/health
+# Test authentication
+curl -H "Authorization: Bearer invalid-token" \
+  https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalLeaderboard
+
+# Expected: 401 Unauthorized
 ```
 
-### 2. Test Global Leaderboard
+### 2. Rate Limiting Tests
 ```bash
-curl https://us-central1-your-project.cloudfunctions.net/getGlobalLeaderboard
+# Test rate limiting
+for i in {1..101}; do
+  curl -H "Authorization: Bearer YOUR_VALID_TOKEN" \
+    https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalLeaderboard
+done
+
+# Expected: 429 Too Many Requests after 100 requests
 ```
 
-### 3. Test User Progress (requires wallet address)
+### 3. CORS Tests
 ```bash
-curl "https://us-central1-your-project.cloudfunctions.net/getUserAchievements?walletAddress=0x1234...5678"
+# Test CORS with allowed origin
+curl -H "Origin: https://hoshino-996d0.web.app" \
+  -H "Authorization: Bearer YOUR_VALID_TOKEN" \
+  https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalLeaderboard
+
+# Expected: 200 OK with proper CORS headers
 ```
 
-## Monitoring and Logs
+## 📊 Monitoring and Logging
 
-### View Function Logs
+### 1. Firebase Console Monitoring
+- **Functions**: Monitor execution times and errors
+- **Logs**: Check for security violations
+- **Performance**: Monitor rate limiting and authentication failures
+
+### 2. Custom Metrics
+The backend automatically tracks:
+- Request performance metrics
+- Authentication failures
+- Rate limiting violations
+- Input sanitization issues
+
+### 3. Alerting Setup
+Set up alerts for:
+- High error rates (>5%)
+- Authentication failures (>10%)
+- Rate limiting violations (>50 per minute)
+
+## 🚨 Security Incident Response
+
+### 1. Immediate Actions
 ```bash
-firebase functions:log
+# If JWT secret is compromised
+firebase functions:config:set jwt.secret="NEW_SECRET"
+
+# If under attack, reduce rate limits
+firebase functions:config:set rate.limit_max_requests=50
+
+# Redeploy functions
+firebase deploy --only functions
 ```
 
-### Monitor Performance
-- Firebase Console > Functions > Monitoring
-- Check execution times and error rates
-- Monitor Firestore read/write operations
+### 2. Monitoring Suspicious Activity
+```bash
+# Check recent logs
+firebase functions:log --only getGlobalLeaderboard
 
-## Troubleshooting
+# Look for patterns:
+# - Multiple failed auth attempts
+# - Rate limit violations
+# - Unusual IP addresses
+```
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### 1. Function Deployment Fails
+#### 1. Authentication Failures
 ```bash
-# Check Node.js version
-node --version  # Should be 18+
-
-# Clear npm cache
-npm cache clean --force
-
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
+# Check JWT token format
+# Ensure frontend is sending: Authorization: Bearer <token>
+# Verify Firebase Auth is properly configured
 ```
 
-#### 2. Firestore Rules Deployment Fails
+#### 2. CORS Errors
 ```bash
-# Validate rules syntax
-firebase deploy --only firestore:rules --dry-run
+# Verify ALLOWED_ORIGINS includes your domain
+# Check that frontend origin matches exactly
+# Ensure preflight OPTIONS requests are handled
 ```
 
-#### 3. Functions Not Responding
+#### 3. Rate Limiting Issues
 ```bash
-# Check function status
-firebase functions:list
-
-# View logs
-firebase functions:log --only functionName
+# Check RATE_LIMIT_MAX_REQUESTS setting
+# Verify client is sending X-Client-ID header
+# Monitor for legitimate high-traffic scenarios
 ```
 
-### Performance Optimization
-
-#### 1. Cold Start Reduction
-- Use Firebase Functions v2
-- Implement connection pooling
-- Cache frequently accessed data
-
-#### 2. Firestore Optimization
-- Use composite indexes for complex queries
-- Implement pagination for large datasets
-- Use batch operations for multiple writes
-
-## Cost Management
-
-### Firebase Functions Pricing
-- **Free Tier**: 2M invocations/month
-- **Paid Tier**: $0.40 per million invocations
-
-### Firestore Pricing
-- **Free Tier**: 50K reads, 20K writes/month
-- **Paid Tier**: $0.06 per 100K reads, $0.18 per 100K writes
-
-### OpenAI API Pricing
-- **GPT-4**: $0.03 per 1K input tokens, $0.06 per 1K output tokens
-- **GPT-3.5**: $0.0015 per 1K input tokens, $0.002 per 1K output tokens
-
-## Scaling Considerations
-
-### Horizontal Scaling
-- Firebase Functions automatically scale
-- Firestore handles concurrent connections
-- Consider regional deployment for global users
-
-### Vertical Scaling
-- Optimize function execution time
-- Implement efficient data structures
-- Use appropriate Firestore indexes
-
-## Backup and Recovery
-
-### Data Backup
+### Debug Mode
+For development, you can temporarily enable debug mode:
 ```bash
-# Export Firestore data
-firebase firestore:export backup-folder
-
-# Import Firestore data
-firebase firestore:import backup-folder
+firebase functions:config:set debug.enabled=true
+firebase functions:config:set debug.show_error_details=true
 ```
 
-### Function Backup
-- Source code in version control
-- Configuration in Firebase Console
-- Environment variables documented
+**⚠️ Remember to disable debug mode in production!**
 
-## Support and Maintenance
+## 📈 Performance Optimization
 
-### Regular Maintenance
-- Monitor function performance
-- Review Firestore usage patterns
-- Update dependencies regularly
-- Check security rules compliance
+### 1. Connection Pooling
+The backend automatically manages Firestore connections:
+- Pool size: 10 connections (configurable)
+- Automatic cleanup on function termination
+- Connection reuse across requests
 
-### Emergency Procedures
-- Rollback to previous function version
-- Restore Firestore from backup
-- Contact Firebase support if needed
+### 2. Batch Operations
+Large updates use Firestore batch operations:
+- Maximum batch size: 500 operations
+- Automatic batching for bulk updates
+- Transaction support for critical operations
 
-## Next Steps
+### 3. Caching Strategy
+- Firestore client-side caching enabled
+- Performance metrics cached in memory
+- Rate limit data cached per function instance
 
-After successful deployment:
+## 🔄 Update and Maintenance
 
-1. **Test Integration**: Verify frontend connects to new endpoints
-2. **Monitor Performance**: Watch function execution times and costs
-3. **User Testing**: Test with real user data and scenarios
-4. **Optimization**: Implement performance improvements based on usage
-5. **Scaling**: Plan for increased user load and data volume
+### 1. Regular Updates
+```bash
+# Update dependencies monthly
+npm update
+
+# Check for security vulnerabilities
+npm audit
+
+# Test locally before deploying
+npm run test:security
+```
+
+### 2. Backup Strategy
+- Firestore data automatically backed up
+- Function code versioned in Git
+- Configuration backed up in Firebase Console
+
+### 3. Rollback Plan
+```bash
+# Rollback to previous version
+firebase functions:rollback
+
+# Or deploy specific version
+firebase deploy --only functions --project hoshino-996d0
+```
+
+## 📞 Support and Resources
+
+### Documentation
+- [Firebase Functions Documentation](https://firebase.google.com/docs/functions)
+- [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
+- [This Security Guide](./SECURITY.md)
+
+### Monitoring Tools
+- Firebase Console
+- Firebase CLI
+- Custom security test scripts
+
+### Emergency Contacts
+- **Security Issues**: [Your Security Contact]
+- **Deployment Issues**: [Your DevOps Contact]
+- **Firebase Support**: [Firebase Support Portal]
+
+---
+
+**Last Updated**: [Current Date]
+**Deployment Status**: Production Ready
+**Security Level**: Enterprise Grade
+**Review Schedule**: Monthly

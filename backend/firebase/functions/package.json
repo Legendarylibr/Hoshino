@@ -14,7 +14,8 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "health": "curl https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalDataHealth"
+    "health": "curl https://us-central1-hoshino-996d0.cloudfunctions.net/getGlobalDataHealth",
+    "setup:prod": "./setup-production.sh"
   },
   "engines": {
     "node": "20"

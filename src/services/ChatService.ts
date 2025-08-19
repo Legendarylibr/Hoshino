@@ -1,26 +1,35 @@
 import { Platform } from 'react-native';
 import { getFunctionUrl } from '../config/firebase';
+import { getAuth } from 'firebase/auth';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  timestamp: string;
-  moonlingId: string;
+  timestamp: Date;
 }
 
-interface ChatResponse {
-  success: boolean;
-  message: string;
-  moonlingName: string;
-  conversationId: string;
-  timestamp: string;
-}
-
-interface ConversationData {
-  userId: string;
-  moonlingId: string;
+interface Conversation {
+  id: string;
   messages: ChatMessage[];
-  lastUpdated: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Helper function to get authentication headers
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
+  const token = await user.getIdToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'X-Client-ID': 'hoshino-mobile-app'
+  };
 }
 
 class ChatService {
@@ -41,7 +50,7 @@ class ChatService {
     
     const defaultOptions: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        ...await getAuthHeaders(),
         ...options.headers,
       },
       ...options,
@@ -66,7 +75,7 @@ class ChatService {
     message: string, 
     moonlingId: string, 
     conversationId?: string
-  ): Promise<ChatResponse> {
+  ): Promise<any> {
     if (!this.userId) {
       throw new Error('User ID not set. Call setUserId() first.');
     }
@@ -84,7 +93,7 @@ class ChatService {
     });
   }
 
-  async getConversation(conversationId: string): Promise<ConversationData> {
+  async getConversation(conversationId: string): Promise<Conversation> {
     if (!this.userId) {
       throw new Error('User ID not set. Call setUserId() first.');
     }
@@ -141,8 +150,7 @@ class ChatService {
       id: `${msg.timestamp}-${msg.role}`,
       text: msg.content,
       isUser: msg.role === 'user',
-      timestamp: new Date(msg.timestamp),
-      moonlingId: msg.moonlingId
+      timestamp: new Date(msg.timestamp)
     }));
   }
 }
@@ -151,4 +159,4 @@ class ChatService {
 const chatService = new ChatService();
 
 export default chatService;
-export type { ChatMessage, ChatResponse, ConversationData }; 
+export type { ChatMessage, Conversation }; 

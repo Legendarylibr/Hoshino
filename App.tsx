@@ -33,22 +33,7 @@ import { useProgrammableNFT } from './src/hooks/useProgrammableNFT';
 // New services and configs
 import { LocalGameEngine } from './src/services/local/LocalGameEngine';
 import { getAsset } from './src/config/AssetRegistry';
-
-interface Character {
-    id: string;
-    name: string;
-    description: string;
-    image: string;
-
-    rarity?: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-    nftMint?: string | null;
-    baseStats?: {
-        mood: number;
-        hunger: number;
-        energy: number;
-    };
-    specialAbility?: string;
-}
+import { Character } from './src/types/GameTypes';
 
 const RPC_URL = 'https://api.devnet.solana.com';
 const connection = new Connection(RPC_URL, 'confirmed');
@@ -105,8 +90,8 @@ function App() {
 
     // NEW: Programmable NFT Integration
     const {
-        quickMintCharacter,
-        quickMintAchievement,
+        mintCharacterNFT,
+        mintAchievementNFT,
         connected: nftConnected,
         connectWallet: connectNFTWallet,
         disconnect: disconnectNFTWallet,
@@ -308,7 +293,7 @@ function App() {
             }
 
             // Mint NFT using existing IPFS CID from AssetRegistry
-            const result = await mintCharacterNFT(selectedCharacter, asset.ipfsHash);
+            const result = await mintCharacterNFT(selectedCharacter as any, asset.ipfsHash);
             
             if (!result.success) {
                 throw new Error(result.error || 'Minting failed');
@@ -595,15 +580,9 @@ function App() {
                                 navigateToView(previousView);
                             }
                         }}
-                        onSelectCharacter={handleCharacterSelect}
-                        onFeed={() => setCurrentView('feeding')}
-                        onChat={() => setCurrentView('chat')}
-                        onGame={() => setCurrentView('game')}
-                        ownedCharacters={ownedCharacters}
-                        connection={connection}
-                        playerName={playerName}
+
                         onNotification={addNotification}
-                        onViewCollection={() => setCurrentView('collection')}
+
                         onGoToCongratulations={handleGoToCongratulations}
                     />
                 );
@@ -616,8 +595,9 @@ function App() {
                                 name: 'Lyra',
                                 description: 'Anime-obsessed celestial maiden who knows every existing anime.',
                                 image: 'LYRA.png',
+                                element: 'Light',
+                                rarity: 'common',
                                 baseStats: { mood: 4, hunger: 3, energy: 3 },
-                                rarity: 'Common',
                                 specialAbility: 'Healing Aura - Recovers faster when resting',
                                 nftMint: ownedCharacters.includes('lyra') ? 'mint_address_lyra' : null
                             },
@@ -626,8 +606,9 @@ function App() {
                                 name: 'Orion',
                                 description: 'Mystical guardian with moon and stars',
                                 image: 'ORION.png',
+                                element: 'Dark',
+                                rarity: 'rare',
                                 baseStats: { mood: 3, hunger: 4, energy: 3 },
-                                rarity: 'Rare',
                                 specialAbility: 'Night Vision - Gains energy during nighttime',
                                 nftMint: ownedCharacters.includes('orion') ? 'mint_address_orion' : null
                             },
@@ -636,8 +617,9 @@ function App() {
                                 name: 'Aro',
                                 description: 'Bright guardian full of celestial energy',
                                 image: 'ARO.png',
+                                element: 'Fire',
+                                rarity: 'epic',
                                 baseStats: { mood: 5, hunger: 2, energy: 3 },
-                                rarity: 'Epic',
                                 specialAbility: 'Star Power - Mood boosts last longer',
                                 nftMint: ownedCharacters.includes('aro') ? 'mint_address_aro' : null
                             },
@@ -646,8 +628,9 @@ function App() {
                                 name: 'Sirius',
                                 description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
                                 image: 'SIRIUS.png',
+                                element: 'Lightning',
+                                rarity: 'legendary',
                                 baseStats: { mood: 5, hunger: 3, energy: 4 },
-                                rarity: 'Legendary',
                                 specialAbility: 'Stellar Radiance - Boosts all stats when mood is at maximum',
                                 nftMint: ownedCharacters.includes('sirius') ? 'mint_address_sirius' : null
                             },
@@ -656,8 +639,9 @@ function App() {
                                 name: 'Zaniah',
                                 description: 'Mysterious entity with ethereal presence. Zaniah embodies the essence of distant stars and ancient wisdom. Quiet and contemplative, but harbors immense power within.',
                                 image: 'ZANIAH.png',
+                                element: 'Cosmic',
+                                rarity: 'legendary',
                                 baseStats: { mood: 4, hunger: 3, energy: 5 },
-                                rarity: 'Legendary',
                                 specialAbility: 'Stellar Resonance - Amplifies all abilities during stellar events',
                                 nftMint: ownedCharacters.includes('zaniah') ? 'mint_address_zaniah' : null
                             }
@@ -697,37 +681,7 @@ function App() {
                         shouldFadeIn={shouldFadeInInteraction}
                         onFadeInComplete={() => setShouldFadeInInteraction(false)}
                         onMintAchievements={mintAchievementNFTs}
-                        onMint={() => {
-                            console.log('🎫 Mint button clicked!', {
-                                selectedCharacter: selectedCharacter?.name,
-                                hasNftMint: !!selectedCharacter?.nftMint,
-                                connected,
-                                walletPublicKey: publicKey?.toString()
-                            });
 
-                            if (!selectedCharacter) {
-                                addNotification('❌ Please select a character first', 'error');
-                                return;
-                            }
-
-                            if (selectedCharacter.nftMint) {
-                                addNotification('❌ Character already minted as NFT', 'warning');
-                                return;
-                            }
-
-                            if (!connected) {
-                                addNotification('❌ Please connect your wallet first', 'error');
-                                return;
-                            }
-
-                            addNotification(
-                                `🎭 Preparing to mint ${selectedCharacter.name} as NFT! Your wallet will popup to approve the transaction...`,
-                                'info',
-                                3000
-                            );
-
-                            handleMintCharacter();
-                        }}
                     />
                 );
             case 'feeding':
@@ -788,8 +742,9 @@ function App() {
                                 name: 'Lyra',
                                 description: 'Anime-obsessed celestial maiden who knows every existing anime. Has a secret soft spot for Orion but would NEVER admit it. Very comprehensive when chatting, but turns into an exaggerated crying mess (Misa from Death Note style) if ignored. Lowkey jealous of you sentimentally but in a funny way. When angry, becomes irritable like someone with hormonal imbalance and will roast you. When sad, has existential crises.',
                                 image: 'LYRA.png',
+                                element: 'Light',
+                                rarity: 'common',
                                 baseStats: { mood: 4, hunger: 3, energy: 3 },
-                                rarity: 'Common',
                                 specialAbility: 'Healing Aura - Recovers faster when resting',
                                 nftMint: ownedCharacters.includes('lyra') ? 'mint_address_lyra' : null
                             },
@@ -798,8 +753,9 @@ function App() {
                                 name: 'Orion',
                                 description: 'Mystical guardian with moon and stars',
                                 image: 'ORION.png',
+                                element: 'Dark',
+                                rarity: 'rare',
                                 baseStats: { mood: 3, hunger: 4, energy: 3 },
-                                rarity: 'Rare',
                                 specialAbility: 'Night Vision - Gains energy during nighttime',
                                 nftMint: ownedCharacters.includes('orion') ? 'mint_address_orion' : null
                             },
@@ -808,8 +764,9 @@ function App() {
                                 name: 'Aro',
                                 description: 'Bright guardian full of celestial energy',
                                 image: 'ARO.png',
+                                element: 'Fire',
+                                rarity: 'epic',
                                 baseStats: { mood: 5, hunger: 2, energy: 3 },
-                                rarity: 'Epic',
                                 specialAbility: 'Star Power - Mood boosts last longer',
                                 nftMint: ownedCharacters.includes('aro') ? 'mint_address_aro' : null
                             },
@@ -818,8 +775,9 @@ function App() {
                                 name: 'Sirius',
                                 description: 'The brightest star guardian with unmatched luminosity. Known as the Dog Star, Sirius is fiercely loyal and radiates powerful stellar energy. Has an intense, focused personality and never backs down from a challenge.',
                                 image: 'SIRIUS.png',
+                                element: 'Lightning',
+                                rarity: 'legendary',
                                 baseStats: { mood: 5, hunger: 3, energy: 4 },
-                                rarity: 'Legendary',
                                 specialAbility: 'Stellar Radiance - Boosts all stats when mood is at maximum',
                                 nftMint: ownedCharacters.includes('sirius') ? 'mint_address_sirius' : null
                             }

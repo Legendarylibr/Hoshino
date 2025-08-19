@@ -16,6 +16,7 @@ import WalletButton from './WalletButton';
 // NEW: Programmable NFT Integration
 import { useProgrammableNFT } from '../hooks/useProgrammableNFT';
 import { getAsset } from '../config/AssetRegistry';
+import { Character, ItemRarity } from '../types/GameTypes';
 
 
 // Helper function to get image source based on character image name
@@ -38,12 +39,7 @@ const getImageSource = (imageName: string) => {
 
 
 
-interface Character {
-    id: string;
-    name: string;
-    description: string;
-    image: string;
-}
+// Using Character interface from GameTypes.ts
 
 interface Props {
     onBack: () => void;
@@ -56,31 +52,41 @@ const CHARACTERS: Character[] = [
         id: 'lyra',
         name: 'Lyra',
         description: 'Lyra lives for attention, anime, and being just a little unhinged. She\'ll flirt, cry, and roast you in the same breath. Don\'t leave her on read — ever.',
-        image: 'LYRA.gif'
+        image: 'LYRA.gif',
+        element: 'Light',
+        rarity: 'rare'
     },
     {
         id: 'orion',
         name: 'Orion',
         description: 'A dramatic starboy with too many feelings and a quiet grudge. Sometimes you\'ll catch him in a corner, blasting Lil Peep like it\'s a coping mechanism. Don\'t ask, he won\'t tell.',
-        image: 'ORION.gif'
+        image: 'ORION.gif',
+        element: 'Dark',
+        rarity: 'epic'
     },
     {
         id: 'aro',
         name: 'Aro',
         description: 'A chaotic little menace. Loud, unhinged, and always ready to play. Share a secret and he\'ll turn it into his favorite joke for weeks.',
-        image: 'ARO.gif'
+        image: 'ARO.gif',
+        element: 'Fire',
+        rarity: 'legendary'
     },
     {
         id: 'sirius',
         name: 'Sirius',
         description: 'A robot cat who thinks he\'s hilarious. Loves making dad jokes about AI and insists you call him "Hey Sirius". But don\'t worry, he\'s still learning emotions… kind of.',
-        image: 'SIRIUS.gif'
+        image: 'SIRIUS.gif',
+        element: 'Lightning',
+        rarity: 'uncommon'
     },
     {
         id: 'zaniah',
         name: 'Zaniah',
         description: 'If she\'s moody, don\'t ask — it\'s either Mercury retrograde or you\'re a Scorpio. Or both. Let her vibe it out, she\'s in her healing era.',
-        image: 'ZANIAH.gif'
+        image: 'ZANIAH.gif',
+        element: 'Cosmic',
+        rarity: 'common'
     }
 ];
 
@@ -256,7 +262,9 @@ const MoonlingSelection: React.FC<Props> = ({
             
             // Map local Character to GameCharacter format for pNFT minting
             const gameCharacter = {
-                ...character
+                ...character,
+                element: character.element || 'Light', // Default element if missing
+                rarity: (character.rarity || 'common') as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' // Default rarity if missing
             };
             
             const result = await mintCharacterNFT(gameCharacter, asset.ipfsHash);

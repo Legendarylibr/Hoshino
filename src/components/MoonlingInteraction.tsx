@@ -12,7 +12,8 @@ import Settings from './Settings';
 import Frame from './Frame';
 import { useWallet } from '../contexts/WalletContext';
 import { StatDecayService, MoodState } from '../services/StatDecayService';
-import { LocalGameEngine, GameStats } from '../services/local/LocalGameEngine';
+import { LocalGameEngine } from '../services/local/LocalGameEngine';
+import { MoonlingStats, Character } from '../types/GameTypes';
 import SettingsService, { MenuButton } from '../services/SettingsService';
 import SleepOverlay from './SleepOverlay';
 
@@ -37,13 +38,7 @@ const getImageSource = (imageName: string) => {
     }
 };
 
-interface Character {
-    id: string;
-    name: string;
-    description: string;
-    image: string;
-    nftMint?: string | null;
-}
+// Using Character interface from GameTypes.ts
 
 interface Props {
     selectedCharacter: Character | null;
@@ -62,6 +57,7 @@ interface Props {
     onChat?: () => void;
     onBack?: () => void;
     onSettings?: () => void;
+    onMintAchievements?: () => void; // Add missing prop
     // ✅ New props for local game engine
     localGameEngine?: LocalGameEngine | null;
     // Transition animation control
@@ -86,14 +82,15 @@ const MoonlingInteraction: React.FC<Props> = ({
     onChat,
     onBack,
     onSettings,
+    onMintAchievements,
     // ✅ New props
     localGameEngine,
     shouldFadeIn = false,
     onFadeInComplete
 }) => {
     const { connected: walletConnected, publicKey, connect, disconnect } = useWallet();
-    // ✅ Use GameStats from LocalGameEngine instead of simple stats
-    const [currentStats, setCurrentStats] = useState<GameStats>({
+    // ✅ Use MoonlingStats from GameTypes instead of simple stats
+    const [currentStats, setCurrentStats] = useState<MoonlingStats>({
         mood: 3,
         hunger: 2,
         energy: 4,
@@ -102,7 +99,13 @@ const MoonlingInteraction: React.FC<Props> = ({
         totalSleeps: 0,
         lastPlayed: Date.now(),
         level: 1,
-        experience: 0
+        experience: 0,
+        dailyStreak: 0,
+        lastDailyCheck: new Date().toISOString().split('T')[0],
+        moodEvents: 0,
+        specialInteractions: 0,
+        careQuality: 50,
+        attentionScore: 50
     });
     const [moodState, setMoodState] = useState<MoodState | null>(null);
     const [statDecayService] = useState(() => new StatDecayService());
@@ -488,6 +491,7 @@ const MoonlingInteraction: React.FC<Props> = ({
                 onCraftFood={handleCraftFood}
                 onNotification={onNotification}
                 walletAddress={walletAddress}
+                purchasedIngredients={[]} // Add empty array for now
             />
         );
     }

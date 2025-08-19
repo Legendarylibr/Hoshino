@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-
-interface Character {
-    id: string;
-    name: string;
-    image: string;
-    element: string;
-}
+import { Character } from '../types/GameTypes';
 
 interface Props {
     character: Character;

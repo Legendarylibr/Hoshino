@@ -37,6 +37,134 @@ try {
   }
 }
 
+// JWT Authentication Middleware
+function authenticateRequest(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    admin.auth().verifyIdToken(token)
+      .then((decodedToken) => {
+        req.user = decodedToken;
+        next();
+      })
+      .catch((error) => {
+        console.error('Token verification failed:', error);
+        res.status(401).json({
+          success: false,
+          error: 'Invalid authentication token',
+          code: 'INVALID_TOKEN'
+        });
+      });
+  } catch (error) {
+    console.error('Authentication middleware error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Authentication service error',
+      code: 'AUTH_ERROR'
+    });
+  }
+}
+
+// Rate Limiting Middleware
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = config.rateLimitWindowMs; // Configurable window
+const MAX_REQUESTS_PER_WINDOW = config.rateLimitMaxRequests; // Configurable limit
+
+function rateLimitRequest(req, res, next) {
+  const clientId = req.headers['x-client-id'] || req.ip || 'unknown';
+  const now = Date.now();
+  
+  if (!rateLimitMap.has(clientId)) {
+    rateLimitMap.set(clientId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+  } else {
+    const clientData = rateLimitMap.get(clientId);
+    if (now > clientData.resetTime) {
+      clientData.count = 1;
+      clientData.resetTime = now + RATE_LIMIT_WINDOW;
+    } else {
+      clientData.count++;
+    }
+    
+    if (clientData.count > MAX_REQUESTS_PER_WINDOW) {
+      return res.status(429).json({
+        success: false,
+        error: 'Rate limit exceeded',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
+      });
+    }
+  }
+  
+  next();
+}
+
+// Input Sanitization Middleware
+function sanitizeInput(req, res, next) {
+  try {
+    // Sanitize query parameters
+    if (req.query) {
+      Object.keys(req.query).forEach(key => {
+        if (typeof req.query[key] === 'string') {
+          req.query[key] = req.query[key].replace(/[<>"'&\/]/g, '');
+        }
+      });
+    }
+    
+    // Sanitize body parameters
+    if (req.body) {
+      Object.keys(req.body).forEach(key => {
+        if (typeof req.body[key] === 'string') {
+          req.body[key] = req.body[key].replace(/[<>"'&\/]/g, '');
+        }
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Input sanitization error:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Invalid input data',
+      code: 'INVALID_INPUT'
+    });
+  }
+}
+
+// Import configuration
+const config = require('./config');
+
+// CORS Configuration - Restrict to specific domains
+const ALLOWED_ORIGINS = config.allowedOrigins;
+
+function corsMiddleware(req, res, next) {
+  const origin = req.headers.origin;
+  
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  } else {
+    res.set('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]); // Default to first allowed origin
+  }
+  
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-ID');
+  res.set('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).send();
+    return;
+  }
+  
+  next();
+}
+
 // Connection pool management functions
 function getConnection(connectionId = 'default') {
   const connection = connectionPool.get(connectionId);
@@ -185,22 +313,17 @@ function withPerformanceMonitoring(operationName, handler) {
   };
 }
 
-// Get global leaderboard with performance optimizations
+// Get global leaderboard with security middleware
 exports.getGlobalLeaderboard = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('getGlobalLeaderboard', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     // Performance optimization: Use efficient query with proper indexing
     const leaderboardRef = db.collection('leaderboard');
@@ -238,27 +361,22 @@ exports.getGlobalLeaderboard = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to fetch leaderboard',
-      details: error.message
+      code: 'LEADERBOARD_FETCH_ERROR'
     });
   }
 }));
 
-// Get user achievements
+// Get user achievements with security middleware
 exports.getUserAchievements = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('getUserAchievements', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     const { walletAddress } = req.query;
     
@@ -313,27 +431,22 @@ exports.getUserAchievements = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to fetch user achievements',
-      details: error.message
+      code: 'ACHIEVEMENTS_FETCH_ERROR'
     });
   }
 }));
 
-// Update user progress
+// Update user progress with security middleware
 exports.updateUserProgress = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('updateUserProgress', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     const { walletAddress, type, data: progressData } = req.body;
     
@@ -399,27 +512,22 @@ exports.updateUserProgress = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to update user progress',
-      details: error.message
+      code: 'PROGRESS_UPDATE_ERROR'
     });
   }
 }));
 
-// Unlock achievement
+// Unlock achievement with security middleware
 exports.unlockAchievement = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('unlockAchievement', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     const { walletAddress, achievementId, achievementData } = req.body;
     
@@ -485,27 +593,22 @@ exports.unlockAchievement = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to unlock achievement',
-      details: error.message
+      code: 'ACHIEVEMENT_UNLOCK_ERROR'
     });
   }
 }));
 
-// Add milestone
+// Add milestone with security middleware
 exports.addMilestone = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('addMilestone', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     const { walletAddress, milestoneId, milestoneData } = req.body;
     
@@ -564,27 +667,22 @@ exports.addMilestone = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to add milestone',
-      details: error.message
+      code: 'MILESTONE_ADD_ERROR'
     });
   }
 }));
 
-// Add memory
+// Add memory with security middleware
 exports.addMemory = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('addMemory', async (req, res) => {
   try {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     const { walletAddress, memoryId, memoryData } = req.body;
     
@@ -643,25 +741,22 @@ exports.addMemory = onRequest({
     res.status(500).json({
       success: false,
       error: 'Failed to add memory',
-      details: error.message
+      code: 'MEMORY_ADD_ERROR'
     });
   }
 }));
 
-// Health check endpoint with performance metrics
+// Health check endpoint with security middleware
 exports.getGlobalDataHealth = onRequest({
-  cors: ['*'],
-  invoker: 'public'
+  cors: false, // We handle CORS manually
+  invoker: 'private' // Require authentication
 }, withPerformanceMonitoring('getGlobalDataHealth', async (req, res) => {
   try {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    if (req.method === 'OPTIONS') {
-      res.status(200).send();
-      return;
-    }
+    // Apply security middleware
+    corsMiddleware(req, res, () => {});
+    rateLimitRequest(req, res, () => {});
+    sanitizeInput(req, res, () => {});
+    authenticateRequest(req, res, () => {});
 
     // Test database connection
     const testRef = db.collection('leaderboard').limit(1);
@@ -703,7 +798,8 @@ exports.getGlobalDataHealth = onRequest({
     res.status(500).json({
       status: 'unhealthy',
       module: 'global-data',
-      error: error.message,
+      error: 'Health check failed',
+      code: 'HEALTH_CHECK_ERROR',
       timestamp: new Date().toISOString()
     });
   }

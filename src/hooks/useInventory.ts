@@ -216,6 +216,6 @@ export const useInventory = () => {
         clearError,
         
         // Backward compatibility aliases
-        addItemsToInventory: addMarketplaceItemsToInventory, // Alias for existing components
+        // addItemsToInventory: addMarketplaceItemsToInventory, // Alias for existing components
     };
 };

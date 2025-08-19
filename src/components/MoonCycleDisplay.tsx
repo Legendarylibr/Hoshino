@@ -28,7 +28,8 @@ const MoonCycleDisplay: React.FC<Props> = ({
         return service;
     });
     const [globalPointSystem] = useState(() => walletAddress ? new GlobalPointSystem(walletAddress) : null);
-    const [cycleProgress, setCycleProgress] = useState(moonCycleService.getCycleProgress());
+    const [cycleProgress, setCycleProgress] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentCycle, setCurrentCycle] = useState<MoonCycle | null>(null);
     const [globalPoints, setGlobalPoints] = useState<GlobalPointsData | null>(null);
     const [showRewards, setShowRewards] = useState(false);
@@ -62,7 +63,13 @@ const MoonCycleDisplay: React.FC<Props> = ({
     }, [characterMint, moonCycleService, onIngredientFound, globalPointSystem, walletAddress]);
 
     const updateProgress = async () => {
-        setCycleProgress(moonCycleService.getCycleProgress());
+        try {
+            const progress = await moonCycleService.getCycleProgress();
+            setCycleProgress(progress);
+        } catch (error) {
+            console.error('Failed to update cycle progress:', error);
+        }
+        
         if (globalPointSystem) {
             const points = await globalPointSystem.getCurrentPoints();
             setGlobalPoints(points);
@@ -142,7 +149,7 @@ const MoonCycleDisplay: React.FC<Props> = ({
                 onTriggerFeedingAnimation(selectedFood);
             }
 
-            const result = moonCycleService.recordDailyStats(
+            const result = await moonCycleService.recordDailyStats(
                 3,
                 foodStars,
                 3,
@@ -151,14 +158,14 @@ const MoonCycleDisplay: React.FC<Props> = ({
                 characterName
             );
 
-            updateProgress();
+            await updateProgress();
             onActionComplete?.(actionType, result.moodBonusEarned, result.pointsReward);
 
             if (ingredient) {
                 onIngredientFound?.(ingredient);
             }
         } else if (actionType === 'chat') {
-            const result = moonCycleService.recordDailyStats(
+            const result = await moonCycleService.recordDailyStats(
                 4,
                 3,
                 3,
@@ -167,7 +174,7 @@ const MoonCycleDisplay: React.FC<Props> = ({
                 characterName
             );
 
-            updateProgress();
+            await updateProgress();
             onActionComplete?.(actionType, result.moodBonusEarned, result.pointsReward);
         }
     };
@@ -177,9 +184,11 @@ const MoonCycleDisplay: React.FC<Props> = ({
         const todayStats = currentCycle?.dailyStats.find(s => s.date === today);
         const isSleeping = !!todayStats?.sleepStartTime;
         const isCompleted = cycleProgress.todayCompleted.sleep;
-        let baseStyle = [styles.actionItem];
-        if (isCompleted) baseStyle = [...baseStyle, styles.actionItemCompleted];
-        if (isSleeping) baseStyle = [...baseStyle, styles.actionItemSleeping];
+        const baseStyle = [
+            styles.actionItem,
+            ...(isCompleted ? [styles.actionItemCompleted] : []),
+            ...(isSleeping ? [styles.actionItemSleeping] : [])
+        ];
 
         if (isSleeping) {
             const progress = useSharedValue(0);
@@ -208,6 +217,14 @@ const MoonCycleDisplay: React.FC<Props> = ({
             );
         }
     };
+
+    if (isLoading || !cycleProgress) {
+        return (
+            <View style={styles.moonCycleContainer}>
+                <Text style={styles.loadingText}>Loading moon cycle data...</Text>
+            </View>
+        );
+    }
 
     const ratio = cycleProgress.moodDaysAchieved / cycleProgress.moodDaysNeeded;
     const progressColor = getProgressColor(cycleProgress.moodDaysAchieved, cycleProgress.moodDaysNeeded);
@@ -432,6 +449,12 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 12,
         elevation: 5,
+    },
+    loadingText: {
+        textAlign: 'center',
+        fontSize: 16,
+        color: '#6b7280',
+        padding: 20,
     },
     moonCycleHeader: {
         flexDirection: 'row',

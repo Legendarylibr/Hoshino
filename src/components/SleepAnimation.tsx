@@ -7,6 +7,7 @@ import {
     Animated,
     Dimensions,
 } from 'react-native';
+import { Character } from '../types/GameTypes';
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -25,13 +26,6 @@ const getImageSource = (imageName: string) => {
             return require('../../assets/moonlings/LYRA.png'); // fallback
     }
 };
-
-interface Character {
-    id: string;
-    name: string;
-    image: string;
-    element: string;
-}
 
 interface Props {
     character: Character;

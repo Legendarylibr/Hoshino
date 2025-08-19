@@ -1,12 +1,29 @@
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // Firebase Functions base URLs - using centralized config
 import { getFunctionUrl } from '../config/firebase';
-
 const FIREBASE_FUNCTIONS_BASE_URL = getFunctionUrl('chat').replace('/chat', '');
 const GET_CONVERSATION_URL = getFunctionUrl('getConversation');
 const HEALTH_URL = getFunctionUrl('health');
+
+// Helper function to get authentication headers
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
+  const token = await user.getIdToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'X-Client-ID': 'hoshino-mobile-app'
+  };
+}
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -158,9 +175,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           message,
           moonlingId,
@@ -190,9 +205,7 @@ class FirebaseService {
         `${GET_CONVERSATION_URL}?conversationId=${conversationId}&userId=${userId}`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: await getAuthHeaders(),
         }
       );
 
@@ -213,9 +226,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${HEALTH_URL}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -234,9 +245,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/getGlobalLeaderboard`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -270,9 +279,7 @@ class FirebaseService {
         `${FIREBASE_FUNCTIONS_BASE_URL}/getUserAchievements?walletAddress=${walletAddress}`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: await getAuthHeaders(),
         }
       );
 
@@ -315,9 +322,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/updateUserProgress`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           walletAddress,
           type,
@@ -346,9 +351,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/unlockAchievement`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           walletAddress,
           achievementId,
@@ -377,9 +380,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/addMilestone`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           walletAddress,
           milestoneId,
@@ -408,9 +409,7 @@ class FirebaseService {
     try {
       const response = await fetch(`${FIREBASE_FUNCTIONS_BASE_URL}/addMemory`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           walletAddress,
           memoryId,

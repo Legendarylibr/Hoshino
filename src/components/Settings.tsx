@@ -78,8 +78,9 @@ const Settings: React.FC<Props> = ({ onBack, onNotification, onSettingsChanged }
             });
             
             // Update the settings service with the new order
-            settingsService.settings.menuButtons = newMenuButtons;
-            await settingsService.saveSettings();
+            for (let i = 0; i < newMenuButtons.length; i++) {
+                await settingsService.updateMenuButtonOrder(newMenuButtons[i].id, i);
+            }
             
             // Reload settings to reflect the change
             await loadSettings();
@@ -204,7 +205,7 @@ const Settings: React.FC<Props> = ({ onBack, onNotification, onSettingsChanged }
                                     }
                                 }
                             },
-                            onPanResponderRelease: (evt, gestureState) => {
+                            onPanResponderRelease: async (evt, gestureState) => {
                                 if (pan) {
                                     // Update order values for the current state
                                     menuButtons.forEach((btn, idx) => {
@@ -212,8 +213,11 @@ const Settings: React.FC<Props> = ({ onBack, onNotification, onSettingsChanged }
                                     });
                                     
                                     // Save changes
-                                    settingsService.settings.menuButtons = menuButtons;
-                                    settingsService.saveSettings();
+                                    // Update each button order individually
+                                    for (let i = 0; i < menuButtons.length; i++) {
+                                        await settingsService.updateMenuButtonOrder(menuButtons[i].id, i);
+                                    }
+                                    await settingsService.saveSettings();
                                     onSettingsChanged?.();
                                     onNotification?.(`Moved ${button.name}`, 'success');
                                     

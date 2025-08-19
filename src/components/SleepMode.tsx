@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Image, TouchableOpacity, TextInput, Switch, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TextInput, Switch, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 // Helper function to get image source based on character image name
 const getImageSource = (imageName: string) => {
@@ -20,12 +22,8 @@ const getImageSource = (imageName: string) => {
     }
 };
 
-interface Character {
-    id: string;
-    name: string;
-    image: string;
-    element: string;
-}
+// Using Character interface from GameTypes.ts
+import { Character } from '../types/GameTypes';
 
 interface Props {
     character: Character;
@@ -65,8 +63,8 @@ const SleepMode: React.FC<Props> = ({ character, onSleepSessionEnd, onClose }) =
     const starPositions = useMemo(
         () =>
             [...Array(20)].map(() => ({
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: Math.random() * width,
+                top: Math.random() * height,
             })),
         []
     );

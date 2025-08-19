@@ -1,6 +1,7 @@
 import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import { getFunctionUrl } from '../config/firebase';
 import { Buffer } from 'buffer';
+import { ItemRarity } from '../types/GameTypes';
 
 // Import the singleton instance from WalletContext
 import { mobileWalletService } from '../contexts/WalletContext';
@@ -11,6 +12,8 @@ export interface GameCharacter {
   name: string;
   description?: string;
   image: string;
+  element: string; // Required element property
+  rarity: ItemRarity; // Required rarity property
   level?: number;
   experience?: number;
   baseStats?: {

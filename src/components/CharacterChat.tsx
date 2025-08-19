@@ -2,22 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import InnerScreen from './InnerScreen';
 import chatService from '../services/ChatService';
-
-interface Character {
-    id: string;
-    name: string;
-    description: string;
-    image: string;
-    element: string;
-    baseStats: {
-        mood: number;
-        hunger: number;
-        energy: number;
-    };
-    rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
-    specialAbility: string;
-    nftMint?: string | null;
-}
+import { Character } from '../types/GameTypes';
 
 interface Message {
     id: string;

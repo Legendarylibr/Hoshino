@@ -110,12 +110,13 @@ export class GameMechanicsService {
                 }
             );
 
-            // Update MoonCycleService
+            // Update MoonCycleService (play actions are recorded as chat for moon cycle tracking)
+            const moonCycleActionType = actionType === 'play' ? 'chat' : actionType;
             await this.moonCycleService.recordDailyStats(
                 newStats.mood,
                 newStats.hunger,
                 newStats.energy,
-                actionType,
+                moonCycleActionType,
                 additionalParams?.sleepDuration
             );
 
@@ -163,7 +164,7 @@ export class GameMechanicsService {
 
     // ENHANCED: Smart reward calculation system
     private calculateRewards(
-        actionType: string,
+        actionType: 'feed' | 'play' | 'sleep' | 'chat',
         quality: number,
         newStats: GameStats,
         oldStats: GameStats
@@ -206,7 +207,7 @@ export class GameMechanicsService {
 
     // ENHANCED: Personalized interaction messages
     private generateInteractionMessage(
-        actionType: string,
+        actionType: 'feed' | 'play' | 'sleep' | 'chat',
         quality: number,
         newStats: GameStats,
         oldStats: GameStats
