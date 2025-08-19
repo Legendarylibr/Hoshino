@@ -1,10 +1,12 @@
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 
-// Firebase Functions base URLs - using the cloudfunctions.net format
-const FIREBASE_FUNCTIONS_BASE_URL = 'https://us-central1-hoshino-996d0.cloudfunctions.net';
-const GET_CONVERSATION_URL = 'https://us-central1-hoshino-996d0.cloudfunctions.net/getConversation';
-const HEALTH_URL = 'https://us-central1-hoshino-996d0.cloudfunctions.net/health';
+// Firebase Functions base URLs - using centralized config
+import { getFunctionUrl } from '../config/firebase';
+
+const FIREBASE_FUNCTIONS_BASE_URL = getFunctionUrl('chat').replace('/chat', '');
+const GET_CONVERSATION_URL = getFunctionUrl('getConversation');
+const HEALTH_URL = getFunctionUrl('health');
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

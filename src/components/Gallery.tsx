@@ -46,89 +46,7 @@ const Gallery: React.FC<Props> = ({ onBack, walletAddress }) => {
         } catch (error) {
             console.error('Failed to load leaderboard data:', error);
             setError('Failed to load leaderboard data');
-            
-            // Fallback to mock data if backend fails
-            const mockLeaderboardData: LeaderboardUser[] = [
-                {
-                    id: '1',
-                    username: 'CosmicMaster',
-                    walletAddress: '0x1234...5678',
-                    totalScore: 15420,
-                    achievements: 18,
-                    moonlings: 5,
-                    rank: 1,
-                    avatar: '🌟',
-                    lastActive: new Date(),
-                    starFragments: 1500,
-                    currentStreak: 7
-                },
-                {
-                    id: '2',
-                    username: 'StellarExplorer',
-                    walletAddress: '0x8765...4321',
-                    totalScore: 12850,
-                    achievements: 15,
-                    moonlings: 4,
-                    rank: 2,
-                    avatar: '⭐',
-                    lastActive: new Date(Date.now() - 3600000),
-                    starFragments: 1200,
-                    currentStreak: 5
-                },
-                {
-                    id: '3',
-                    username: 'MoonWalker',
-                    walletAddress: '0x9999...8888',
-                    totalScore: 11200,
-                    achievements: 12,
-                    moonlings: 3,
-                    rank: 3,
-                    avatar: '🌙',
-                    lastActive: new Date(Date.now() - 7200000),
-                    starFragments: 1000,
-                    currentStreak: 3
-                },
-                {
-                    id: '4',
-                    username: 'NovaHunter',
-                    walletAddress: '0x7777...6666',
-                    totalScore: 9850,
-                    achievements: 10,
-                    moonlings: 3,
-                    rank: 4,
-                    avatar: '💫',
-                    lastActive: new Date(Date.now() - 10800000),
-                    starFragments: 800,
-                    currentStreak: 2
-                },
-                {
-                    id: '5',
-                    username: 'StarCollector',
-                    walletAddress: '0x5555...4444',
-                    totalScore: 8750,
-                    achievements: 8,
-                    moonlings: 2,
-                    rank: 5,
-                    avatar: '✨',
-                    lastActive: new Date(Date.now() - 14400000),
-                    starFragments: 600,
-                    currentStreak: 1
-                },
-                {
-                    id: '6',
-                    username: 'LunarPioneer',
-                    walletAddress: '0x3333...2222',
-                    totalScore: 7200,
-                    achievements: 6,
-                    moonlings: 2,
-                    rank: 6,
-                    avatar: '🌍',
-                    lastActive: new Date(Date.now() - 18000000),
-                    starFragments: 400,
-                    currentStreak: 0
-                }
-            ];
-            setLeaderboardUsers(mockLeaderboardData);
+            // No mock data fallback - let the hook handle it
         } finally {
             setLoading(false);
         }
@@ -160,10 +78,10 @@ const Gallery: React.FC<Props> = ({ onBack, walletAddress }) => {
                     }));
                     setAchievements(achievementsWithDates);
                 } else {
-                    // Initialize with default achievements
-                    const defaultAchievements = generateDefaultAchievements();
-                    setAchievements(defaultAchievements);
-                    await AsyncStorage.setItem(`${storageKey}_achievements`, JSON.stringify(defaultAchievements));
+                    // Initialize with empty arrays - data will come from backend
+                    setAchievements([]);
+                    setMilestones([]);
+                    setMemories([]);
                 }
 
                 // Load milestones
@@ -176,14 +94,12 @@ const Gallery: React.FC<Props> = ({ onBack, walletAddress }) => {
                     }));
                     setMilestones(milestonesWithDates);
                 } else {
-                    // Initialize with default milestones
-                    const defaultMilestones = generateDefaultMilestones();
-                    setMilestones(defaultMilestones);
-                    await AsyncStorage.setItem(`${storageKey}_milestones`, JSON.stringify(defaultMilestones));
+                    // Initialize with empty arrays - data will come from backend
+                    setMilestones([]);
                 }
 
                 // Load memories
-                const storedMemories = await AsyncStorage.getItem(`${storageKey}_memories`);
+                const storedMemories = await AsyncStorage.getItem(`${storageKey}_milestones`);
                 if (storedMemories) {
                     const parsed = JSON.parse(storedMemories);
                     const memoriesWithDates = parsed.map((m: any) => ({
@@ -192,10 +108,8 @@ const Gallery: React.FC<Props> = ({ onBack, walletAddress }) => {
                     }));
                     setMemories(memoriesWithDates);
                 } else {
-                    // Initialize with default memories
-                    const defaultMemories = generateDefaultMemories();
-                    setMemories(defaultMemories);
-                    await AsyncStorage.setItem(`${storageKey}_memories`, JSON.stringify(defaultMemories));
+                    // Initialize with empty arrays - data will come from backend
+                    setMemories([]);
                 }
 
                 updateStats();
@@ -208,110 +122,9 @@ const Gallery: React.FC<Props> = ({ onBack, walletAddress }) => {
         }
     };
 
-    const generateDefaultAchievements = (): Achievement[] => [
-        {
-            id: 'first-feed',
-            title: 'First Feeding',
-            description: 'Feed your moonling for the first time',
-            icon: '🍽️',
-            category: 'feeding',
-            unlockedAt: new Date(),
-            rarity: 'common'
-        },
-        {
-            id: 'sleep-master',
-            title: 'Sleep Master',
-            description: 'Complete 7 sleep cycles',
-            icon: '😴',
-            category: 'sleep',
-            unlockedAt: new Date(),
-            rarity: 'rare'
-        },
-        {
-            id: 'playful-spirit',
-            title: 'Playful Spirit',
-            description: 'Play with your moonling 10 times',
-            icon: '🎮',
-            category: 'play',
-            unlockedAt: new Date(),
-            rarity: 'common'
-        },
-        {
-            id: 'crafting-novice',
-            title: 'Crafting Novice',
-            description: 'Craft your first recipe',
-            icon: '🍳',
-            category: 'crafting',
-            unlockedAt: new Date(),
-            rarity: 'rare'
-        },
-        {
-            id: 'collector',
-            title: 'Ingredient Collector',
-            description: 'Collect all common ingredients',
-            icon: '📦',
-            category: 'collection',
-            unlockedAt: new Date(),
-            rarity: 'epic'
-        },
-        {
-            id: 'chat-master',
-            title: 'Chat Master',
-            description: 'Have 50 conversations with your moonling',
-            icon: '💬',
-            category: 'chat',
-            unlockedAt: new Date(),
-            rarity: 'legendary'
-        }
-    ];
+    // Default data generation functions removed - now handled by backend
 
-    const generateDefaultMilestones = (): Milestone[] => [
-        {
-            id: '7-days',
-            title: 'Week Warrior',
-            description: 'Play for 7 consecutive days',
-            icon: '📅',
-            type: 'days',
-            value: 7,
-            achievedAt: new Date()
-        },
-        {
-            id: '100-feedings',
-            title: 'Feeding Champion',
-            description: 'Feed your moonling 100 times',
-            icon: '🍽️',
-            type: 'feedings',
-            value: 100,
-            achievedAt: new Date()
-        },
-        {
-            id: '50-sleeps',
-            title: 'Sleep Champion',
-            description: 'Complete 50 sleep cycles',
-            icon: '😴',
-            type: 'sleeps',
-            value: 50,
-            achievedAt: new Date()
-        },
-        {
-            id: '25-crafts',
-            title: 'Master Crafter',
-            description: 'Craft 25 recipes',
-            icon: '🍳',
-            type: 'crafts',
-            value: 25,
-            achievedAt: new Date()
-        },
-        {
-            id: 'all-ingredients',
-            title: 'Ingredient Master',
-            description: 'Collect all available ingredients',
-            icon: '📦',
-            type: 'ingredients',
-            value: 3,
-            achievedAt: new Date()
-        }
-    ];
+    // Default milestone generation function removed - now handled by backend
 
     const generateDefaultMemories = (): Memory[] => [
         {

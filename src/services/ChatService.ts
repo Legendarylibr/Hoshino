@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getFunctionUrl } from '../config/firebase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -27,9 +28,8 @@ class ChatService {
   private userId: string | null = null;
 
   constructor() {
-    // Firebase Functions URL with correct project ID
-    // Using production URL for both dev and prod since emulator isn't running
-    this.baseUrl = 'https://us-central1-hoshino-996d0.cloudfunctions.net';
+    // Use centralized Firebase config
+    this.baseUrl = getFunctionUrl('chat').replace('/chat', '');
   }
 
   setUserId(userId: string) {
