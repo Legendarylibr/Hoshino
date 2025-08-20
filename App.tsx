@@ -145,9 +145,8 @@ function App() {
     const [nftMinter, setNftMinter] = useState<any>(null); // Legacy NFT minter - now using ProgrammableNFTService
     const [metaplexService, setMetaplexService] = useState<any>(null); // This will be updated to MetaplexService
 
-    // DEV BYPASS: Allow direct access to interaction view without minting
+    // DEV MODE: Simple toggle for dev bypass
     const [devMode, setDevMode] = useState(false);
-    const [devBypassUsed, setDevBypassUsed] = useState(false);
 
     const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning', duration?: number) => {
         const id = Date.now().toString();
@@ -263,36 +262,29 @@ function App() {
 
     // DEV BYPASS: Skip minting and go directly to interaction view
     const handleDevBypass = () => {
-        if (!selectedCharacter) {
-            // If no character selected, use a default character
-            const defaultCharacter: Character = {
-                id: 'dev-lyra',
-                name: 'Dev Lyra',
-                description: 'Development mode character for testing',
-                image: 'LYRA.gif',
-                element: 'Light',
-                rarity: 'common',
-                nftMint: 'dev_bypass_mint',
-                baseStats: {
-                    mood: 3,
-                    hunger: 2,
-                    energy: 4
-                }
-            };
-            setSelectedCharacter(defaultCharacter);
-            setCharacterStats({
-                mood: 3,
-                hunger: 2,
-                energy: 4
-            });
-        }
+        // Create a default character for development
+        const defaultCharacter: Character = {
+            id: 'dev-lyra',
+            name: 'Dev Lyra',
+            description: 'Development mode character for testing',
+            image: 'LYRA.png',
+            element: 'Light',
+            rarity: 'common',
+            nftMint: 'dev_bypass_mint',
+            baseStats: { mood: 4, hunger: 3, energy: 3 },
+            specialAbility: 'Healing Aura - Recovers faster when resting'
+        };
         
-        setDevBypassUsed(true);
-        setShouldFadeInInteraction(true);
+        setSelectedCharacter(defaultCharacter);
+        setCharacterStats({
+            mood: 3,
+            hunger: 2,
+            energy: 4
+        });
+        
         setCurrentView('interaction');
         
-        addNotification('🚀 Dev bypass activated! Skipping minting...', 'info');
-        setTimeout(() => setStatusMessage(''), 3000);
+        addNotification('🚀 Dev bypass activated!', 'info');
     };
 
     const handleMintCharacter = async () => {
@@ -603,6 +595,7 @@ function App() {
                         goToCongratulations={shouldGoToCongratulations}
                         initialPhase={welcomePhase}
                         selectedMoonlingName={selectedCharacter?.name}
+                        onDevBypass={handleDevBypass}
                     />
                 );
             case 'selection':
@@ -880,13 +873,13 @@ function App() {
                 </Text>
             </TouchableOpacity>
 
-            {/* FLOATING DEV BYPASS BUTTON */}
+            {/* DEV BYPASS BUTTON */}
             {devMode && (
                 <TouchableOpacity
-                    style={styles.floatingDevBypass}
+                    style={styles.devBypassButton}
                     onPress={handleDevBypass}
                 >
-                    <Text style={styles.floatingDevBypassText}>🚀</Text>
+                    <Text style={styles.devBypassText}>🚀 DEV BYPASS</Text>
                 </TouchableOpacity>
             )}
 
@@ -978,37 +971,40 @@ const styles = StyleSheet.create({
     },
     devModeToggle: {
         position: 'absolute',
-        top: 100, // Adjust as needed
+        top: 10,
         left: 20,
         paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingHorizontal: 15,
         backgroundColor: '#333',
         borderRadius: 8,
-        zIndex: 1000,
+        borderWidth: 1,
+        borderColor: '#fff',
     },
     devModeToggleActive: {
-        backgroundColor: '#4CAF50', // Green for active
+        backgroundColor: '#FFD700',
+        borderColor: '#DAA520',
     },
     devModeToggleText: {
-        color: 'white',
-        fontSize: 12,
+        color: '#fff',
+        fontSize: 10,
         fontWeight: 'bold',
     },
-    floatingDevBypass: {
+    devBypassButton: {
         position: 'absolute',
-        top: 100, // Same top position as dev mode toggle
-        left: 140, // Moved further right from 100 to 140 to ensure no overlap
-        backgroundColor: '#4CAF50',
-        borderRadius: 20,
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
+        top: 10, // Moved up from bottom: 20 to be next to dev mode toggle
+        left: 120, // Positioned to the right of the dev mode toggle
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#FFD700', // Gold color for a dev-like feel
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#DAA520', // Darker gold border
     },
-    floatingDevBypassText: {
-        fontSize: 20,
-        color: 'white',
+    devBypassText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#333',
+        textAlign: 'center',
     },
 
 });

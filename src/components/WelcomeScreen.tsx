@@ -717,7 +717,7 @@ const WelcomeScreen: React.FC<Props> = ({
                     >
                         <Text style={styles.devBypassText}>🚀 DEV BYPASS</Text>
                     </TouchableOpacity>
-                    <Text style={styles.devBypassHint}>Skip minting for development</Text>
+                    <Text style={styles.devBypassHint}>Skip welcome & minting for development</Text>
                 </View>
             )}
         </InnerScreen>
