@@ -145,6 +145,10 @@ function App() {
     const [nftMinter, setNftMinter] = useState<any>(null); // Legacy NFT minter - now using ProgrammableNFTService
     const [metaplexService, setMetaplexService] = useState<any>(null); // This will be updated to MetaplexService
 
+    // DEV BYPASS: Allow direct access to interaction view without minting
+    const [devMode, setDevMode] = useState(false);
+    const [devBypassUsed, setDevBypassUsed] = useState(false);
+
     const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning', duration?: number) => {
         const id = Date.now().toString();
         setNotifications(prev => [...prev, { id, message, type, duration }]);
@@ -255,6 +259,40 @@ function App() {
             setStatusMessage('Failed to disconnect wallet');
             setTimeout(() => setStatusMessage(''), 3000);
         }
+    };
+
+    // DEV BYPASS: Skip minting and go directly to interaction view
+    const handleDevBypass = () => {
+        if (!selectedCharacter) {
+            // If no character selected, use a default character
+            const defaultCharacter: Character = {
+                id: 'dev-lyra',
+                name: 'Dev Lyra',
+                description: 'Development mode character for testing',
+                image: 'LYRA.gif',
+                element: 'Light',
+                rarity: 'common',
+                nftMint: 'dev_bypass_mint',
+                baseStats: {
+                    mood: 3,
+                    hunger: 2,
+                    energy: 4
+                }
+            };
+            setSelectedCharacter(defaultCharacter);
+            setCharacterStats({
+                mood: 3,
+                hunger: 2,
+                energy: 4
+            });
+        }
+        
+        setDevBypassUsed(true);
+        setShouldFadeInInteraction(true);
+        setCurrentView('interaction');
+        
+        addNotification('🚀 Dev bypass activated! Skipping minting...', 'info');
+        setTimeout(() => setStatusMessage(''), 3000);
     };
 
     const handleMintCharacter = async () => {
@@ -832,6 +870,26 @@ function App() {
                 onDisconnect={disconnectWallet}
             />
 
+            {/* DEV MODE TOGGLE */}
+            <TouchableOpacity
+                style={[styles.devModeToggle, devMode && styles.devModeToggleActive]}
+                onPress={() => setDevMode(!devMode)}
+            >
+                <Text style={styles.devModeToggleText}>
+                    {devMode ? '🔧 DEV ON' : '🔧 DEV'}
+                </Text>
+            </TouchableOpacity>
+
+            {/* FLOATING DEV BYPASS BUTTON */}
+            {devMode && (
+                <TouchableOpacity
+                    style={styles.floatingDevBypass}
+                    onPress={handleDevBypass}
+                >
+                    <Text style={styles.floatingDevBypassText}>🚀</Text>
+                </TouchableOpacity>
+            )}
+
             {statusMessage && (
                 <View style={[styles.statusMessage, lastError ? styles.error : styles.success]}>
                     <Text style={styles.statusText}>{statusMessage}</Text>
@@ -917,6 +975,40 @@ const styles = StyleSheet.create({
     gameText: {
         fontSize: 10,
         color: '#5D4E37',
+    },
+    devModeToggle: {
+        position: 'absolute',
+        top: 100, // Adjust as needed
+        left: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#333',
+        borderRadius: 8,
+        zIndex: 1000,
+    },
+    devModeToggleActive: {
+        backgroundColor: '#4CAF50', // Green for active
+    },
+    devModeToggleText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    floatingDevBypass: {
+        position: 'absolute',
+        top: 100, // Same top position as dev mode toggle
+        left: 140, // Moved further right from 100 to 140 to ensure no overlap
+        backgroundColor: '#4CAF50',
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    floatingDevBypassText: {
+        fontSize: 20,
+        color: 'white',
     },
 
 });

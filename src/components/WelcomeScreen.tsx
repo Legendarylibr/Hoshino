@@ -18,9 +18,23 @@ interface Props {
     goToCongratulations?: boolean;
     initialPhase?: string;
     selectedMoonlingName?: string;
+    onDevBypass?: () => void;
+    devMode?: boolean;
 }
 
-const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToSelection, connected, onConnectWallet, playerName: storedPlayerName, goToCongratulations, initialPhase, selectedMoonlingName }) => {
+const WelcomeScreen: React.FC<Props> = ({ 
+    onContinue, 
+    onGoToInteraction, 
+    onGoToSelection, 
+    connected, 
+    onConnectWallet, 
+    playerName: storedPlayerName, 
+    goToCongratulations, 
+    initialPhase, 
+    selectedMoonlingName,
+    onDevBypass,
+    devMode = false
+}) => {
     const { publicKey } = useWallet();
     
     const [currentPhase, setCurrentPhase] = useState<'intro' | 'introNo' | 'name' | 'nameInput' | 'explanation' | 'explanationNo' | 'chooseMoonling' | 'congratulations' | 'mintMore' | 'final' | 'complete'>(initialPhase as any || 'intro');
@@ -693,6 +707,19 @@ const WelcomeScreen: React.FC<Props> = ({ onContinue, onGoToInteraction, onGoToS
                     </View>
                 </View>
             )}
+
+            {/* DEV BYPASS: Skip minting and go directly to interaction */}
+            {devMode && onDevBypass && (
+                <View style={styles.devBypassContainer}>
+                    <TouchableOpacity
+                        style={styles.devBypassButton}
+                        onPress={onDevBypass}
+                    >
+                        <Text style={styles.devBypassText}>🚀 DEV BYPASS</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.devBypassHint}>Skip minting for development</Text>
+                </View>
+            )}
         </InnerScreen>
     );
 };
@@ -1162,6 +1189,37 @@ const styles = StyleSheet.create({
         zIndex: 11,
     },
 
+    devBypassContainer: {
+        position: 'absolute',
+        bottom: 10,
+        left: 10,
+        backgroundColor: '#FFD700', // Gold background
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#FFC107', // Darker gold border
+        zIndex: 100, // Ensure it's above other content
+    },
+    devBypassButton: {
+        backgroundColor: '#FFC107', // Darker gold button
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#FFC107',
+    },
+    devBypassText: {
+        color: '#2E5A3E', // Dark green text
+        fontSize: 12,
+        fontWeight: 'bold',
+        fontFamily: 'PressStart2P',
+    },
+    devBypassHint: {
+        color: '#2E5A3E', // Dark green text
+        fontSize: 10,
+        marginTop: 5,
+        fontFamily: 'PressStart2P',
+    },
 
 });
 

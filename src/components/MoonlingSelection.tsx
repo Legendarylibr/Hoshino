@@ -45,6 +45,8 @@ interface Props {
     onBack: () => void;
     onNotification?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     onGoToCongratulations?: (character?: Character) => void;
+    onDevBypass?: () => void;
+    devMode?: boolean;
 }
 
 const CHARACTERS: Character[] = [
@@ -95,7 +97,9 @@ const CARD_WIDTH = 220; // 200 card width + 20 total margin (10 on each side)
 const MoonlingSelection: React.FC<Props> = ({
     onBack,
     onNotification,
-    onGoToCongratulations
+    onGoToCongratulations,
+    onDevBypass,
+    devMode = false
 }) => {
 
     const { 
@@ -420,6 +424,19 @@ const MoonlingSelection: React.FC<Props> = ({
                         </Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* DEV BYPASS: Skip minting and go directly to interaction */}
+                {devMode && onDevBypass && (
+                    <View style={styles.devBypassContainer}>
+                        <TouchableOpacity
+                            style={styles.devBypassButton}
+                            onPress={onDevBypass}
+                        >
+                            <Text style={styles.devBypassText}>🚀 DEV BYPASS</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.devBypassHint}>Skip minting for development</Text>
+                    </View>
+                )}
             </View>
             
             {/* Character Detail Modal */}
@@ -680,6 +697,35 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'PressStart2P',
         fontWeight: 'bold',
+    },
+
+    // DEV BYPASS styles
+    devBypassContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    devBypassButton: {
+        backgroundColor: '#2E5A3E',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#E8F5E8',
+        marginBottom: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    devBypassText: {
+        color: '#E8F5E8',
+        fontSize: 14,
+        fontFamily: 'PressStart2P',
+        fontWeight: 'bold',
+    },
+    devBypassHint: {
+        fontSize: 10,
+        color: '#2E5A3E',
+        textAlign: 'center',
+        fontFamily: 'PressStart2P',
     },
 
 });
